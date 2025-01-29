@@ -3034,13 +3034,7 @@ dependencies = [
  "hyper-util",
  "quinn",
  "rustls",
- "rustls-pemfile",
- "scuffle-context",
- "scuffle-future-ext",
- "scuffle-h3-webtransport",
  "scuffle-workspace-hack",
- "smallvec",
- "spin",
  "serde",
  "thiserror 2.0.11",
  "tokio",
@@ -3279,6 +3273,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tokio-util",
+ "tower",
  "tracing",
  "tracing-core",
  "tracing-log",
@@ -3458,15 +3453,6 @@ checksum = "c970269d99b64e60ec3bd6ad27270092a5394c4e309314b18ae3fe575695fbe8"
 dependencies = [
  "libc",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "spin"
-version = "0.9.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
-dependencies = [
- "lock_api",
 ]
 
 [[package]]
