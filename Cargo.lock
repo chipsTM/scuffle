@@ -3033,6 +3033,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "quinn",
+ "reqwest",
  "rustls",
  "scuffle-workspace-hack",
  "serde",
