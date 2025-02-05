@@ -3030,6 +3030,7 @@ name = "scuffle-http"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "bon",
  "bytes",
  "futures",
  "h3",
