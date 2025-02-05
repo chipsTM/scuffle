@@ -3039,6 +3039,7 @@ dependencies = [
  "http-body",
  "hyper",
  "hyper-util",
+ "pin-project-lite",
  "quinn",
  "reqwest",
  "rustls",
