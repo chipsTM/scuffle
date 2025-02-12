@@ -45,7 +45,7 @@ link_system_ffmpeg = ["rusty_ffmpeg/link_system_ffmpeg"]
 link_vcpkg_ffmpeg = ["rusty_ffmpeg/link_vcpkg_ffmpeg"]
 default = ["link_system_ffmpeg"]
 
-[package.metadata.xtask]
+[package.metadata.xtask.powerset]
 # Note: `link_system_ffmpeg` nor `link_vcpkg_ffmpeg` are additive features because
 # they change the build.rs and therefore require a full rebuild of the crate.
 additive-features = [
