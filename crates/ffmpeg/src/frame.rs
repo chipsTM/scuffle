@@ -400,12 +400,16 @@ impl VideoFrame {
     }
 
     /// Sets the width of the frame.
-    pub const fn set_width(&mut self, width: usize) {
+    ///
+    /// Safety: this must only ever be called before data allocation
+    pub(crate) const unsafe fn set_width(&mut self, width: usize) {
         self.0 .0.as_deref_mut_except().width = width as i32;
     }
 
     /// Sets the height of the frame.
-    pub const fn set_height(&mut self, height: usize) {
+    ///
+    /// Safety: this must only ever be called before data allocation
+    pub(crate) const unsafe fn set_height(&mut self, height: usize) {
         self.0 .0.as_deref_mut_except().height = height as i32;
     }
 
