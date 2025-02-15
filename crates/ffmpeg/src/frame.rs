@@ -1,9 +1,167 @@
+use std::ops::{Index, IndexMut};
+use std::ptr::NonNull;
+
 use crate::error::{FfmpegError, FfmpegErrorCode};
-use crate::ffi::*;
+use crate::{ffi::*, AVSampleFormat};
 use crate::rational::Rational;
 use crate::smart_object::{SmartObject, SmartPtr};
 use crate::utils::{check_i64, or_nopts};
 use crate::{AVPictureType, AVPixelFormat};
+
+/// Wrapper around the data buffers of AVFrame that handles bottom-to-top line iteration
+#[derive(Debug, PartialEq)]
+pub struct FrameData<'a> {
+    // this may point to the start of the last line of the buffer
+    ptr: NonNull<u8>,
+    linesize: i32,
+    height: i32,
+    phantom: core::marker::PhantomData<&'a ()>,
+}
+
+#[derive(Debug, PartialEq)]
+/// Mutable wrapper around the data buffers of AVFrame that handles bottom-to-top line iteration
+pub struct FrameDataMut<'a>(FrameData<'a>);
+
+impl<'a> core::ops::Deref for FrameDataMut<'a> {
+    type Target = FrameData<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl core::ops::Index<usize> for FrameData<'_> {
+    type Output = u8;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        if index >= self.len() {
+            panic!("index out of bounds: the len is {} but the index is {}", self.len(), index);
+        }
+        if self.linesize.is_positive() {
+            // Safety: self.ptr + index is inside the bounds of the buffer
+            let ptr = unsafe { self.ptr.byte_add(index) };
+            // Safety: ptr is valid
+            unsafe { ptr.as_ref() }
+        } else {
+            let stride = self.linesize.unsigned_abs() as usize;
+            let line = index / stride;
+            let line_pos = index % stride;
+            // Safety: points to the start of the current line
+            let current_line_ptr = unsafe { self.ptr.byte_sub(line * stride) };
+            // Safety: points to the desired value within the current line
+            let value_ptr = unsafe { current_line_ptr.byte_add(line_pos) };
+            // Safety: value_ptr is valid
+            unsafe { value_ptr.as_ref() }
+        }
+    }
+}
+
+impl core::ops::Index<usize> for FrameDataMut<'_> {
+    type Output = u8;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+impl core::ops::IndexMut<usize> for FrameDataMut<'_> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        if index >= self.len() {
+            panic!("index out of bounds: the len is {} but the index is {}", self.len(), index);
+        }
+        if self.linesize.is_positive() {
+            // Safety: self.ptr + index is inside the bounds of the buffer
+            let mut ptr = unsafe { self.ptr.byte_add(index) };
+            // Safety: ptr is valid
+            unsafe { ptr.as_mut() }
+        } else {
+            let stride = self.linesize.unsigned_abs() as usize;
+            let line = index / stride;
+            let line_pos = index % stride;
+            // Safety: points to the start of the current line
+            let current_line_ptr = unsafe { self.ptr.byte_sub(line * stride) };
+            // Safety: points to the desired value within the current line
+            let mut value_ptr = unsafe { current_line_ptr.byte_add(line_pos) };
+            // Safety: value_ptr is valid
+            unsafe { value_ptr.as_mut() }
+        }
+    }
+}
+
+impl<'a> FrameData<'a> {
+    /// Returns the height of the underlying data, in bytes
+    pub const fn height(&self) -> i32 {
+        self.height
+    }
+
+    /// Returns the linesize of the underlying data, in bytes. Negative if iteration
+    /// order is bottom-to-top. [Reference](https://ffmpeg.org/doxygen/7.0/structAVFrame.html#aa52bfc6605f6a3059a0c3226cc0f6567)
+    pub const fn linesize(&self) -> i32 {
+        self.linesize
+    }
+
+    /// Returns the length of the underlying data, in bytes
+    pub const fn len(&self) -> usize {
+        (self.linesize.abs() * self.height) as usize
+    }
+
+    /// Returns true if the underlying data buffer is empty
+    pub const fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Returns a reference to the byte at a given index
+    pub fn get(&'a self, index: usize) -> Option<&'a u8> {
+        if index < self.len() {
+            Some(self.index(index))
+        } else {
+            None
+        }
+    }
+
+    /// Returns a slice of row `index`, respecting bottom-to-top iteration order
+    pub const fn get_row(&self, index: usize) -> Option<&'a [u8]> {
+        if index >= self.height as usize {
+            return None;
+        }
+
+        // Safety: this pointer is within bounds
+        let start_ptr = unsafe { self.ptr.byte_offset(self.linesize as isize * index as isize) };
+        // Safety: this slice is valid
+        Some(unsafe { core::slice::from_raw_parts(start_ptr.as_ptr(), self.linesize.unsigned_abs() as usize) })
+    }
+}
+
+impl<'a> FrameDataMut<'a> {
+    /// Fills the data buffer with `value`
+    pub fn fill(&mut self, value: u8) {
+        for row in 0..self.height() {
+            let slice = self.get_row_mut(row as usize).expect("row is out of bounds");
+            slice.fill(value);
+        }
+    }
+
+    /// Returns a mutable reference to the byte at a given index
+    pub fn get_mut(&'a mut self, index: usize) -> Option<&'a mut u8> {
+        if index < self.len() {
+            Some(self.index_mut(index))
+        } else {
+            None
+        }
+    }
+
+    /// Returns a mutable slice of row `index`, respecting bottom-to-top iteration order
+    pub const fn get_row_mut(&mut self, index: usize) -> Option<&'a mut [u8]> {
+        if index >= self.0.height as usize {
+            return None;
+        }
+
+        // Safety: this pointer is within bounds
+        let start_ptr = unsafe { self.0.ptr.byte_offset(self.0.linesize as isize * index as isize) };
+        // Safety: this slice is valid
+        Some(unsafe { core::slice::from_raw_parts_mut(start_ptr.as_ptr(), self.0.linesize.unsigned_abs() as usize) })
+    }
+}
 
 /// A frame. Thin wrapper around [`AVFrame`].
 pub struct GenericFrame(SmartPtr<AVFrame>);
@@ -138,7 +296,10 @@ impl GenericFrame {
     }
 
     /// Sets the format of the frame.
-    pub(crate) const fn set_format(&mut self, format: i32) {
+    ///
+    /// Safety: this must only ever be called before data allocation, or if both
+    /// formats have the exact same memory layout
+    pub(crate) const unsafe fn set_format(&mut self, format: i32) {
         self.0.as_deref_mut_except().format = format;
     }
 
@@ -176,11 +337,46 @@ impl std::fmt::Debug for GenericFrame {
     }
 }
 
+#[bon::bon]
 impl VideoFrame {
-    /// Creates a new video frame.
-    pub fn new() -> Result<Self, FfmpegError> {
-        let frame = GenericFrame::new()?;
-        Ok(VideoFrame(frame))
+    /// Creates a new VideoFrame
+    #[builder]
+    pub fn new(
+        width: i32,
+        height: i32,
+        pix_fmt: AVPixelFormat,
+        #[builder(default = Rational::ONE)] sample_aspect_ratio: Rational,
+        #[builder(default = AV_NOPTS_VALUE)] pts: i64,
+        #[builder(default = AV_NOPTS_VALUE)] dts: i64,
+        #[builder(default = 0)] duration: i64,
+        #[builder(default = Rational::ZERO)] time_base: Rational,
+        #[builder(default = 0)] alignment: i32,
+    ) -> Result<Self, FfmpegError> {
+        if width <= 0 || height <= 0 {
+            return Err(FfmpegError::Arguments("width and height must be positive and not 0"));
+        }
+        if alignment < 0 {
+            return Err(FfmpegError::Arguments("alignment must be positive"));
+        }
+
+        let mut generic = GenericFrame::new()?;
+        let inner = generic.0.as_deref_mut_except();
+
+        inner.pict_type = AVPictureType::None.0 as u32;
+        inner.width = width;
+        inner.height = height;
+        inner.format = pix_fmt.0;
+        inner.pts = pts;
+        inner.best_effort_timestamp = pts;
+        inner.pkt_dts = dts;
+        inner.duration = duration;
+        inner.time_base = time_base.into();
+        inner.sample_aspect_ratio = sample_aspect_ratio.into();
+
+        // Safety: this is a brand new GenericFrame, with width, height and format set
+        unsafe { generic.alloc_frame_buffer(Some(alignment))? };
+
+        Ok(VideoFrame(generic))
     }
 
     /// Returns the width of the frame.
@@ -229,23 +425,61 @@ impl VideoFrame {
     }
 
     /// Returns the data of the frame. By specifying the index of the plane.
-    pub fn data(&self, index: usize) -> Option<&[u8]> {
-        let line = self.linesize(index)? as usize;
-        let height = self.height();
-        let raw = *self.0 .0.as_deref_except().data.get(index)?;
+    pub fn data<'a>(&'a self, index: usize) -> Option<FrameData<'a>> {
+        // Safety: av_pix_fmt_desc_get is safe to call
+        let descriptor = unsafe { rusty_ffmpeg::ffi::av_pix_fmt_desc_get(self.format().into()) };
+        // Safety: as_ref is safe to call here
+        let descriptor = unsafe { descriptor.as_ref()? };
 
-        // Safety: The pointer here is valid & has the sizeof the `line * height`.
-        unsafe { Some(std::slice::from_raw_parts(raw, line * height)) }
+        let line = self.linesize(index)?;
+        let height = {
+            // palette data
+            if descriptor.flags & rusty_ffmpeg::ffi::AV_PIX_FMT_FLAG_PAL as u64 != 0 && index == 1 {
+                1
+            } else if index > 0 {
+                self.height() >> descriptor.log2_chroma_h
+            } else {
+                self.height()
+            }
+        };
+
+        let raw = NonNull::new(*(self.0 .0.as_deref_except().data.get(index)?))?;
+
+        Some(FrameData::<'a> {
+            ptr: raw,
+            linesize: line,
+            height: height as i32,
+            phantom: core::marker::PhantomData,
+        })
     }
 
     /// Returns the data of the frame. By specifying the index of the plane.
-    pub fn data_mut(&mut self, index: usize) -> Option<&mut [u8]> {
-        let line = self.linesize(index)? as usize;
-        let height = self.height();
-        let raw = *self.0 .0.as_deref_mut_except().data.get(index)?;
+    pub fn data_mut<'a>(&'a mut self, index: usize) -> Option<FrameDataMut<'a>> {
+        // Safety: av_pix_fmt_desc_get is safe to call
+        let descriptor = unsafe { rusty_ffmpeg::ffi::av_pix_fmt_desc_get(self.format().into()) };
+        // Safety: as_ref is safe to call here
+        let descriptor = unsafe { descriptor.as_ref()? };
 
-        // Safety: The pointer here is valid & has the sizeof the `line * height`.
-        unsafe { Some(std::slice::from_raw_parts_mut(raw, line * height)) }
+        let line = self.linesize(index)?;
+        let height = {
+            // palette data
+            if descriptor.flags & rusty_ffmpeg::ffi::AV_PIX_FMT_FLAG_PAL as u64 != 0 && index == 1 {
+                1
+            } else if index > 0 {
+                self.height() >> descriptor.log2_chroma_h
+            } else {
+                self.height()
+            }
+        };
+
+        let raw = NonNull::new(*(self.0 .0.as_deref_except().data.get(index)?))?;
+
+        Some(FrameDataMut(FrameData::<'a> {
+            ptr: raw,
+            linesize: line,
+            height: height as i32,
+            phantom: core::marker::PhantomData,
+        }))
     }
 
     /// Get the pixel format of the frame.
@@ -352,30 +586,45 @@ impl AudioChannelLayout {
     }
 }
 
+#[bon::bon]
 impl AudioFrame {
-    /// Sets channel layout to default with a channel count of `channel_count`.
-    pub fn set_channel_layout_default(&mut self, channel_count: usize) -> Result<(), FfmpegError> {
-        let layout = AudioChannelLayout::new(channel_count as i32)?;
+    /// Creates a new AudioFrame
+    #[builder]
+    pub fn new(
+        channel_layout: AudioChannelLayout,
+        nb_samples: i32,
+        sample_fmt: AVSampleFormat,
+        sample_rate: i32,
+        #[builder(default = 0)] duration: i64,
+        #[builder(default = AV_NOPTS_VALUE)] pts: i64,
+        #[builder(default = AV_NOPTS_VALUE)] dts: i64,
+        #[builder(default = Rational::ZERO)] time_base: Rational,
+        #[builder(default = 0)] alignment: i32,
+    ) -> Result<Self, FfmpegError> {
+        if sample_rate <= 0 || nb_samples <= 0 {
+            return Err(FfmpegError::Arguments("sample_rate and nb_samples must be positive and not 0"));
+        }
+        if alignment < 0 {
+            return Err(FfmpegError::Arguments("alignment must be positive"));
+        }
 
-        // Safety: Our pointer is valid.
-        let av_frame = unsafe { self.as_mut_ptr().as_mut() }.ok_or(FfmpegError::Alloc)?;
+        let mut generic = GenericFrame::new()?;
+        let inner = generic.0.as_deref_mut_except();
 
-        layout.apply(&mut av_frame.ch_layout);
+        channel_layout.apply(&mut inner.ch_layout);
+        inner.nb_samples = nb_samples;
+        inner.format = sample_fmt.into();
+        inner.sample_rate = sample_rate;
+        inner.duration = duration;
+        inner.pts = pts;
+        inner.best_effort_timestamp = pts;
+        inner.time_base = time_base.into();
+        inner.pkt_dts = dts;
 
-        Ok(())
-    }
+        // Safety: this is a brand new GenericFrame, with nb_samples, ch_layout and format set
+        unsafe { generic.alloc_frame_buffer(Some(alignment))? };
 
-    /// Sets channel layout to a custom layout. Note that the channel count
-    /// is defined by the given `crate::ffi::AVChannelLayout`.
-    pub fn set_channel_layout_custom(&mut self, custom_layout: AudioChannelLayout) -> Result<(), FfmpegError> {
-        custom_layout.validate()?;
-
-        // Safety: Our pointer is valid.
-        let av_frame = unsafe { self.as_mut_ptr().as_mut() }.ok_or(FfmpegError::Alloc)?;
-
-        custom_layout.apply(&mut av_frame.ch_layout);
-
-        Ok(())
+        Ok(Self(generic))
     }
 
     /// Returns the channel layout of the frame.
@@ -391,11 +640,6 @@ impl AudioFrame {
     /// Returns the number of samples in the frame.
     pub const fn nb_samples(&self) -> i32 {
         self.0 .0.as_deref_except().nb_samples
-    }
-
-    /// Sets the number of samples in the frame.
-    pub const fn set_nb_samples(&mut self, nb_samples: usize) {
-        self.0 .0.as_deref_mut_except().nb_samples = nb_samples as i32;
     }
 
     /// Returns the sample rate of the frame.
@@ -445,31 +689,26 @@ impl std::ops::DerefMut for AudioFrame {
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
     use insta::assert_debug_snapshot;
-    use rand::Rng;
-    use rusty_ffmpeg::ffi::AVRational;
+    use rand::{thread_rng, Rng};
 
-    use crate::ffi::av_frame_get_buffer;
-    use crate::frame::{AudioChannelLayout, GenericFrame, VideoFrame};
+    use crate::frame::{AudioChannelLayout, AudioFrame, GenericFrame, VideoFrame};
     use crate::rational::Rational;
     use crate::{AVChannelOrder, AVPictureType, AVPixelFormat, AVSampleFormat};
 
+    use super::FrameData;
+
     #[test]
     fn test_frame_clone() {
-        let mut frame = VideoFrame::new().expect("Failed to create frame");
-        frame.set_format(AVPixelFormat::Yuv420p.into());
-
-        // Safety: Our pointer is valid.
-        frame.set_width(16);
-        frame.set_height(16);
-
-        // Safety: `av_frame_get_buffer` is safe to call.
-        unsafe { frame.alloc_frame_buffer(Some(32)) }.expect("Failed to allocate frame buffer");
-
-        frame.set_pts(Some(12));
-        frame.set_dts(Some(34));
-        frame.set_duration(Some(5));
-        frame.set_time_base(Rational::static_new::<1, 30>());
-        frame.set_format(AVPixelFormat::Yuv420p.into());
+        let frame = VideoFrame::builder()
+            .width(16)
+            .height(16)
+            .pts(12)
+            .dts(34)
+            .duration(5)
+            .time_base(Rational::static_new::<1, 30>())
+            .pix_fmt(AVPixelFormat::Yuv420p)
+            .build()
+            .expect("failed to build VideoFrame");
 
         let cloned_frame = frame.clone();
 
@@ -482,41 +721,22 @@ mod tests {
 
     #[test]
     fn test_audio_conversion() {
-        let frame = GenericFrame::new().expect("Failed to create frame");
-        let mut audio_frame = frame.audio();
+        let mut frame = GenericFrame::new().expect("Failed to create frame");
+        AudioChannelLayout::new(2).unwrap().apply(&mut frame.0.as_deref_mut_except().ch_layout);
+        let audio_frame = frame.audio();
 
-        assert!(audio_frame.set_channel_layout_default(2).is_ok());
         assert!(audio_frame.is_audio(), "The frame should be identified as audio.");
         assert!(!audio_frame.is_video(), "The frame should not be identified as video.");
     }
 
     #[test]
-    fn test_set_format() {
-        let mut frame = GenericFrame::new().expect("Failed to create frame");
-        frame.set_format(AVPixelFormat::Yuv420p.into());
-        assert_eq!(
-            frame.format(),
-            AVPixelFormat::Yuv420p.0,
-            "The format should match the set value."
-        );
-
-        frame.set_format(AVPixelFormat::Rgb24.into());
-        assert_eq!(
-            frame.format(),
-            AVPixelFormat::Rgb24.0,
-            "The format should match the updated value."
-        );
-    }
-
-    #[test]
     fn test_linesize() {
-        let mut frame = VideoFrame::new().expect("Failed to create frame");
-        frame.set_format(AVPixelFormat::Yuv420p.into());
-        frame.set_width(1920);
-        frame.set_height(1080);
-
-        // Safety: `av_frame_get_buffer` is safe to call.
-        unsafe { frame.alloc_frame_buffer(Some(32)) }.expect("Failed to allocate frame buffer");
+        let frame = VideoFrame::builder()
+            .width(1920)
+            .height(1080)
+            .pix_fmt(AVPixelFormat::Yuv420p)
+            .build()
+            .expect("Failed to create frame");
 
         assert!(
             frame.linesize(0).unwrap_or(0) > 0,
@@ -536,7 +756,10 @@ mod tests {
         frame.set_dts(Some(67890));
         frame.set_duration(Some(1000));
         frame.set_time_base(Rational::static_new::<1, 30>());
-        frame.set_format(AVPixelFormat::Yuv420p.into());
+        // Safety: the frame was never allocated
+        unsafe {
+            frame.set_format(AVPixelFormat::Yuv420p.into());
+        }
 
         assert_debug_snapshot!(frame, @r"
         GenericFrame {
@@ -592,37 +815,39 @@ mod tests {
 
     #[test]
     fn test_data_allocation_and_access() {
-        let mut frame = GenericFrame::new().expect("Failed to create frame");
-        frame.set_format(AVPixelFormat::Yuv420p.into());
-        let mut video_frame = frame.video();
-        video_frame.set_width(16);
-        video_frame.set_height(16);
+        let mut video_frame = VideoFrame::builder()
+            .width(16)
+            .height(16)
+            .pix_fmt(AVPixelFormat::Yuv420p)
+            .alignment(32)
+            .build()
+            .expect("Failed to create VideoFrame");
 
-        // Safety: Our pointer is valid.
-        let av_frame = unsafe { video_frame.as_mut_ptr().as_mut() }.expect("Failed to get mutable pointer");
+        let mut randomized_data: Vec<Vec<u8>> = Vec::with_capacity(video_frame.height());
 
-        // Safety: `av_frame_get_buffer` is safe to call.
-        unsafe {
-            assert!(av_frame_get_buffer(av_frame, 32) >= 0, "Failed to allocate buffer for frame.");
+        if let Some(mut data) = video_frame.data_mut(0) {
+            for row in 0..data.height() {
+                let data_slice = data.get_row_mut(row as usize).unwrap();
+                randomized_data.push(
+                    (0..data_slice.len())
+                        .map(|_| thread_rng().gen()) // generate random data
+                        .collect(),
+                );
+                data_slice.copy_from_slice(&randomized_data[row as usize]); // copy random data to the frame
+            }
+        } else {
+            panic!("Failed to get valid data buffer for Y-plane.");
         }
 
-        // randomize y-plane (data[0])
-        let linesize = av_frame.linesize[0] as usize; // bytes per row
-        let height = av_frame.height as usize; // total rows
-        let data_ptr = av_frame.data[0]; // pointer to the Y-plane data
-
-        let randomized_data = if !data_ptr.is_null() {
-            // Safety: `std::slice::from_raw_parts_mut` is safe to call.
-            let data_slice = unsafe { std::slice::from_raw_parts_mut(data_ptr, linesize * height) };
-            let mut rng = rand::rng();
-            rng.fill(data_slice);
-            data_slice.to_vec()
-        } else {
-            panic!("Failed to get valid data pointer for Y-plane.");
-        };
-
         if let Some(data) = video_frame.data(0) {
-            assert_eq!(data, randomized_data.as_slice(), "Data does not match randomized content.");
+            for row in 0..data.height() {
+                let data_slice = data.get_row(row as usize).unwrap();
+                assert_eq!(
+                    data_slice,
+                    randomized_data[row as usize].as_slice(),
+                    "Data does not match randomized content."
+                );
+            }
         } else {
             panic!("Data at index 0 should not be None.");
         }
@@ -630,16 +855,17 @@ mod tests {
 
     #[test]
     fn test_video_frame_debug() {
-        let mut frame = GenericFrame::new().expect("Failed to create frame");
-        frame.set_pts(Some(12345));
-        frame.set_dts(Some(67890));
-        frame.set_duration(Some(1000));
-        frame.set_time_base(AVRational { num: 1, den: 30 });
-        frame.set_format(AVPixelFormat::Yuv420p.into());
-        let mut video_frame = frame.video();
-        video_frame.set_width(1920);
-        video_frame.set_height(1080);
-        video_frame.set_sample_aspect_ratio(AVRational { num: 16, den: 9 });
+        let video_frame = VideoFrame::builder()
+            .pts(12345)
+            .dts(67890)
+            .duration(1000)
+            .time_base(Rational::static_new::<1, 30>())
+            .pix_fmt(AVPixelFormat::Yuv420p)
+            .width(1920)
+            .height(1080)
+            .sample_aspect_ratio(Rational::static_new::<16, 9>())
+            .build()
+            .expect("Failed to create a new VideoFrame");
 
         assert_debug_snapshot!(video_frame, @r"
         VideoFrame {
@@ -674,20 +900,7 @@ mod tests {
     }
 
     #[test]
-    fn test_set_channel_layout_default_invalid_count_error() {
-        let frame = GenericFrame::new().expect("Failed to create frame");
-        let mut audio_frame = frame.audio();
-
-        assert!(
-            audio_frame.set_channel_layout_default(usize::MAX).is_err(),
-            "Expected error for invalid channel count."
-        );
-    }
-
-    #[test]
     fn test_set_channel_layout_custom_invalid_layout_error() {
-        let frame = GenericFrame::new().expect("Failed to create frame");
-        let mut audio_frame = frame.audio();
         // Safety: This is safe to be deallocated by the layout destructor.
         let custom_layout = unsafe {
             AudioChannelLayout::wrap(crate::ffi::AVChannelLayout {
@@ -697,17 +910,21 @@ mod tests {
                 opaque: std::ptr::null_mut(),
             })
         };
+        let audio_frame = AudioFrame::builder()
+            .channel_layout(custom_layout)
+            .nb_samples(123)
+            .sample_fmt(AVSampleFormat::S16)
+            .sample_rate(44100)
+            .build();
 
         assert!(
-            audio_frame.set_channel_layout_custom(custom_layout).is_err(),
+            audio_frame.is_err(),
             "Expected error for invalid custom channel layout"
         );
     }
 
     #[test]
     fn test_set_channel_layout_custom() {
-        let frame = GenericFrame::new().expect("Failed to create frame");
-        let mut audio_frame = frame.audio();
         // Safety: This is safe to be deallocated by the layout destructor.
         let custom_layout = unsafe {
             AudioChannelLayout::wrap(crate::ffi::AVChannelLayout {
@@ -718,10 +935,13 @@ mod tests {
             })
         };
 
-        assert!(
-            audio_frame.set_channel_layout_custom(custom_layout).is_ok(),
-            "Failed to set custom channel layout"
-        );
+        let audio_frame = AudioFrame::builder()
+            .channel_layout(custom_layout)
+            .nb_samples(123)
+            .sample_fmt(AVSampleFormat::S16)
+            .sample_rate(44100)
+            .build()
+            .expect("Failed to create AudioFrame with custom layout");
 
         let layout = audio_frame.channel_layout();
         assert_eq!(layout.nb_channels, 2, "Expected channel layout to have 2 channels (stereo).");
@@ -740,27 +960,24 @@ mod tests {
 
     #[test]
     fn test_alloc_frame_buffer() {
-        let cases = [(None, true), (Some(0), true), (Some(32), true), (Some(-1), false)];
+        let cases = [(0, true), (3, true), (32, true), (-1, false)];
 
         for alignment in cases {
-            let mut frame = GenericFrame::new().expect("Failed to create frame");
-            frame.set_format(AVSampleFormat::S16.into());
-            let mut audio_frame = frame.audio();
-            audio_frame.set_nb_samples(1024);
-            audio_frame.set_sample_rate(44100);
-
-            assert!(
-                audio_frame.set_channel_layout_default(2).is_ok(),
-                "Failed to set default channel layout"
-            );
+            let frame = AudioFrame::builder()
+                .sample_fmt(AVSampleFormat::S16)
+                .nb_samples(1024)
+                .channel_layout(
+                    AudioChannelLayout::new(1)
+                        .expect("failed to create a new AudioChannelLayout")
+                    )
+                .alignment(alignment.0)
+                .sample_rate(44100)
+                .build();
 
             assert_eq!(
-                // Safety: `audio_frame` is a valid pointer. And we dont attempt to read from the frame until after the allocation.
-                unsafe { audio_frame.alloc_frame_buffer(alignment.0).is_ok() },
-                alignment.1,
-                "Failed to allocate buffer with alignment {:?}",
-                alignment
-            );
+                frame.is_ok(),
+                alignment.1
+            )
         }
     }
 
@@ -770,13 +987,13 @@ mod tests {
 
         for alignment in cases {
             let mut frame = GenericFrame::new().expect("Failed to create frame");
-            frame.set_format(AVSampleFormat::S16.into());
-            let mut audio_frame = frame.audio();
-            audio_frame.set_nb_samples(1024);
+            // Safety: frame is not yet allocated
+            unsafe { frame.set_format(AVSampleFormat::S16.into()) };
+            frame.0.as_deref_mut_except().nb_samples = 1024;
 
             assert!(
-                // Safety: `audio_frame` is a valid pointer. And we dont attempt to read from the frame until after the allocation.
-                unsafe { audio_frame.alloc_frame_buffer(alignment).is_err() },
+                // Safety: `frame` is a valid pointer. And we dont attempt to read from the frame until after the allocation.
+                unsafe { frame.alloc_frame_buffer(alignment).is_err() },
                 "Should fail to allocate buffer with invalid frame and alignment {:?}",
                 alignment
             );
@@ -784,49 +1001,44 @@ mod tests {
     }
 
     #[test]
-    fn test_nb_samples() {
-        let mut frame = GenericFrame::new().expect("Failed to create frame");
-        frame.set_format(AVSampleFormat::S16.into());
-        let mut audio_frame = frame.audio();
-        audio_frame.set_nb_samples(1024);
-
-        assert_eq!(
-            audio_frame.nb_samples(),
-            1024,
-            "The number of samples should match the set value."
-        );
-    }
-
-    #[test]
     fn test_sample_rate() {
-        let mut frame = GenericFrame::new().expect("Failed to create frame");
-        frame.set_format(AVSampleFormat::S16.into());
-        let mut audio_frame = frame.audio();
-        audio_frame.set_sample_rate(44100);
+        let mut audio_frame = AudioFrame::builder()
+            .channel_layout(
+                AudioChannelLayout::new(2)
+                    .expect("Failed to create a new AudioChannelLayout")
+            )
+            .nb_samples(123)
+            .sample_fmt(AVSampleFormat::S16)
+            .sample_rate(44100)
+            .build()
+            .expect("Failed to create AudioFrame with custom layout");
+
+        audio_frame.set_sample_rate(48000);
 
         assert_eq!(
             audio_frame.sample_rate(),
-            44100,
+            48000,
             "The sample rate should match the set value."
         );
     }
 
     #[test]
     fn test_audio_frame_debug() {
-        let mut frame = GenericFrame::new().expect("Failed to create frame");
-        frame.set_format(AVSampleFormat::S16.into());
-        let mut audio_frame = frame.audio();
-        audio_frame.set_nb_samples(1024);
-        audio_frame.set_sample_rate(44100);
-        audio_frame.set_pts(Some(12345));
-        audio_frame.set_dts(Some(67890));
-        audio_frame.set_duration(Some(512));
-        audio_frame.set_time_base(AVRational { num: 1, den: 44100 });
+        let audio_frame = AudioFrame::builder()
+            .sample_fmt(AVSampleFormat::S16)
+            .channel_layout(
+                AudioChannelLayout::new(2)
+                    .expect("failed to create a new AudioChannelLayout")
+            )
+            .nb_samples(1024)
+            .sample_rate(44100)
+            .pts(12345)
+            .dts(67890)
+            .duration(512)
+            .time_base(Rational::static_new::<1, 44100>())
+            .build()
+            .expect("failed to create a new AudioFrame");
 
-        assert!(
-            audio_frame.set_channel_layout_default(2).is_ok(),
-            "Failed to set default channel layout"
-        );
         assert_debug_snapshot!(audio_frame, @r"
         AudioFrame {
             channel_count: 2,
@@ -853,5 +1065,81 @@ mod tests {
             is_video: false,
         }
         ");
+    }
+
+    #[test]
+    fn frame_data_read() {
+        let data: &mut [u8] = &mut [1, 2, 3, 4, 5, 6];
+
+        let frame_data = FrameData {
+            ptr: core::ptr::NonNull::new(data.as_mut_ptr()).unwrap(),
+            linesize: 3,
+            height: 2,
+            phantom: std::marker::PhantomData,
+        };
+
+        assert_eq!(frame_data[0], 1);
+        assert_eq!(frame_data[5], 6);
+
+        assert_eq!(frame_data.get_row(0).unwrap(), [1, 2, 3]);
+        assert_eq!(frame_data.get_row(1).unwrap(), [4, 5, 6]);
+        assert!(frame_data.get_row(2).is_none());
+    }
+
+    #[test]
+    fn frame_data_read_inverse() {
+        let data: &mut [u8] = &mut [1, 2, 3, 4, 5, 6];
+        let linesize: i32 = -3;
+        let height: i32 = 2;
+        // Safety: this is a valid pointer
+        let end_ptr = unsafe { data.as_mut_ptr().byte_offset(((height - 1) * linesize.abs()) as isize) };
+
+        let frame_data = FrameData {
+            ptr: core::ptr::NonNull::new(end_ptr).unwrap(),
+            linesize,
+            height,
+            phantom: std::marker::PhantomData,
+        };
+
+        assert_eq!(frame_data[0], 4);
+        assert_eq!(frame_data[3], 1);
+        assert_eq!(frame_data[5], 3);
+
+        assert_eq!(frame_data.get_row(0).unwrap(), [4, 5, 6]);
+        assert_eq!(frame_data.get_row(1).unwrap(), [1, 2, 3]);
+        assert!(frame_data.get_row(2).is_none());
+    }
+
+    #[test]
+    fn frame_data_read_out_of_bounds() {
+        let data: &mut [u8] = &mut [1, 2, 3, 4, 5, 6];
+
+        let linesize: i32 = -3;
+        let height: i32 = 2;
+        // Safety: this is a valid pointer
+        let end_ptr = unsafe { data.as_mut_ptr().byte_offset(((height - 1) * linesize.abs()) as isize) };
+
+        let inverse_frame_data = FrameData {
+            ptr: core::ptr::NonNull::new(end_ptr).unwrap(),
+            linesize,
+            height,
+            phantom: std::marker::PhantomData,
+        };
+
+        let frame_data = FrameData {
+            ptr: core::ptr::NonNull::new(data.as_mut_ptr()).unwrap(),
+            linesize: linesize.abs(),
+            height,
+            phantom: std::marker::PhantomData,
+        };
+
+        assert!(std::panic::catch_unwind(|| {
+            let _ = inverse_frame_data[6];
+        })
+        .is_err());
+        assert!(std::panic::catch_unwind(|| {
+            let _ = frame_data[6];
+        })
+        .is_err());
     }
 }

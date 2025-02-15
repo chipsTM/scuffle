@@ -325,7 +325,7 @@ mod tests {
 
     use crate::ffi::avfilter_get_by_name;
     use crate::filter_graph::{Filter, FilterGraph, FilterGraphParser};
-    use crate::frame::GenericFrame;
+    use crate::frame::{AudioChannelLayout, AudioFrame, GenericFrame};
     use crate::AVSampleFormat;
 
     #[test]
@@ -539,28 +539,23 @@ mod tests {
         let source_context_name = "Parsed_abuffer_0";
         let sink_context_name = "Parsed_abuffersink_1";
 
-        let mut frame = GenericFrame::new().expect("Failed to create frame");
-        frame.set_format(AVSampleFormat::S16.into());
-        let mut audio_frame = frame.audio();
-        audio_frame.set_nb_samples(1024);
-        audio_frame.set_sample_rate(44100);
-
-        assert!(
-            audio_frame.set_channel_layout_default(2).is_ok(),
-            "Failed to set default channel layout"
-        );
-        assert!(
-            // Safety: `audio_frame` is a valid pointer. And we dont attempt to read from the frame until after the allocation.
-            unsafe { audio_frame.alloc_frame_buffer(None).is_ok() },
-            "Failed to allocate frame buffer"
-        );
+        let frame = AudioFrame::builder()
+            .sample_fmt(AVSampleFormat::S16)
+            .nb_samples(1024)
+            .sample_rate(44100)
+            .channel_layout(
+                AudioChannelLayout::new(2)
+                    .expect("Failed to create a new AudioChannelLayout")
+            )
+            .build()
+            .expect("Failed to create a new AudioFrame");
 
         let mut source_context = filter_graph
             .get(source_context_name)
             .expect("Failed to retrieve source filter context")
             .source();
 
-        let result = source_context.send_frame(&audio_frame);
+        let result = source_context.send_frame(&frame);
         assert!(result.is_ok(), "send_frame should succeed when sending a valid frame");
 
         let mut sink_context = filter_graph
@@ -611,7 +606,8 @@ mod tests {
 
         // create frame w/ mismatched format and sample rate
         let mut frame = GenericFrame::new().expect("Failed to create frame");
-        frame.set_format(AVSampleFormat::Fltp.into());
+        // Safety: frame was not yet allocated
+        unsafe { frame.set_format(AVSampleFormat::Fltp.into()) };
         let result = source_context.send_frame(&frame);
 
         assert!(result.is_err(), "send_frame should fail when sending an invalid frame");

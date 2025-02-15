@@ -20,6 +20,8 @@ impl Default for Rational {
 impl Rational {
     /// The zero rational number.
     pub const ZERO: Rational = Rational::static_new::<0, 1>();
+    /// The one rational number.
+    pub const ONE: Rational = Rational::static_new::<1, 1>();
 
     /// Create a new rational number.
     pub const fn new(numerator: i32, denominator: NonZero<i32>) -> Self {
