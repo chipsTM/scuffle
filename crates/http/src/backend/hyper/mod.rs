@@ -207,9 +207,9 @@ where
                     }
                 }
             }
-            Err(e) => {
+            Err(_e) => {
                 #[cfg(feature = "tracing")]
-                tracing::error!(err = %e, "error running workers");
+                tracing::error!(err = %_e, "error running workers");
             }
         }
 

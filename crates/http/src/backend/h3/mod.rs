@@ -208,9 +208,9 @@ where
             tokio::spawn(worker_fut)
         });
 
-        if let Err(e) = futures::future::try_join_all(workers).await {
+        if let Err(_e) = futures::future::try_join_all(workers).await {
             #[cfg(feature = "tracing")]
-            tracing::error!(err = %e, "error running workers");
+            tracing::error!(err = %_e, "error running workers");
         }
 
         drop(worker_ctx);
