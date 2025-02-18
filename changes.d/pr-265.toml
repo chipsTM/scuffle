@@ -1,0 +1,5 @@
+[[scuffle-http]]
+breaking = true
+category = "feat"
+description = "Complete rewrite"
+authors = ["@lennartkloock"]
