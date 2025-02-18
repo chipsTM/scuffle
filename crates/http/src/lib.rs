@@ -473,4 +473,43 @@ mod tests {
 
         test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
+
+    #[tokio::test]
+    async fn response_trailers() {
+        #[derive(Default)]
+        struct TestBody {
+            data_sent: bool,
+        }
+
+        impl http_body::Body for TestBody {
+            type Data = bytes::Bytes;
+            type Error = Infallible;
+
+            fn poll_frame(
+                mut self: std::pin::Pin<&mut Self>,
+                _cx: &mut std::task::Context<'_>,
+            ) -> std::task::Poll<Option<Result<http_body::Frame<Self::Data>, Self::Error>>> {
+                if !self.data_sent {
+                    self.as_mut().data_sent = true;
+                    let data = http_body::Frame::data(bytes::Bytes::from_static(RESPONSE_TEXT.as_bytes()));
+                    std::task::Poll::Ready(Some(Ok(data)))
+                } else {
+                    let mut trailers = http::HeaderMap::new();
+                    trailers.insert("test", "test".parse().unwrap());
+                    std::task::Poll::Ready(Some(Ok(http_body::Frame::trailers(trailers))))
+                }
+            }
+        }
+
+        let builder = HttpServer::builder()
+            .service_factory(service_clone_factory(fn_http_service(|_req| async {
+                let mut resp = http::Response::new(TestBody::default());
+                resp.headers_mut().insert("trailers", "test".parse().unwrap());
+                Ok::<_, Infallible>(resp)
+            })))
+            .rustls_config(rustls_config())
+            .enable_http3(true);
+
+        test_tls_server(builder, &[reqwest::Version::HTTP_2, reqwest::Version::HTTP_3]).await;
+    }
 }
