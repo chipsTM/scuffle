@@ -99,7 +99,7 @@ mod tests {
 
     use crate::body::TrackedBody;
     use crate::server::HttpServerBuilder;
-    use crate::service::{fn_http_service, service_clone_factory, HttpService, HttpServiceFactory};
+    use crate::service::{fn_http_service, fn_http_service_factory, service_clone_factory, HttpService, HttpServiceFactory};
     use crate::HttpServer;
 
     fn get_available_addr() -> std::io::Result<std::net::SocketAddr> {
@@ -402,6 +402,17 @@ mod tests {
         let builder = HttpServer::builder().tower_make_service_with_addr(tower::service_fn(|addr: SocketAddr| async move {
             assert!(addr.ip().is_loopback());
             Ok::<_, Infallible>(tower::service_fn(|_| async move {
+                Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+            }))
+        }));
+
+        test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
+    }
+
+    #[tokio::test]
+    async fn fn_service_factory() {
+        let builder = HttpServer::builder().service_factory(fn_http_service_factory(|_| async {
+            Ok::<_, Infallible>(fn_http_service(|_| async {
                 Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
             }))
         }));
