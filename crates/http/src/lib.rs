@@ -30,7 +30,7 @@
 //! # tokio_test::block_on(async {
 //! # let run = async {
 //! let service = scuffle_http::service::fn_http_service(|req| async move {
-//!     scuffle_http::http::Response::builder()
+//!     scuffle_http::Response::builder()
 //!         .status(scuffle_http::http::StatusCode::OK)
 //!         .header(scuffle_http::http::header::CONTENT_TYPE, "text/plain")
 //!         .body("Hello, world!".to_string())
@@ -81,6 +81,7 @@ mod server;
 pub mod service;
 
 pub use http;
+pub use http::Response;
 pub use server::{HttpServer, HttpServerBuilder};
 
 pub type IncomingRequest = http::Request<body::IncomingBody>;

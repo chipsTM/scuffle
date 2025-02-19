@@ -35,11 +35,8 @@ This crate aims to fill that gap.
 The following example demonstrates how to create a simple HTTP server (without TLS) that responds with "Hello, world!" to all requests on port 3000.
 
 ```rust
-# use scuffle_future_ext::FutureExt;
-# tokio_test::block_on(async {
-# let run = async {
 let service = scuffle_http::service::fn_http_service(|req| async move {
-    scuffle_http::http::Response::builder()
+    scuffle_http::Response::builder()
         .status(scuffle_http::http::StatusCode::OK)
         .header(scuffle_http::http::header::CONTENT_TYPE, "text/plain")
         .body("Hello, world!".to_string())
@@ -54,9 +51,6 @@ scuffle_http::HttpServer::builder()
     .run()
     .await
     .expect("server failed");
-# };
-# run.with_timeout(std::time::Duration::from_secs(1)).await.expect_err("test should have timed out");
-# });
 ```
 
 ## Status

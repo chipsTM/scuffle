@@ -5,7 +5,7 @@ use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 #[tokio::main]
 async fn main() {
     let service = scuffle_http::service::fn_http_service(|req| async move {
-        scuffle_http::http::Response::builder()
+        scuffle_http::Response::builder()
             .status(scuffle_http::http::StatusCode::OK)
             .header(scuffle_http::http::header::CONTENT_TYPE, "text/plain")
             .body(format!("Hello, world!\nURL: {:?}", req.uri()))
