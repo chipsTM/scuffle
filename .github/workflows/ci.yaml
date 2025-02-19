@@ -187,7 +187,7 @@ jobs:
       - name: Run valgrind
         run: |
           set -xeo pipefail
-          export RUSTFLAGS="--cfg=valgrind"
+          export RUSTFLAGS="--cfg=valgrind --cfg reqwest_unstable"
           export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER="valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log"
           cargo +${{ env.RUST_TOOLCHAIN }} nextest run --all-features --no-fail-fast --profile ci
 
