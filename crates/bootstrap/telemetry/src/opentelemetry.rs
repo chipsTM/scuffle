@@ -1,20 +1,5 @@
 pub use ::opentelemetry::*;
 
-/// OpenTelemetry error.
-///
-/// This enum represents all possible errors that can occur when working with OpenTelemetry.
-#[derive(Debug, thiserror::Error)]
-pub enum OpenTelemetryError {
-    #[cfg(feature = "opentelemetry-logs")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry-logs")))]
-    #[error("logs: {0}")]
-    Logs(#[from] opentelemetry_sdk::logs::LogError),
-    #[cfg(any(feature = "opentelemetry-metrics", feature = "opentelemetry-traces"))]
-    #[cfg_attr(docsrs, doc(cfg(any(feature = "opentelemetry-metrics", feature = "opentelemetry-traces"))))]
-    #[error("sdk: {0}")]
-    SdkError(#[from] opentelemetry_sdk::error::OTelSdkError),
-}
-
 /// OpenTelemetry configuration.
 ///
 /// This struct contains different OpenTelemetry providers for metrics, traces, and logs.
@@ -106,7 +91,7 @@ impl OpenTelemetry {
     /// Flushes all metrics, traces, and logs.
     ///
     /// <div class="warning">Warning: This blocks the current thread.</div>
-    pub fn flush(&self) -> Result<(), OpenTelemetryError> {
+    pub fn flush(&self) -> Result<(), opentelemetry_sdk::error::OTelSdkError> {
         #[cfg(feature = "opentelemetry-metrics")]
         if let Some(metrics) = &self.metrics {
             metrics.force_flush()?;
@@ -126,7 +111,7 @@ impl OpenTelemetry {
     }
 
     /// Shuts down all metrics, traces, and logs.
-    pub fn shutdown(&self) -> Result<(), OpenTelemetryError> {
+    pub fn shutdown(&self) -> Result<(), opentelemetry_sdk::error::OTelSdkError> {
         #[cfg(feature = "opentelemetry-metrics")]
         if let Some(metrics) = &self.metrics {
             metrics.shutdown()?;
