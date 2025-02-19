@@ -16,7 +16,7 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 [dependencies]
 tokio = { version = "1.43.0" }
 thiserror = "2.0.11"
-futures = { version = "0.3.31", default-features = false }
+futures = { version = "0.3.31", default-features = false, features = ["alloc"]}
 bon = "3.3.2"
 pin-project-lite = "0.2.16"
 scuffle-context.workspace = true

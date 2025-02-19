@@ -50,12 +50,20 @@ where
             .with_context(ctx)
             .await
     } else if http1 {
+        #[cfg(not(feature = "http1"))]
+        return Ok(());
+
+        #[cfg(feature = "http1")]
         builder
             .http1_only()
             .serve_connection_with_upgrades(io, hyper_proxy_service)
             .with_context(ctx)
             .await
     } else if http2 {
+        #[cfg(not(feature = "http2"))]
+        return Ok(());
+
+        #[cfg(feature = "http2")]
         builder
             .http2_only()
             .serve_connection_with_upgrades(io, hyper_proxy_service)
