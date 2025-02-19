@@ -38,7 +38,7 @@ where
 
     let mut builder = auto::Builder::new(TokioExecutor::new());
 
-    let _res = if http1 && http2 {
+    if http1 && http2 {
         #[cfg(feature = "http1")]
         builder.http1().timer(TokioTimer::new());
 
@@ -49,6 +49,8 @@ where
             .serve_connection_with_upgrades(io, hyper_proxy_service)
             .with_context(ctx)
             .await
+            .transpose()
+            .map_err(Error::HyperConnection)?;
     } else if http1 {
         #[cfg(not(feature = "http1"))]
         return Ok(());
@@ -59,6 +61,8 @@ where
             .serve_connection_with_upgrades(io, hyper_proxy_service)
             .with_context(ctx)
             .await
+            .transpose()
+            .map_err(Error::HyperConnection)?;
     } else if http2 {
         #[cfg(not(feature = "http2"))]
         return Ok(());
@@ -69,15 +73,11 @@ where
             .serve_connection_with_upgrades(io, hyper_proxy_service)
             .with_context(ctx)
             .await
+            .transpose()
+            .map_err(Error::HyperConnection)?;
     } else {
         #[cfg(feature = "tracing")]
         tracing::warn!("both http1 and http2 are disabled, closing connection");
-        return Ok(());
-    };
-
-    #[cfg(feature = "tracing")]
-    if let Some(Err(e)) = _res {
-        tracing::warn!(err = %e, "connection error");
     }
 
     Ok(())

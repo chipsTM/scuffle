@@ -21,6 +21,10 @@ where
     #[cfg(feature = "http3")]
     #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
     H3(#[from] h3::Error),
+    #[error("hyper connection: {0}")]
+    #[cfg(any(feature = "http1", feature = "http2"))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "http1", feature = "http2"))))]
+    HyperConnection(Box<dyn std::error::Error + Send + Sync>),
     #[error("quinn connection error: {0}")]
     #[cfg(feature = "http3")]
     #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
