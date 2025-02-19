@@ -24,11 +24,6 @@ where
     <S::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
     I: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
-    #[cfg(not(feature = "http1"))]
-    let http1 = false;
-    #[cfg(not(feature = "http2"))]
-    let http2 = false;
-
     let io = TokioIo::new(io);
 
     let hyper_proxy_service = hyper::service::service_fn(move |req: http::Request<hyper::body::Incoming>| {

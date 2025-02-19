@@ -152,25 +152,17 @@ where
                         #[cfg(feature = "tracing")]
                         tracing::trace!("handling connection");
 
-                        #[cfg(all(feature = "http1", not(feature = "http2")))]
-                        let _res =
-                            handler::handle_connection::<F, _, _>(ctx, http_service, stream, self.http1_enabled, false)
-                                .await;
+                        #[cfg(feature = "http1")]
+                        let http1 = self.http1_enabled;
+                        #[cfg(not(feature = "http1"))]
+                        let http1 = false;
 
-                        #[cfg(all(not(feature = "http1"), feature = "http2"))]
-                        let _res =
-                            handler::handle_connection::<F, _, _>(ctx, http_service, stream, false, self.http2_enabled)
-                                .await;
+                        #[cfg(feature = "http2")]
+                        let http2 = self.http2_enabled;
+                        #[cfg(not(feature = "http2"))]
+                        let http2 = false;
 
-                        #[cfg(all(feature = "http1", feature = "http2"))]
-                        let _res = handler::handle_connection::<F, _, _>(
-                            ctx,
-                            http_service,
-                            stream,
-                            self.http1_enabled,
-                            self.http2_enabled,
-                        )
-                        .await;
+                        let _res = handler::handle_connection::<F, _, _>(ctx, http_service, stream, http1, http2).await;
 
                         #[cfg(feature = "tracing")]
                         if let Err(e) = _res {
