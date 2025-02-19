@@ -1,10 +1,15 @@
 #!/bin/bash
 
+set -exo pipefail
+
 parse_cargo_updates() {
     unchanged_packages=()
     added_packages=()
     removed_packages=()
     updated_packages=()
+
+    # skip the first line
+    read -r
 
     while IFS= read -r line; do
         line=$(echo "$line" | sed -E 's/\x1B\[[0-9;]*[mK]//g')
