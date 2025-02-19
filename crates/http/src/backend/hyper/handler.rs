@@ -11,8 +11,8 @@ pub async fn handle_connection<F, S, I>(
     ctx: scuffle_context::Context,
     service: S,
     io: I,
-    #[cfg(feature = "http1")] http1: bool,
-    #[cfg(feature = "http2")] http2: bool,
+    http1: bool,
+    http2: bool,
 ) -> Result<(), Error<F>>
 where
     F: HttpServiceFactory<Service = S>,

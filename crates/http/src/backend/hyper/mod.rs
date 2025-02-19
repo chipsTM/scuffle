@@ -154,11 +154,13 @@ where
 
                         #[cfg(all(feature = "http1", not(feature = "http2")))]
                         let _res =
-                            handler::handle_connection::<F, _, _>(ctx, http_service, stream, self.http1_enabled).await;
+                            handler::handle_connection::<F, _, _>(ctx, http_service, stream, self.http1_enabled, false)
+                                .await;
 
                         #[cfg(all(not(feature = "http1"), feature = "http2"))]
                         let _res =
-                            handler::handle_connection::<F, _, _>(ctx, http_service, stream, self.http2_enabled).await;
+                            handler::handle_connection::<F, _, _>(ctx, http_service, stream, false, self.http2_enabled)
+                                .await;
 
                         #[cfg(all(feature = "http1", feature = "http2"))]
                         let _res = handler::handle_connection::<F, _, _>(
