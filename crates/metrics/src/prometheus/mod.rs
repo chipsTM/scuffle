@@ -6,7 +6,7 @@ use opentelemetry_sdk::metrics::data::{Gauge, Histogram, ResourceMetrics, Sum};
 use opentelemetry_sdk::metrics::reader::MetricReader;
 use opentelemetry_sdk::metrics::{ManualReader, ManualReaderBuilder};
 use opentelemetry_sdk::Resource;
-use prometheus_client::encoding::{EncodeCounterValue, EncodeGaugeValue};
+use prometheus_client::encoding::{EncodeCounterValue, EncodeGaugeValue, NoLabelSet};
 use prometheus_client::metrics::MetricType;
 use prometheus_client::registry::Unit;
 
@@ -280,7 +280,7 @@ where
 
                     if sum.is_monotonic {
                         // TODO(troy): Exemplar support
-                        encoder.encode_counter::<(), _, f64>(&number, None)?;
+                        encoder.encode_counter::<NoLabelSet, _, f64>(&number, None)?;
                     } else {
                         encoder.encode_gauge(&number)?;
                     }
@@ -300,7 +300,7 @@ where
                         .zip(data_point.bucket_counts.iter().copied())
                         .collect::<Vec<_>>();
 
-                    encoder.encode_histogram::<()>(sum.as_f64(), data_point.count, &buckets, None)?;
+                    encoder.encode_histogram::<NoLabelSet>(sum.as_f64(), data_point.count, &buckets, None)?;
                 }
             }
         }
