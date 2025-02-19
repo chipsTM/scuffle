@@ -53,7 +53,7 @@ jobs:
           commit-message: |
             Automated update of Cargo.lock
 
-            Release triggered by @${{ github.actor }}
+            Release triggered by @${{ github.actor || 'github-actions[bot]' }}
           author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           sign-commits: true
           reviewers: ${{ github.actor }}
