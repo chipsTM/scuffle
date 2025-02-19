@@ -90,17 +90,11 @@ pub type IncomingRequest = http::Request<body::IncomingBody>;
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
     use std::convert::Infallible;
-    use std::fmt::Debug;
-    use std::fs;
-    use std::io::BufReader;
-    use std::net::SocketAddr;
     use std::time::Duration;
 
     use scuffle_future_ext::FutureExt;
 
-    use crate::body::TrackedBody;
-    use crate::server::HttpServerBuilder;
-    use crate::service::{fn_http_service, fn_http_service_factory, service_clone_factory, HttpService, HttpServiceFactory};
+    use crate::service::{fn_http_service, service_clone_factory};
     use crate::HttpServer;
 
     fn get_available_addr() -> std::io::Result<std::net::SocketAddr> {
@@ -110,15 +104,16 @@ mod tests {
 
     const RESPONSE_TEXT: &str = "Hello, world!";
 
-    async fn test_server<F, S>(builder: HttpServerBuilder<F, S>, versions: &[reqwest::Version])
+    #[allow(dead_code)]
+    async fn test_server<F, S>(builder: crate::HttpServerBuilder<F, S>, versions: &[reqwest::Version])
     where
-        F: HttpServiceFactory + Debug + Clone + Send + 'static,
+        F: crate::service::HttpServiceFactory + std::fmt::Debug + Clone + Send + 'static,
         F::Error: std::error::Error + Send,
-        F::Service: Clone + Debug + Send + 'static,
-        <F::Service as HttpService>::Error: std::error::Error + Send + Sync,
-        <F::Service as HttpService>::ResBody: Send,
-        <<F::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
-        <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
+        F::Service: Clone + std::fmt::Debug + Send + 'static,
+        <F::Service as crate::service::HttpService>::Error: std::error::Error + Send + Sync,
+        <F::Service as crate::service::HttpService>::ResBody: Send,
+        <<F::Service as crate::service::HttpService>::ResBody as http_body::Body>::Data: Send,
+        <<F::Service as crate::service::HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
         S: crate::server::http_server_builder::State,
         S::ServiceFactory: crate::server::http_server_builder::IsSet,
         S::Bind: crate::server::http_server_builder::IsUnset,
@@ -173,15 +168,17 @@ mod tests {
         handle.await.expect("task failed");
     }
 
-    async fn test_tls_server<F, S>(builder: HttpServerBuilder<F, S>, versions: &[reqwest::Version])
+    #[cfg(feature = "tls-rustls")]
+    #[allow(dead_code)]
+    async fn test_tls_server<F, S>(builder: crate::HttpServerBuilder<F, S>, versions: &[reqwest::Version])
     where
-        F: HttpServiceFactory + Debug + Clone + Send + 'static,
+        F: crate::service::HttpServiceFactory + std::fmt::Debug + Clone + Send + 'static,
         F::Error: std::error::Error + Send,
-        F::Service: Clone + Debug + Send + 'static,
-        <F::Service as HttpService>::Error: std::error::Error + Send + Sync,
-        <F::Service as HttpService>::ResBody: Send,
-        <<F::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
-        <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
+        F::Service: Clone + std::fmt::Debug + Send + 'static,
+        <F::Service as crate::service::HttpService>::Error: std::error::Error + Send + Sync,
+        <F::Service as crate::service::HttpService>::ResBody: Send,
+        <<F::Service as crate::service::HttpService>::ResBody as http_body::Body>::Data: Send,
+        <<F::Service as crate::service::HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
         S: crate::server::http_server_builder::State,
         S::ServiceFactory: crate::server::http_server_builder::IsSet,
         S::Bind: crate::server::http_server_builder::IsUnset,
@@ -237,36 +234,43 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(feature = "http2")]
     async fn http2_server() {
-        let builder = HttpServer::builder()
-            .service_factory(service_clone_factory(fn_http_service(|_| async {
-                Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
-            })))
-            .enable_http1(false);
+        let builder = HttpServer::builder().service_factory(service_clone_factory(fn_http_service(|_| async {
+            Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+        })));
+
+        #[cfg(feature = "http1")]
+        let builder = builder.enable_http1(false);
 
         test_server(builder, &[reqwest::Version::HTTP_2]).await;
     }
 
     #[tokio::test]
+    #[cfg(all(feature = "http1", feature = "http2"))]
     async fn http12_server() {
-        let server = HttpServer::builder().service_factory(service_clone_factory(fn_http_service(|_| async {
-            Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
-        })));
+        let server = HttpServer::builder()
+            .service_factory(service_clone_factory(fn_http_service(|_| async {
+                Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+            })))
+            .enable_http1(true)
+            .enable_http2(true);
 
         test_server(server, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 
+    #[cfg(feature = "tls-rustls")]
     fn rustls_config() -> rustls::ServerConfig {
         rustls::crypto::aws_lc_rs::default_provider()
             .install_default()
             .expect("failed to install aws lc provider");
 
-        let certfile = fs::File::open("../../assets/cert.pem").expect("cert not found");
-        let certs = rustls_pemfile::certs(&mut BufReader::new(certfile))
+        let certfile = std::fs::File::open("../../assets/cert.pem").expect("cert not found");
+        let certs = rustls_pemfile::certs(&mut std::io::BufReader::new(certfile))
             .collect::<Result<Vec<_>, _>>()
             .expect("failed to load certs");
-        let keyfile = fs::File::open("../../assets/key.pem").expect("key not found");
-        let key = rustls_pemfile::private_key(&mut BufReader::new(keyfile))
+        let keyfile = std::fs::File::open("../../assets/key.pem").expect("key not found");
+        let key = rustls_pemfile::private_key(&mut std::io::BufReader::new(keyfile))
             .expect("failed to load key")
             .expect("no key found");
 
@@ -277,49 +281,63 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(all(feature = "tls-rustls", feature = "http1"))]
     async fn rustls_http1_server() {
-        let builder = HttpServer::builder()
-            .service_factory(service_clone_factory(fn_http_service(|_| async {
-                Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
-            })))
-            .rustls_config(rustls_config())
-            .enable_http2(false);
-
-        test_tls_server(builder, &[reqwest::Version::HTTP_11]).await;
-    }
-
-    #[tokio::test]
-    async fn rustls_http3_server() {
-        let builder = HttpServer::builder()
-            .service_factory(service_clone_factory(fn_http_service(|_| async {
-                Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
-            })))
-            .rustls_config(rustls_config())
-            .enable_http1(false)
-            .enable_http2(false)
-            .enable_http3(true);
-
-        test_tls_server(builder, &[reqwest::Version::HTTP_3]).await;
-    }
-
-    #[tokio::test]
-    async fn rustls_http12_server() {
         let builder = HttpServer::builder()
             .service_factory(service_clone_factory(fn_http_service(|_| async {
                 Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
             })))
             .rustls_config(rustls_config());
 
+        #[cfg(feature = "http2")]
+        let builder = builder.enable_http2(false);
+
+        test_tls_server(builder, &[reqwest::Version::HTTP_11]).await;
+    }
+
+    #[tokio::test]
+    #[cfg(all(feature = "tls-rustls", feature = "http3"))]
+    async fn rustls_http3_server() {
+        let builder = HttpServer::builder()
+            .service_factory(service_clone_factory(fn_http_service(|_| async {
+                Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+            })))
+            .rustls_config(rustls_config())
+            .enable_http3(true);
+
+        #[cfg(feature = "http2")]
+        let builder = builder.enable_http2(false);
+
+        #[cfg(feature = "http1")]
+        let builder = builder.enable_http1(false);
+
+        test_tls_server(builder, &[reqwest::Version::HTTP_3]).await;
+    }
+
+    #[tokio::test]
+    #[cfg(all(feature = "tls-rustls", feature = "http1", feature = "http2"))]
+    async fn rustls_http12_server() {
+        let builder = HttpServer::builder()
+            .service_factory(service_clone_factory(fn_http_service(|_| async {
+                Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+            })))
+            .rustls_config(rustls_config())
+            .enable_http1(true)
+            .enable_http2(true);
+
         test_tls_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 
     #[tokio::test]
+    #[cfg(all(feature = "tls-rustls", feature = "http1", feature = "http2", feature = "http3"))]
     async fn rustls_http123_server() {
         let builder = HttpServer::builder()
             .service_factory(service_clone_factory(fn_http_service(|_| async {
                 Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
             })))
             .rustls_config(rustls_config())
+            .enable_http1(true)
+            .enable_http2(true)
             .enable_http3(true);
 
         test_tls_server(
@@ -337,9 +355,13 @@ mod tests {
             .service_factory(service_clone_factory(fn_http_service(|_| async {
                 Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
             })))
-            .bind(addr)
-            .enable_http1(false)
-            .enable_http2(false);
+            .bind(addr);
+
+        #[cfg(feature = "http1")]
+        let builder = builder.enable_http1(false);
+
+        #[cfg(feature = "http2")]
+        let builder = builder.enable_http2(false);
 
         builder
             .build()
@@ -351,6 +373,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(feature = "tls-rustls")]
     async fn rustls_no_backend() {
         let addr = get_available_addr().expect("failed to get available address");
 
@@ -359,9 +382,13 @@ mod tests {
                 Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
             })))
             .rustls_config(rustls_config())
-            .bind(addr)
-            .enable_http1(false)
-            .enable_http2(false);
+            .bind(addr);
+
+        #[cfg(feature = "http1")]
+        let builder = builder.enable_http1(false);
+
+        #[cfg(feature = "http2")]
+        let builder = builder.enable_http2(false);
 
         builder
             .build()
@@ -373,55 +400,82 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(all(feature = "tower", feature = "http1", feature = "http2"))]
     async fn tower_make_service() {
-        let builder = HttpServer::builder().tower_make_service_factory(tower::service_fn(|_| async {
-            Ok::<_, Infallible>(tower::service_fn(|_| async move {
-                Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
-            }))
-        }));
-
-        test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
-    }
-
-    #[tokio::test]
-    async fn tower_custom_make_service() {
-        let builder = HttpServer::builder().custom_tower_make_service_factory(
-            tower::service_fn(|target| async move {
-                assert_eq!(target, 42);
+        let builder = HttpServer::builder()
+            .tower_make_service_factory(tower::service_fn(|_| async {
                 Ok::<_, Infallible>(tower::service_fn(|_| async move {
                     Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
                 }))
-            }),
-            42,
-        );
+            }))
+            .enable_http1(true)
+            .enable_http2(true);
 
         test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 
     #[tokio::test]
+    #[cfg(all(feature = "tower", feature = "http1", feature = "http2"))]
+    async fn tower_custom_make_service() {
+        let builder = HttpServer::builder()
+            .custom_tower_make_service_factory(
+                tower::service_fn(|target| async move {
+                    assert_eq!(target, 42);
+                    Ok::<_, Infallible>(tower::service_fn(|_| async move {
+                        Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+                    }))
+                }),
+                42,
+            )
+            .enable_http1(true)
+            .enable_http2(true);
+
+        test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
+    }
+
+    #[tokio::test]
+    #[cfg(all(feature = "tower", feature = "http1", feature = "http2"))]
     async fn tower_make_service_with_addr() {
-        let builder = HttpServer::builder().tower_make_service_with_addr(tower::service_fn(|addr: SocketAddr| async move {
-            assert!(addr.ip().is_loopback());
-            Ok::<_, Infallible>(tower::service_fn(|_| async move {
-                Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+        use std::net::SocketAddr;
+
+        let builder = HttpServer::builder()
+            .tower_make_service_with_addr(tower::service_fn(|addr: SocketAddr| async move {
+                assert!(addr.ip().is_loopback());
+                Ok::<_, Infallible>(tower::service_fn(|_| async move {
+                    Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+                }))
             }))
-        }));
+            .enable_http1(true)
+            .enable_http2(true);
 
         test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 
     #[tokio::test]
+    #[cfg(all(feature = "http1", feature = "http2"))]
     async fn fn_service_factory() {
-        let builder = HttpServer::builder().service_factory(fn_http_service_factory(|_| async {
-            Ok::<_, Infallible>(fn_http_service(|_| async {
-                Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+        use crate::service::fn_http_service_factory;
+
+        let builder = HttpServer::builder()
+            .service_factory(fn_http_service_factory(|_| async {
+                Ok::<_, Infallible>(fn_http_service(|_| async {
+                    Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+                }))
             }))
-        }));
+            .enable_http1(true)
+            .enable_http2(true);
 
         test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 
     #[tokio::test]
+    #[cfg(all(
+        feature = "http1",
+        feature = "http2",
+        feature = "http3",
+        feature = "tls-rustls",
+        feature = "tower"
+    ))]
     async fn axum_service() {
         let router = axum::Router::new().route(
             "/",
@@ -434,7 +488,9 @@ mod tests {
         let builder = HttpServer::builder()
             .tower_make_service_factory(router.into_make_service())
             .rustls_config(rustls_config())
-            .enable_http3(true);
+            .enable_http3(true)
+            .enable_http1(true)
+            .enable_http2(true);
 
         test_tls_server(
             builder,
@@ -444,7 +500,10 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(all(feature = "http1", feature = "http2"))]
     async fn tracked_body() {
+        use crate::body::TrackedBody;
+
         #[derive(Clone)]
         struct TestTracker;
 
@@ -457,17 +516,23 @@ mod tests {
             }
         }
 
-        let builder = HttpServer::builder().service_factory(service_clone_factory(fn_http_service(|req| async {
-            let req = req.map(|b| TrackedBody::new(b, TestTracker));
-            let body = req.into_body();
-            Ok::<_, Infallible>(http::Response::new(body))
-        })));
+        let builder = HttpServer::builder()
+            .service_factory(service_clone_factory(fn_http_service(|req| async {
+                let req = req.map(|b| TrackedBody::new(b, TestTracker));
+                let body = req.into_body();
+                Ok::<_, Infallible>(http::Response::new(body))
+            })))
+            .enable_http1(true)
+            .enable_http2(true);
 
         test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 
     #[tokio::test]
+    #[cfg(all(feature = "http1", feature = "http2"))]
     async fn tracked_body_error() {
+        use crate::body::TrackedBody;
+
         #[derive(Clone)]
         struct TestTracker;
 
@@ -480,20 +545,24 @@ mod tests {
             }
         }
 
-        let builder = HttpServer::builder().service_factory(service_clone_factory(fn_http_service(|req| async {
-            let req = req.map(|b| TrackedBody::new(b, TestTracker));
-            let body = req.into_body();
-            // Use axum to convert the body to bytes
-            let bytes = axum::body::to_bytes(axum::body::Body::new(body), usize::MAX).await;
-            assert_eq!(bytes.expect_err("expected error").to_string(), "tracker error: test");
+        let builder = HttpServer::builder()
+            .service_factory(service_clone_factory(fn_http_service(|req| async {
+                let req = req.map(|b| TrackedBody::new(b, TestTracker));
+                let body = req.into_body();
+                // Use axum to convert the body to bytes
+                let bytes = axum::body::to_bytes(axum::body::Body::new(body), usize::MAX).await;
+                assert_eq!(bytes.expect_err("expected error").to_string(), "tracker error: test");
 
-            Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
-        })));
+                Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+            })))
+            .enable_http1(true)
+            .enable_http2(true);
 
         test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 
     #[tokio::test]
+    #[cfg(all(feature = "http2", feature = "http3", feature = "tls-rustls"))]
     async fn response_trailers() {
         #[derive(Default)]
         struct TestBody {
@@ -527,7 +596,11 @@ mod tests {
                 Ok::<_, Infallible>(resp)
             })))
             .rustls_config(rustls_config())
-            .enable_http3(true);
+            .enable_http3(true)
+            .enable_http2(true);
+
+        #[cfg(feature = "http1")]
+        let builder = builder.enable_http1(false);
 
         test_tls_server(builder, &[reqwest::Version::HTTP_2, reqwest::Version::HTTP_3]).await;
     }
