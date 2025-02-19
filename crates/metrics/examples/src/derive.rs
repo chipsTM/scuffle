@@ -23,10 +23,11 @@ async fn main() {
     let exporter = opentelemetry_stdout::MetricExporterBuilder::default().build();
 
     let provider = SdkMeterProvider::builder()
-        .with_resource(Resource::builder().with_attribute(KeyValue::new(
-            "service.name",
-            env!("CARGO_BIN_NAME"),
-        )).build())
+        .with_resource(
+            Resource::builder()
+                .with_attribute(KeyValue::new("service.name", env!("CARGO_BIN_NAME")))
+                .build(),
+        )
         .with_reader(PeriodicReader::builder(exporter).build())
         .build();
 

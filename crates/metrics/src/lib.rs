@@ -153,10 +153,11 @@ mod tests {
 
         let reader = TestReader::new();
         let provider = SdkMeterProvider::builder()
-            .with_resource(Resource::builder().with_attribute(KeyValue::new(
-                "service.name",
-                "test_service",
-            )).build())
+            .with_resource(
+                Resource::builder()
+                    .with_attribute(KeyValue::new("service.name", "test_service"))
+                    .build(),
+            )
             .with_reader(reader.clone())
             .build();
         opentelemetry::global::set_meter_provider(provider);
@@ -172,9 +173,7 @@ mod tests {
             metrics.resource.get(&Key::from_static_str("telemetry.sdk.name")),
             Some(Value::from("opentelemetry"))
         );
-        assert!(
-            metrics.resource.get(&Key::from_static_str("telemetry.sdk.version")).is_some()
-        );
+        assert!(metrics.resource.get(&Key::from_static_str("telemetry.sdk.version")).is_some());
         assert_eq!(
             metrics.resource.get(&Key::from_static_str("telemetry.sdk.language")),
             Some(Value::from("rust"))
