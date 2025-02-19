@@ -72,5 +72,5 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [package.metadata.xtask.powerset]
-additive-features = ["tracing"]
+additive-features = ["tracing", "tower"]
 ignore-features = ["http3"]
