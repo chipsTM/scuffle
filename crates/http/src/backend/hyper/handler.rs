@@ -53,7 +53,7 @@ where
             .map_err(Error::HyperConnection)?;
     } else if http1 {
         #[cfg(not(feature = "http1"))]
-        return Ok(());
+        unreachable!("http1 enabled but http1 feature disabled");
 
         #[cfg(feature = "http1")]
         builder
@@ -65,7 +65,7 @@ where
             .map_err(Error::HyperConnection)?;
     } else if http2 {
         #[cfg(not(feature = "http2"))]
-        return Ok(());
+        unreachable!("http2 enabled but http2 feature disabled");
 
         #[cfg(feature = "http2")]
         builder
