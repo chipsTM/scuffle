@@ -29,15 +29,16 @@ jobs:
           tools: just,cargo-hakari
 
       - name: Update Cargo.lock
+        shell: bash
         run: |
           set -eo pipefail
           cargo +${{ env.RUST_TOOLCHAIN }} update --verbose 2>&1 | tee /tmp/cargo-update.log
           just workspace-hack
+
           echo "## Cargo update log" > /tmp/pr-body.txt
-          cat /tmp/cargo-update.log >> /tmp/pr-body.txt
+          cat /tmp/cargo-update.log | .github/scripts/cargo-update-table.sh >> /tmp/pr-body.txt
           cat /tmp/pr-body.txt > $GITHUB_STEP_SUMMARY
 
-      # Check if any files changed
       - name: Check if anything changed
         id: changed
         run: |

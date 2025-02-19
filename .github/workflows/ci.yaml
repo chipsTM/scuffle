@@ -227,11 +227,11 @@ jobs:
 
       - name: Insert custom html for PR
         if: ${{ startsWith(github.ref, 'refs/heads/automation/brawl/try/') || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: .github/patch-docs.sh ${{ github.event.repository.html_url }} ${{ env.SHA }} ${{ steps.brawl-override.outputs.pr_number || github.event.pull_request.number }}
+        run: .github/scripts/patch-docs.sh ${{ github.event.repository.html_url }} ${{ env.SHA }} ${{ steps.brawl-override.outputs.pr_number || github.event.pull_request.number }}
 
       - name: Insert custom html for merge
         if: ${{ startsWith(github.ref, 'refs/heads/automation/brawl/merge/') }}
-        run: .github/patch-docs.sh ${{ github.event.repository.html_url }} ${{ env.SHA }}
+        run: .github/scripts/patch-docs.sh ${{ github.event.repository.html_url }} ${{ env.SHA }}
 
       - name: Upload docs
         uses: actions/upload-artifact@v4
