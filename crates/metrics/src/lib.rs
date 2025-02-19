@@ -98,7 +98,7 @@ mod tests {
 
             fn read(&self) -> ResourceMetrics {
                 let mut metrics = ResourceMetrics {
-                    resource: Resource::empty(),
+                    resource: Resource::builder_empty().build(),
                     scope_metrics: vec![],
                 };
 
@@ -120,11 +120,11 @@ mod tests {
                 self.0.collect(rm)
             }
 
-            fn force_flush(&self) -> opentelemetry_sdk::metrics::MetricResult<()> {
+            fn force_flush(&self) -> opentelemetry_sdk::error::OTelSdkResult {
                 self.0.force_flush()
             }
 
-            fn shutdown(&self) -> opentelemetry_sdk::metrics::MetricResult<()> {
+            fn shutdown(&self) -> opentelemetry_sdk::error::OTelSdkResult {
                 self.0.shutdown()
             }
 
@@ -153,10 +153,11 @@ mod tests {
 
         let reader = TestReader::new();
         let provider = SdkMeterProvider::builder()
-            .with_resource(Resource::new_with_defaults(vec![KeyValue::new(
-                "service.name",
-                "test_service",
-            )]))
+            .with_resource(
+                Resource::builder()
+                    .with_attribute(KeyValue::new("service.name", "test_service"))
+                    .build(),
+            )
             .with_reader(reader.clone())
             .build();
         opentelemetry::global::set_meter_provider(provider);
@@ -165,19 +166,16 @@ mod tests {
 
         assert!(!metrics.resource.is_empty());
         assert_eq!(
-            metrics.resource.get(Key::from_static_str("service.name")),
+            metrics.resource.get(&Key::from_static_str("service.name")),
             Some(Value::from("test_service"))
         );
         assert_eq!(
-            metrics.resource.get(Key::from_static_str("telemetry.sdk.name")),
+            metrics.resource.get(&Key::from_static_str("telemetry.sdk.name")),
             Some(Value::from("opentelemetry"))
         );
+        assert!(metrics.resource.get(&Key::from_static_str("telemetry.sdk.version")).is_some());
         assert_eq!(
-            metrics.resource.get(Key::from_static_str("telemetry.sdk.version")),
-            Some(Value::from("0.27.1"))
-        );
-        assert_eq!(
-            metrics.resource.get(Key::from_static_str("telemetry.sdk.language")),
+            metrics.resource.get(&Key::from_static_str("telemetry.sdk.language")),
             Some(Value::from("rust"))
         );
 

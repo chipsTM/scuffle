@@ -38,8 +38,8 @@ libc = { version = "0.2", features = ["extra_traits"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
 memchr = { version = "2" }
 num-traits = { version = "0.2" }
-opentelemetry = { version = "0.27", features = ["spec_unstable_logs_enabled"] }
-opentelemetry_sdk = { version = "0.27", features = ["rt-tokio", "spec_unstable_logs_enabled"] }
+opentelemetry = { version = "0.28", features = ["spec_unstable_logs_enabled"] }
+opentelemetry_sdk = { version = "0.28", features = ["rt-tokio", "spec_unstable_logs_enabled"] }
 percent-encoding = { version = "2" }
 prettyplease = { version = "0.2", default-features = false, features = ["verbatim"] }
 proc-macro2 = { version = "1" }
@@ -55,6 +55,7 @@ smallvec = { version = "1", default-features = false, features = ["const_new"] }
 stable_deref_trait = { version = "1" }
 syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
+thiserror = { version = "2" }
 tokio = { version = "1", features = ["full", "test-util"] }
 tokio-util = { version = "0.7", features = ["codec", "io"] }
 tracing = { version = "0.1", features = ["log"] }
@@ -90,8 +91,8 @@ libc = { version = "0.2", features = ["extra_traits"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
 memchr = { version = "2" }
 num-traits = { version = "0.2" }
-opentelemetry = { version = "0.27", features = ["spec_unstable_logs_enabled"] }
-opentelemetry_sdk = { version = "0.27", features = ["rt-tokio", "spec_unstable_logs_enabled"] }
+opentelemetry = { version = "0.28", features = ["spec_unstable_logs_enabled"] }
+opentelemetry_sdk = { version = "0.28", features = ["rt-tokio", "spec_unstable_logs_enabled"] }
 percent-encoding = { version = "2" }
 prettyplease = { version = "0.2", default-features = false, features = ["verbatim"] }
 proc-macro2 = { version = "1" }
@@ -107,6 +108,7 @@ smallvec = { version = "1", default-features = false, features = ["const_new"] }
 stable_deref_trait = { version = "1" }
 syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
+thiserror = { version = "2" }
 tokio = { version = "1", features = ["full", "test-util"] }
 tokio-util = { version = "0.7", features = ["codec", "io"] }
 tracing = { version = "0.1", features = ["log"] }

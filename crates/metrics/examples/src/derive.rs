@@ -1,7 +1,7 @@
 use example::Kind;
 use opentelemetry::KeyValue;
 use opentelemetry_sdk::metrics::{PeriodicReader, SdkMeterProvider};
-use opentelemetry_sdk::{runtime, Resource};
+use opentelemetry_sdk::Resource;
 
 #[scuffle_metrics::metrics]
 mod example {
@@ -23,11 +23,12 @@ async fn main() {
     let exporter = opentelemetry_stdout::MetricExporterBuilder::default().build();
 
     let provider = SdkMeterProvider::builder()
-        .with_resource(Resource::new_with_defaults(vec![KeyValue::new(
-            "service.name",
-            env!("CARGO_BIN_NAME"),
-        )]))
-        .with_reader(PeriodicReader::builder(exporter, runtime::Tokio).build())
+        .with_resource(
+            Resource::builder()
+                .with_attribute(KeyValue::new("service.name", env!("CARGO_BIN_NAME")))
+                .build(),
+        )
+        .with_reader(PeriodicReader::builder(exporter).build())
         .build();
 
     opentelemetry::global::set_meter_provider(provider.clone());

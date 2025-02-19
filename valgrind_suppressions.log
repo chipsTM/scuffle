@@ -153,3 +153,11 @@
    fun:_ZN3std6thread7current12init_current*
    ...
 }
+{
+   ignore opentelemetry_sdk::resource::Resource::merge
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN17opentelemetry_sdk8resource8Resource5merge*
+   ...
+}

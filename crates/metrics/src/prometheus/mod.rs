@@ -54,11 +54,11 @@ impl MetricReader for PrometheusExporter {
         self.reader.collect(rm)
     }
 
-    fn force_flush(&self) -> opentelemetry_sdk::metrics::MetricResult<()> {
+    fn force_flush(&self) -> opentelemetry_sdk::error::OTelSdkResult {
         self.reader.force_flush()
     }
 
-    fn shutdown(&self) -> opentelemetry_sdk::metrics::MetricResult<()> {
+    fn shutdown(&self) -> opentelemetry_sdk::error::OTelSdkResult {
         self.reader.shutdown()
     }
 
@@ -412,7 +412,7 @@ impl<'a> KnownMetric<'a> {
 impl prometheus_client::collector::Collector for PrometheusExporter {
     fn encode(&self, mut encoder: prometheus_client::encoding::DescriptorEncoder) -> Result<(), std::fmt::Error> {
         let mut metrics = ResourceMetrics {
-            resource: Resource::empty(),
+            resource: Resource::builder_empty().build(),
             scope_metrics: vec![],
         };
 
