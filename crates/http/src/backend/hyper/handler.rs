@@ -1,5 +1,3 @@
-use std::fmt::Debug;
-
 use hyper_util::rt::{TokioExecutor, TokioIo, TokioTimer};
 use hyper_util::server::conn::auto;
 use scuffle_context::ContextFutExt;
@@ -18,9 +16,9 @@ pub async fn handle_connection<F, S, I>(
 ) -> Result<(), Error<F>>
 where
     F: HttpServiceFactory<Service = S>,
-    F::Error: std::error::Error + Debug,
+    F::Error: std::error::Error,
     S: HttpService + Clone + Send + 'static,
-    S::Error: std::error::Error + Debug + Send + Sync,
+    S::Error: std::error::Error + Send + Sync,
     S::ResBody: Send,
     <S::ResBody as http_body::Body>::Data: Send,
     <S::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,

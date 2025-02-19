@@ -1,5 +1,3 @@
-use std::fmt::Debug;
-
 use bytes::{Buf, Bytes};
 use h3::quic::SendStream;
 use h3::server::RequestStream;
@@ -14,11 +12,11 @@ pub async fn copy_response_body<S, F>(
 ) -> Result<(), crate::error::Error<F>>
 where
     F: HttpServiceFactory,
-    F::Error: std::error::Error + Debug,
-    <F::Service as HttpService>::Error: std::error::Error + Debug,
+    F::Error: std::error::Error,
+    <F::Service as HttpService>::Error: std::error::Error,
     S: SendStream<Bytes>,
     <F::Service as HttpService>::ResBody: http_body::Body,
-    <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Debug,
+    <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error,
 {
     let mut body = std::pin::pin!(body);
 

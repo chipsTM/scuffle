@@ -41,9 +41,9 @@ pub struct HyperBackend<F> {
 impl<F> HyperBackend<F>
 where
     F: HttpServiceFactory + Clone + Send + 'static,
-    F::Error: std::error::Error + Debug + Send,
+    F::Error: std::error::Error + Send,
     F::Service: Clone + Send + 'static,
-    <F::Service as HttpService>::Error: std::error::Error + Debug + Send + Sync,
+    <F::Service as HttpService>::Error: std::error::Error + Send + Sync,
     <F::Service as HttpService>::ResBody: Send,
     <<F::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
     <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
