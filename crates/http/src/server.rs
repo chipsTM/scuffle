@@ -13,16 +13,25 @@ use crate::service::{HttpService, HttpServiceFactory};
 #[builder(state_mod(vis = "pub(crate)"))]
 #[allow(dead_code)]
 pub struct HttpServer<F> {
+    /// The [`scuffle_context::Context`] this server will live by.
     #[builder(default = scuffle_context::Context::global())]
     ctx: scuffle_context::Context,
+    /// The number of worker tasks to spawn for each server backend.
     #[builder(default = 1)]
     worker_tasks: usize,
+    /// The service factory that will be used to create new services.
     service_factory: F,
+    /// The address to bind to.
+    ///
+    /// Use `[::]` for a dual-stack listener.
+    /// For example, use `[::]:80` to bind to port 80 on both IPv4 and IPv6.
     bind: SocketAddr,
+    /// Enable HTTP/1.1.
     #[builder(default = true)]
     #[cfg(feature = "http1")]
     #[cfg_attr(docsrs, doc(cfg(feature = "http1")))]
     enable_http1: bool,
+    /// Enable HTTP/2.
     #[builder(default = true)]
     #[cfg(feature = "http2")]
     #[cfg_attr(docsrs, doc(cfg(feature = "http2")))]
@@ -31,6 +40,10 @@ pub struct HttpServer<F> {
     #[cfg(feature = "http3")]
     #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
     enable_http3: bool,
+    /// rustls config.
+    ///
+    /// Use this field to set the server into TLS mode.
+    /// It will only accept TLS connections when this is set.
     #[cfg(feature = "tls-rustls")]
     #[cfg_attr(docsrs, doc(cfg(feature = "tls-rustls")))]
     rustls_config: Option<rustls::ServerConfig>,
@@ -44,6 +57,9 @@ where
     S::EnableHttp3: http_server_builder::IsUnset,
     S::RustlsConfig: http_server_builder::IsSet,
 {
+    /// Enable HTTP/3 support.
+    ///
+    /// First enable TLS by calling [`rustls_config`](HttpServerBuilder::rustls_config) to enable HTTP/3.
     pub fn enable_http3(self, enable_http3: bool) -> HttpServerBuilder<F, http_server_builder::SetEnableHttp3<S>> {
         self.enable_http3_internal(enable_http3)
     }
