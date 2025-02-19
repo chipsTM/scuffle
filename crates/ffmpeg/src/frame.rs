@@ -445,7 +445,7 @@ impl std::ops::DerefMut for AudioFrame {
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
     use insta::assert_debug_snapshot;
-    use rand::{thread_rng, Rng};
+    use rand::Rng;
     use rusty_ffmpeg::ffi::AVRational;
 
     use crate::ffi::av_frame_get_buffer;
@@ -598,7 +598,6 @@ mod tests {
         video_frame.set_width(16);
         video_frame.set_height(16);
 
-        let randomized_data: Vec<u8>;
         // Safety: Our pointer is valid.
         let av_frame = unsafe { video_frame.as_mut_ptr().as_mut() }.expect("Failed to get mutable pointer");
 
@@ -612,16 +611,15 @@ mod tests {
         let height = av_frame.height as usize; // total rows
         let data_ptr = av_frame.data[0]; // pointer to the Y-plane data
 
-        if !data_ptr.is_null() {
+        let randomized_data = if !data_ptr.is_null() {
             // Safety: `std::slice::from_raw_parts_mut` is safe to call.
             let data_slice = unsafe { std::slice::from_raw_parts_mut(data_ptr, linesize * height) };
-            randomized_data = (0..data_slice.len())
-                .map(|_| thread_rng().gen()) // generate random data
-                .collect();
-            data_slice.copy_from_slice(&randomized_data); // copy random data to the frame
+            let mut rng = rand::rng();
+            rng.fill(data_slice);
+            data_slice.to_vec()
         } else {
             panic!("Failed to get valid data pointer for Y-plane.");
-        }
+        };
 
         if let Some(data) = video_frame.data(0) {
             assert_eq!(data, randomized_data.as_slice(), "Data does not match randomized content.");

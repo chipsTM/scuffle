@@ -3,10 +3,10 @@ use std::io::Write;
 use rand::Rng;
 
 fn work() {
-    let mut rnd = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let mut buf = vec![0u8; 1024 * 1024];
-    rnd.fill(buf.as_mut_slice());
+    rng.fill(buf.as_mut_slice());
 
     loop {
         let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());

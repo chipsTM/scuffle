@@ -193,12 +193,13 @@ mod tests {
         unsafe { input_frame.alloc_frame_buffer(Some(32)) }.expect("Failed to allocate frame buffer");
 
         // We need to fill the buffer with random data otherwise the result will be based off uninitialized data.
+        let mut rng = rand::rng();
 
         for y in 0..input_height {
             // Safety: `frame_mut.data[0]` is a valid pointer
             let y = (y * input_frame.linesize(0).unwrap()) as usize;
             let row = &mut input_frame.data_mut(0).unwrap()[y..y + input_width as usize];
-            rand::thread_rng().fill(row);
+            rng.fill(row);
         }
 
         let half_height = (input_height + 1) / 2;
@@ -207,13 +208,13 @@ mod tests {
         for y in 0..half_height {
             let y = (y * input_frame.linesize(1).unwrap()) as usize;
             let row = &mut input_frame.data_mut(1).unwrap()[y..y + half_width as usize];
-            rand::thread_rng().fill(row);
+            rng.fill(row);
         }
 
         for y in 0..half_height {
             let y = (y * input_frame.linesize(2).unwrap()) as usize;
             let row = &mut input_frame.data_mut(2).unwrap()[y..y + half_width as usize];
-            rand::thread_rng().fill(row);
+            rng.fill(row);
         }
 
         let result = scalar.process(&input_frame);
