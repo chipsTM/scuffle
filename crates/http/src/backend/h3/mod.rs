@@ -22,7 +22,7 @@ mod utils;
 /// Call [`run`](Http3Backend::run) to start the server.
 #[derive(bon::Builder, Debug, Clone)]
 pub struct Http3Backend<F> {
-    #[builder(default)]
+    #[builder(default = scuffle_context::Context::global())]
     ctx: scuffle_context::Context,
     #[builder(default = 1)]
     worker_tasks: usize,

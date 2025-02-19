@@ -130,12 +130,6 @@ impl Clone for Context {
     }
 }
 
-impl Default for Context {
-    fn default() -> Self {
-        Self::global()
-    }
-}
-
 impl Context {
     #[must_use]
     /// Create a new context using the global handler.

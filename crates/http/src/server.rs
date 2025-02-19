@@ -13,7 +13,7 @@ use crate::service::{HttpService, HttpServiceFactory};
 #[builder(state_mod(vis = "pub(crate)"))]
 #[allow(dead_code)]
 pub struct HttpServer<F> {
-    #[builder(default)]
+    #[builder(default = scuffle_context::Context::global())]
     ctx: scuffle_context::Context,
     #[builder(default = 1)]
     worker_tasks: usize,

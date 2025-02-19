@@ -19,7 +19,7 @@ mod utils;
 /// Call [`run`](HyperBackend::run) to start the server.
 #[derive(Debug, Clone, bon::Builder)]
 pub struct HyperBackend<F> {
-    #[builder(default)]
+    #[builder(default = scuffle_context::Context::global())]
     ctx: scuffle_context::Context,
     #[builder(default = 1)]
     worker_tasks: usize,
