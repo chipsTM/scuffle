@@ -173,9 +173,9 @@ impl SimpleHandshakeServer {
         //  initiated by its peer,this data SHOULD send something sufficiently
         //  random. But there is no need for cryptographically-secure
         //  randomness, or even dynamic values.
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         for _ in 0..1528 {
-            output.write_u8(rng.gen())?;
+            output.write_u8(rng.random())?;
         }
 
         Ok(())
@@ -292,9 +292,9 @@ impl ComplexHandshakeServer {
 
         // We then write 1528 bytes of random data. (764 bytes for digest, 764 bytes for
         // key)
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         for _ in 0..define::RTMP_HANDSHAKE_SIZE - define::TIME_VERSION_LENGTH {
-            writer.write_u8(rng.gen())?;
+            writer.write_u8(rng.random())?;
         }
 
         // The digest is loaded with the data that we just generated.
@@ -324,12 +324,12 @@ impl ComplexHandshakeServer {
 
         // We then write 1528 bytes of random data. (764 bytes for digest, 764 bytes for
         // key)
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         // define::RTMP_HANDSHAKE_SIZE - define::TIME_VERSION_LENGTH because we already
         // wrote 8 bytes. (timestamp and c1 timestamp)
         for _ in 0..define::RTMP_HANDSHAKE_SIZE - define::RTMP_DIGEST_LENGTH - define::TIME_VERSION_LENGTH {
-            output.write_u8(rng.gen())?;
+            output.write_u8(rng.random())?;
         }
 
         // The digest is loaded with the data that we just generated.

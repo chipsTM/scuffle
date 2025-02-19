@@ -3,7 +3,7 @@ use std::io::Write;
 use rand::Rng;
 
 fn work() {
-    let mut rnd = rand::thread_rng();
+    let mut rnd = rand::rng();
 
     let mut buf = vec![0u8; 1024 * 1024];
     rnd.fill(buf.as_mut_slice());

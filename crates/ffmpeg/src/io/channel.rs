@@ -244,8 +244,8 @@ impl<T: ChannelCompatSend> std::io::Write for ChannelCompat<T> {
 mod tests {
     use std::io::{Read, Write};
 
-    use rand::distributions::Standard;
-    use rand::{thread_rng, Rng};
+    use rand::distr::StandardUniform;
+    use rand::Rng;
 
     use crate::io::channel::{ChannelCompat, ChannelCompatRecv, ChannelCompatSend};
 
@@ -305,8 +305,8 @@ mod tests {
             let mut reader = rx.into_compat();
 
             // generate 1000 bytes of random data
-            let mut rng = thread_rng();
-            let data: Vec<u8> = (0..1000).map(|_| rng.sample(Standard)).collect();
+            let mut rng = rand::rng();
+            let data: Vec<u8> = (0..1000).map(|_| rng.sample(StandardUniform)).collect();
 
             let mut tx = tx;
             let write_result = tx.channel_send(data.clone());
@@ -357,8 +357,8 @@ mod tests {
             let mut writer = tx.into_compat();
 
         // generate 1000 bytes of random data
-        let mut rng = thread_rng();
-        let data: Vec<u8> = (0..1000).map(|_| rng.sample(Standard)).collect();
+        let mut rng = rand::rng();
+        let data: Vec<u8> = (0..1000).map(|_| rng.sample(StandardUniform)).collect();
 
         let write_result = writer.write(&data);
         assert!(write_result.is_ok(), "Failed to write data to the channel");
