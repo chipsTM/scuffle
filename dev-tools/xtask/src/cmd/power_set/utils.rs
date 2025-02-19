@@ -92,15 +92,16 @@ fn find_permutations<'a>(
     }
 }
 
-fn flatten_features<'a>(deps: impl IntoIterator<Item = &'a str>, package_features: &BTreeMap<&'a str, Vec<&'a str>>) -> BTreeSet<&'a str> {
+fn flatten_features<'a>(
+    deps: impl IntoIterator<Item = &'a str>,
+    package_features: &BTreeMap<&'a str, Vec<&'a str>>,
+) -> BTreeSet<&'a str> {
     let mut next: Vec<_> = deps.into_iter().collect();
 
     let mut features = BTreeSet::new();
-    while let Some(dep) = next.pop() {
-        if let Some(deps) = package_features.get(dep) {
-            if features.insert(dep) {
-                next.extend(deps);
-            }
+    while let Some((dep, deps)) = next.pop().and_then(|d| Some((d, package_features.get(d)?))) {
+        if features.insert(dep) {
+            next.extend(deps);
         }
     }
 
@@ -123,6 +124,7 @@ pub fn test_package_features<'a>(
         .map(|f| f.as_str())
         .chain(added_features)
         .collect();
+
     let skip_feature_sets: BTreeSet<_> = excluded_features
         .into_iter()
         .map(|f| BTreeSet::from_iter(std::iter::once(f)))
