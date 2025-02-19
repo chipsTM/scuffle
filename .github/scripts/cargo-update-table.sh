@@ -7,6 +7,8 @@ parse_cargo_updates() {
     updated_packages=()
 
     while IFS= read -r line; do
+        line=$(echo "$line" | sed -E 's/\x1B\[[0-9;]*[mK]//g')
+
         if [[ $line =~ Updating ]]; then
             package=$(echo "$line" | awk '{print $2}')
             old_version=$(echo "$line" | awk '{print $3}' | tr -d 'v')
