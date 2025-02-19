@@ -431,9 +431,16 @@ mod tests {
             }),
         );
 
-        let builder = HttpServer::builder().tower_make_service_factory(router.into_make_service());
+        let builder = HttpServer::builder()
+            .tower_make_service_factory(router.into_make_service())
+            .rustls_config(rustls_config())
+            .enable_http3(true);
 
-        test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
+        test_tls_server(
+            builder,
+            &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2, reqwest::Version::HTTP_3],
+        )
+        .await;
     }
 
     #[tokio::test]
