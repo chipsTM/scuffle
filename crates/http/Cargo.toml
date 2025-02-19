@@ -71,8 +71,6 @@ tower = ["dep:tower"]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
-[package.metadata.xtask]
+[package.metadata.xtask.powerset]
 additive-features = ["tracing"]
-skip-feature-sets = [
-    ["http3"]
-]
+ignore-features = ["http3"]
