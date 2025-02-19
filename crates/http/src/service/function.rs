@@ -95,3 +95,31 @@ where
         (self.0)(remote_addr)
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(all(test, coverage_nightly), coverage(off))]
+mod tests {
+    use std::convert::Infallible;
+
+    #[test]
+    fn fn_service_debug() {
+        let service = super::fn_http_service(|_| async { Ok::<_, Infallible>(http::Response::new(String::new())) });
+        assert_eq!(
+            format!("{:?}", service),
+            "FnHttpService(\"scuffle_http::service::function::tests::fn_service_debug::{{closure}}\")"
+        );
+    }
+
+    #[test]
+    fn fn_service_factory_debug() {
+        let factory = super::fn_http_service_factory(|_| async {
+            Ok::<_, Infallible>(super::fn_http_service(|_| async {
+                Ok::<_, Infallible>(http::Response::new(String::new()))
+            }))
+        });
+        assert_eq!(
+            format!("{:?}", factory),
+            "FnHttpServiceFactory(\"scuffle_http::service::function::tests::fn_service_factory_debug::{{closure}}\")"
+        );
+    }
+}

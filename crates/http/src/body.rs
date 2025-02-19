@@ -179,3 +179,37 @@ where
         self.body.size_hint()
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(all(test, coverage_nightly), coverage(off))]
+mod tests {
+    use std::convert::Infallible;
+
+    use crate::body::TrackedBodyError;
+
+    #[test]
+    fn tracked_body_error_debug() {
+        struct TestTracker;
+
+        impl super::Tracker for TestTracker {
+            type Error = Infallible;
+        }
+
+        struct TestBody;
+
+        impl http_body::Body for TestBody {
+            type Data = bytes::Bytes;
+            type Error = ();
+
+            fn poll_frame(
+                self: std::pin::Pin<&mut Self>,
+                _cx: &mut std::task::Context<'_>,
+            ) -> std::task::Poll<Option<Result<http_body::Frame<Self::Data>, Self::Error>>> {
+                std::task::Poll::Ready(None)
+            }
+        }
+
+        let err = TrackedBodyError::<TestBody, TestTracker>::Body(());
+        assert_eq!(format!("{:?}", err), "TrackedBodyError::Body(())",);
+    }
+}
