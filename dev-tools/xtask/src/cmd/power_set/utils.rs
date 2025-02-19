@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use anyhow::Context;
 
 #[derive(Debug, Clone, serde_derive::Deserialize)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct XTaskMetadata {
     /// Allows you to provide a list of combinations that should be skipped.
     /// Meaning, that these combinations will not be tested on supersets.
@@ -12,25 +12,19 @@ pub struct XTaskMetadata {
     /// Allows you to skip optional dependencies.
     #[serde(alias = "skip-optional-dependencies")]
     pub skip_optional_dependencies: bool,
-    /// Allows you to provide a list of extra features that should be tested.
-    #[serde(alias = "extra-features")]
-    pub extra_features: BTreeSet<String>,
-    /// Allows you to provide a list of features that should be denied.
-    #[serde(alias = "deny-list")]
-    pub deny_list: BTreeSet<String>,
     /// Allows you to provide a list of features that should be always included.
     #[serde(alias = "always-include-features")]
     pub always_include_features: BTreeSet<String>,
     /// Allows you to provide the maximum number of features that should be tested.
     #[serde(alias = "max-combination-size")]
     pub max_combination_size: Option<usize>,
-    /// Allows you to provide a list of features that should be allowed.
-    #[serde(alias = "allow-list")]
-    pub allow_list: BTreeSet<String>,
     /// A set of features that are considered strictly additive meaning that they only
     /// add new functionality and do not change the behavior of the crate.
     #[serde(alias = "additive-features")]
     pub additive_features: BTreeSet<String>,
+    /// A set of features that should be ignored when computing the power set.
+    #[serde(alias = "ignore-features")]
+    pub ignore_features: BTreeSet<String>,
     /// Whether to skip the power set.
     pub skip: bool,
 }
@@ -40,12 +34,10 @@ impl Default for XTaskMetadata {
         Self {
             skip_feature_sets: Default::default(),
             skip_optional_dependencies: true,
-            extra_features: Default::default(),
-            deny_list: Default::default(),
             always_include_features: Default::default(),
             max_combination_size: None,
-            allow_list: Default::default(),
             additive_features: Default::default(),
+            ignore_features: Default::default(),
             skip: false,
         }
     }
@@ -100,13 +92,13 @@ fn find_permutations<'a>(
     }
 }
 
-fn flatten_features<'a>(deps: &[&'a str], package_features: &BTreeMap<&'a str, Vec<&'a str>>) -> BTreeSet<&'a str> {
-    let mut next: Vec<_> = deps.iter().collect();
+fn flatten_features<'a>(deps: impl IntoIterator<Item = &'a str>, package_features: &BTreeMap<&'a str, Vec<&'a str>>) -> BTreeSet<&'a str> {
+    let mut next: Vec<_> = deps.into_iter().collect();
 
     let mut features = BTreeSet::new();
     while let Some(dep) = next.pop() {
         if let Some(deps) = package_features.get(dep) {
-            if features.insert(*dep) {
+            if features.insert(dep) {
                 next.extend(deps);
             }
         }
@@ -163,7 +155,7 @@ pub fn test_package_features<'a>(
         }
 
         for feature in implicit_features {
-            if used_deps.contains(&feature) || xtask_metadata.extra_features.contains(feature) {
+            if used_deps.contains(&feature) {
                 continue;
             }
 
@@ -171,27 +163,15 @@ pub fn test_package_features<'a>(
         }
     }
 
-    let use_allow_list = !xtask_metadata.allow_list.is_empty();
-    let use_deny_list = !xtask_metadata.deny_list.is_empty();
-
-    if use_allow_list && use_deny_list {
-        anyhow::bail!("Cannot specify both allow and deny lists, please specify only one.");
-    }
-
     let mut viable_features = BTreeMap::new();
-
     let mut additive_features = BTreeMap::new();
 
     for (feature, deps) in package_features.iter() {
-        // If we are using an allow list, only include features that are in the allow
-        // list If we are using a deny list, skip features that are in the deny list
-        if (use_allow_list && !xtask_metadata.allow_list.contains(*feature))
-            || (use_deny_list && xtask_metadata.deny_list.contains(*feature))
-        {
+        if xtask_metadata.ignore_features.contains(*feature) {
             continue;
         }
 
-        let flattened = flatten_features(deps, &package_features);
+        let flattened = flatten_features(deps.iter().copied(), &package_features);
 
         if !xtask_metadata.additive_features.contains(*feature) {
             viable_features.insert(*feature, flattened);
