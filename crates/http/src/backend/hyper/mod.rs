@@ -19,19 +19,32 @@ mod utils;
 /// Call [`run`](HyperBackend::run) to start the server.
 #[derive(Debug, Clone, bon::Builder)]
 pub struct HyperBackend<F> {
+    /// The [`scuffle_context::Context`] this server will live by.
     #[builder(default = scuffle_context::Context::global())]
     ctx: scuffle_context::Context,
+    /// The number of worker tasks to spawn for each server backend.
     #[builder(default = 1)]
     worker_tasks: usize,
+    /// The service factory that will be used to create new services.
     service_factory: F,
+    /// The address to bind to.
+    ///
+    /// Use `[::]` for a dual-stack listener.
+    /// For example, use `[::]:80` to bind to port 80 on both IPv4 and IPv6.
     bind: SocketAddr,
+    /// rustls config.
+    ///
+    /// Use this field to set the server into TLS mode.
+    /// It will only accept TLS connections when this is set.
     #[cfg(feature = "tls-rustls")]
     #[cfg_attr(docsrs, doc(cfg(feature = "tls-rustls")))]
     rustls_config: Option<rustls::ServerConfig>,
+    /// Enable HTTP/1.1.
     #[cfg(feature = "http1")]
     #[cfg_attr(docsrs, doc(cfg(feature = "http1")))]
     #[builder(default = true)]
     http1_enabled: bool,
+    /// Enable HTTP/2.
     #[cfg(feature = "http2")]
     #[cfg_attr(docsrs, doc(cfg(feature = "http2")))]
     #[builder(default = true)]
