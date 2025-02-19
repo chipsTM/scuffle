@@ -5,6 +5,6 @@ description = "complete rewrite with improved API"
 authors = ["@lennartkloock"]
 
 [[scuffle-bootstrap-telemetry]]
-category = "fix"
+category = "chore"
 description = "use new version of scuffle-http for the telemetry server"
 authors = ["@lennartkloock"]
