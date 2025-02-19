@@ -1,6 +1,9 @@
 name: Cargo Update
 
 on:
+  push:
+    branches:
+      - troy/sorry-for-the-spam
   workflow_dispatch:
   schedule:
     - cron: "0 0 * * 0" # Every Sunday at midnight
