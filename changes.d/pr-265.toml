@@ -3,3 +3,8 @@ breaking = true
 category = "feat"
 description = "complete rewrite with improved API"
 authors = ["@lennartkloock"]
+
+[[scuffle-bootstrap-telemetry]]
+category = "fix"
+description = "use new version of scuffle-http for the telemetry server"
+authors = ["@lennartkloock"]
