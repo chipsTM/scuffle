@@ -1,4 +1,4 @@
-[[scuffle-bootstrap-metrics]]
+[[scuffle-bootstrap-telemetry]]
 category = "chore"
 description = "Update OpenTelemetry to 0.28"
 authors = ["@TroyKomodo"]
