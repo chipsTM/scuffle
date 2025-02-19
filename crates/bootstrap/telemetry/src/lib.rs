@@ -437,11 +437,11 @@ mod tests {
 
     use bytes::Bytes;
     #[cfg(feature = "opentelemetry-logs")]
-    use opentelemetry_sdk::logs::LoggerProvider;
+    use opentelemetry_sdk::logs::SdkLoggerProvider;
     #[cfg(feature = "opentelemetry-metrics")]
     use opentelemetry_sdk::metrics::SdkMeterProvider;
     #[cfg(feature = "opentelemetry-traces")]
-    use opentelemetry_sdk::trace::TracerProvider;
+    use opentelemetry_sdk::trace::SdkTracerProvider;
     use scuffle_bootstrap::{GlobalWithoutConfig, Service};
 
     use crate::{TelemetryConfig, TelemetrySvc};
@@ -505,10 +505,10 @@ mod tests {
                 let metrics = SdkMeterProvider::builder().with_reader(exporter).build();
                 opentelemetry::global::set_meter_provider(metrics.clone());
 
-                let tracer = TracerProvider::default();
+                let tracer = SdkTracerProvider::default();
                 opentelemetry::global::set_tracer_provider(tracer.clone());
 
-                let logger = LoggerProvider::builder().build();
+                let logger = SdkLoggerProvider::builder().build();
 
                 let open_telemetry = crate::opentelemetry::OpenTelemetry::new()
                     .with_metrics(metrics)
