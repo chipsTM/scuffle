@@ -1,36 +1,24 @@
 use std::ops::{Index, IndexMut};
 use std::ptr::NonNull;
 
+use crate::consts::{Const, Mut};
 use crate::error::{FfmpegError, FfmpegErrorCode};
-use crate::{ffi::*, AVSampleFormat};
 use crate::rational::Rational;
 use crate::smart_object::{SmartObject, SmartPtr};
 use crate::utils::{check_i64, or_nopts};
+use crate::{ffi::*, AVSampleFormat};
 use crate::{AVPictureType, AVPixelFormat};
 
 /// Wrapper around the data buffers of AVFrame that handles bottom-to-top line iteration
 #[derive(Debug, PartialEq)]
-pub struct FrameData<'a> {
+pub struct FrameData {
     // this may point to the start of the last line of the buffer
     ptr: NonNull<u8>,
     linesize: i32,
     height: i32,
-    phantom: core::marker::PhantomData<&'a ()>,
 }
 
-#[derive(Debug, PartialEq)]
-/// Mutable wrapper around the data buffers of AVFrame that handles bottom-to-top line iteration
-pub struct FrameDataMut<'a>(FrameData<'a>);
-
-impl<'a> core::ops::Deref for FrameDataMut<'a> {
-    type Target = FrameData<'a>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl core::ops::Index<usize> for FrameData<'_> {
+impl core::ops::Index<usize> for FrameData {
     type Output = u8;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -56,15 +44,7 @@ impl core::ops::Index<usize> for FrameData<'_> {
     }
 }
 
-impl core::ops::Index<usize> for FrameDataMut<'_> {
-    type Output = u8;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.0[index]
-    }
-}
-
-impl core::ops::IndexMut<usize> for FrameDataMut<'_> {
+impl core::ops::IndexMut<usize> for FrameData {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         if index >= self.len() {
             panic!("index out of bounds: the len is {} but the index is {}", self.len(), index);
@@ -88,7 +68,7 @@ impl core::ops::IndexMut<usize> for FrameDataMut<'_> {
     }
 }
 
-impl<'a> FrameData<'a> {
+impl FrameData {
     /// Returns the height of the underlying data, in bytes
     pub const fn height(&self) -> i32 {
         self.height
@@ -111,7 +91,7 @@ impl<'a> FrameData<'a> {
     }
 
     /// Returns a reference to the byte at a given index
-    pub fn get(&'a self, index: usize) -> Option<&'a u8> {
+    pub fn get(&self, index: usize) -> Option<&u8> {
         if index < self.len() {
             Some(self.index(index))
         } else {
@@ -119,8 +99,17 @@ impl<'a> FrameData<'a> {
         }
     }
 
+    /// Returns a mutable reference to the byte at a given index
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut u8> {
+        if index < self.len() {
+            Some(self.index_mut(index))
+        } else {
+            None
+        }
+    }
+
     /// Returns a slice of row `index`, respecting bottom-to-top iteration order
-    pub const fn get_row(&self, index: usize) -> Option<&'a [u8]> {
+    pub const fn get_row(&self, index: usize) -> Option<&[u8]> {
         if index >= self.height as usize {
             return None;
         }
@@ -130,36 +119,25 @@ impl<'a> FrameData<'a> {
         // Safety: this slice is valid
         Some(unsafe { core::slice::from_raw_parts(start_ptr.as_ptr(), self.linesize.unsigned_abs() as usize) })
     }
-}
 
-impl<'a> FrameDataMut<'a> {
+    /// Returns a mutable slice of row `index`, respecting bottom-to-top iteration order
+    pub const fn get_row_mut(&mut self, index: usize) -> Option<&mut [u8]> {
+        if index >= self.height() as usize {
+            return None;
+        }
+
+        // Safety: this pointer is within bounds
+        let start_ptr = unsafe { self.ptr.byte_offset(self.linesize as isize * index as isize) };
+        // Safety: this slice is valid
+        Some(unsafe { core::slice::from_raw_parts_mut(start_ptr.as_ptr(), self.linesize.unsigned_abs() as usize) })
+    }
+
     /// Fills the data buffer with `value`
     pub fn fill(&mut self, value: u8) {
         for row in 0..self.height() {
             let slice = self.get_row_mut(row as usize).expect("row is out of bounds");
             slice.fill(value);
         }
-    }
-
-    /// Returns a mutable reference to the byte at a given index
-    pub fn get_mut(&'a mut self, index: usize) -> Option<&'a mut u8> {
-        if index < self.len() {
-            Some(self.index_mut(index))
-        } else {
-            None
-        }
-    }
-
-    /// Returns a mutable slice of row `index`, respecting bottom-to-top iteration order
-    pub const fn get_row_mut(&mut self, index: usize) -> Option<&'a mut [u8]> {
-        if index >= self.0.height as usize {
-            return None;
-        }
-
-        // Safety: this pointer is within bounds
-        let start_ptr = unsafe { self.0.ptr.byte_offset(self.0.linesize as isize * index as isize) };
-        // Safety: this slice is valid
-        Some(unsafe { core::slice::from_raw_parts_mut(start_ptr.as_ptr(), self.0.linesize.unsigned_abs() as usize) })
     }
 }
 
@@ -339,7 +317,7 @@ impl std::fmt::Debug for GenericFrame {
 
 #[bon::bon]
 impl VideoFrame {
-    /// Creates a new VideoFrame
+    /// Creates a new [`VideoFrame`]
     #[builder]
     pub fn new(
         width: i32,
@@ -428,8 +406,8 @@ impl VideoFrame {
         self.0 .0.as_deref_mut_except().pict_type = pict_type.0 as u32;
     }
 
-    /// Returns the data of the frame. By specifying the index of the plane.
-    pub fn data<'a>(&'a self, index: usize) -> Option<FrameData<'a>> {
+    /// Returns a reference to the data of the frame. By specifying the index of the plane.
+    pub fn data(&self, index: usize) -> Option<Const<FrameData, '_>> {
         // Safety: av_pix_fmt_desc_get is safe to call
         let descriptor = unsafe { rusty_ffmpeg::ffi::av_pix_fmt_desc_get(self.format().into()) };
         // Safety: as_ref is safe to call here
@@ -449,16 +427,15 @@ impl VideoFrame {
 
         let raw = NonNull::new(*(self.0 .0.as_deref_except().data.get(index)?))?;
 
-        Some(FrameData::<'a> {
+        Some(Const::new(FrameData {
             ptr: raw,
             linesize: line,
             height: height as i32,
-            phantom: core::marker::PhantomData,
-        })
+        }))
     }
 
-    /// Returns the data of the frame. By specifying the index of the plane.
-    pub fn data_mut<'a>(&'a mut self, index: usize) -> Option<FrameDataMut<'a>> {
+    /// Returns a mutable reference to the data of the frame. By specifying the index of the plane.
+    pub fn data_mut(&mut self, index: usize) -> Option<Mut<FrameData, '_>> {
         // Safety: av_pix_fmt_desc_get is safe to call
         let descriptor = unsafe { rusty_ffmpeg::ffi::av_pix_fmt_desc_get(self.format().into()) };
         // Safety: as_ref is safe to call here
@@ -478,11 +455,10 @@ impl VideoFrame {
 
         let raw = NonNull::new(*(self.0 .0.as_deref_except().data.get(index)?))?;
 
-        Some(FrameDataMut(FrameData::<'a> {
+        Some(Mut::new(FrameData {
             ptr: raw,
             linesize: line,
             height: height as i32,
-            phantom: core::marker::PhantomData,
         }))
     }
 
@@ -556,6 +532,24 @@ impl AudioChannelLayout {
         Ok(layout)
     }
 
+    /// Copies this `AudioChannelLayout` instance.
+    pub fn copy(&self) -> Result<Self, FfmpegError> {
+        let mut new = Self::default();
+        // Safety: av_channel_layout_copy is safe to call
+        FfmpegErrorCode(unsafe { av_channel_layout_copy(new.0.inner_mut(), self.0.inner_ref()) }).result()?;
+        Ok(new)
+    }
+
+    /// Returns a pointer to the channel layout.
+    pub(crate) fn as_ptr(&self) -> *const AVChannelLayout {
+        self.0.as_ref()
+    }
+
+    /// Returns a mutable pointer to the channel layout.
+    pub(crate) fn as_mut_ptr(&mut self) -> *mut AVChannelLayout {
+        self.0.as_mut()
+    }
+
     /// Validates the channel layout.
     pub fn validate(&self) -> Result<(), FfmpegError> {
         // Safety: `av_channel_layout_check` is safe to call
@@ -592,7 +586,7 @@ impl AudioChannelLayout {
 
 #[bon::bon]
 impl AudioFrame {
-    /// Creates a new AudioFrame
+    /// Creates a new [`AudioFrame`]
     #[builder]
     pub fn new(
         channel_layout: AudioChannelLayout,
@@ -606,7 +600,9 @@ impl AudioFrame {
         #[builder(default = 0)] alignment: i32,
     ) -> Result<Self, FfmpegError> {
         if sample_rate <= 0 || nb_samples <= 0 {
-            return Err(FfmpegError::Arguments("sample_rate and nb_samples must be positive and not 0"));
+            return Err(FfmpegError::Arguments(
+                "sample_rate and nb_samples must be positive and not 0",
+            ));
         }
         if alignment < 0 {
             return Err(FfmpegError::Arguments("alignment must be positive"));
@@ -654,6 +650,44 @@ impl AudioFrame {
     /// Sets the sample rate of the frame.
     pub const fn set_sample_rate(&mut self, sample_rate: usize) {
         self.0 .0.as_deref_mut_except().sample_rate = sample_rate as i32;
+    }
+
+    /// Returns a reference to the data of the frame. By specifying the index of the plane.
+    pub fn data(&self, index: usize) -> Option<&[u8]> {
+        let ptr = *self.0 .0.as_deref_except().data.get(index)?;
+
+        if ptr.is_null() {
+            return None;
+        }
+
+        // this is the length of the buffer ptr points to, in bytes
+        let linesize = self.linesize(index)?;
+
+        if linesize.is_negative() {
+            return None;
+        }
+
+        // Safety: ptr is not null and linesize is the correct length for the slice type
+        Some(unsafe { core::slice::from_raw_parts(ptr, linesize as usize) })
+    }
+
+    /// Returns a mutable reference to the data of the frame. By specifying the index of the plane.
+    pub fn data_mut(&mut self, index: usize) -> Option<&mut [u8]> {
+        let ptr = *self.0 .0.as_deref_except().data.get(index)?;
+
+        if ptr.is_null() {
+            return None;
+        }
+
+        // this is the length of the buffer ptr points to, in bytes
+        let linesize = self.linesize(index)?;
+
+        if linesize.is_negative() {
+            return None;
+        }
+
+        // Safety: ptr is not null and linesize is the correct length for the slice type
+        Some(unsafe { core::slice::from_raw_parts_mut(ptr, linesize as usize) })
     }
 }
 
@@ -726,7 +760,9 @@ mod tests {
     #[test]
     fn test_audio_conversion() {
         let mut frame = GenericFrame::new().expect("Failed to create frame");
-        AudioChannelLayout::new(2).unwrap().apply(&mut frame.0.as_deref_mut_except().ch_layout);
+        AudioChannelLayout::new(2)
+            .unwrap()
+            .apply(&mut frame.0.as_deref_mut_except().ch_layout);
         let audio_frame = frame.audio();
 
         assert!(audio_frame.is_audio(), "The frame should be identified as audio.");
@@ -921,10 +957,7 @@ mod tests {
             .sample_rate(44100)
             .build();
 
-        assert!(
-            audio_frame.is_err(),
-            "Expected error for invalid custom channel layout"
-        );
+        assert!(audio_frame.is_err(), "Expected error for invalid custom channel layout");
     }
 
     #[test]
@@ -970,18 +1003,12 @@ mod tests {
             let frame = AudioFrame::builder()
                 .sample_fmt(AVSampleFormat::S16)
                 .nb_samples(1024)
-                .channel_layout(
-                    AudioChannelLayout::new(1)
-                        .expect("failed to create a new AudioChannelLayout")
-                    )
+                .channel_layout(AudioChannelLayout::new(1).expect("failed to create a new AudioChannelLayout"))
                 .alignment(alignment.0)
                 .sample_rate(44100)
                 .build();
 
-            assert_eq!(
-                frame.is_ok(),
-                alignment.1
-            )
+            assert_eq!(frame.is_ok(), alignment.1)
         }
     }
 
@@ -1007,10 +1034,7 @@ mod tests {
     #[test]
     fn test_sample_rate() {
         let mut audio_frame = AudioFrame::builder()
-            .channel_layout(
-                AudioChannelLayout::new(2)
-                    .expect("Failed to create a new AudioChannelLayout")
-            )
+            .channel_layout(AudioChannelLayout::new(2).expect("Failed to create a new AudioChannelLayout"))
             .nb_samples(123)
             .sample_fmt(AVSampleFormat::S16)
             .sample_rate(44100)
@@ -1030,10 +1054,7 @@ mod tests {
     fn test_audio_frame_debug() {
         let audio_frame = AudioFrame::builder()
             .sample_fmt(AVSampleFormat::S16)
-            .channel_layout(
-                AudioChannelLayout::new(2)
-                    .expect("failed to create a new AudioChannelLayout")
-            )
+            .channel_layout(AudioChannelLayout::new(2).expect("failed to create a new AudioChannelLayout"))
             .nb_samples(1024)
             .sample_rate(44100)
             .pts(12345)
@@ -1079,7 +1100,6 @@ mod tests {
             ptr: core::ptr::NonNull::new(data.as_mut_ptr()).unwrap(),
             linesize: 3,
             height: 2,
-            phantom: std::marker::PhantomData,
         };
 
         assert_eq!(frame_data[0], 1);
@@ -1102,7 +1122,6 @@ mod tests {
             ptr: core::ptr::NonNull::new(end_ptr).unwrap(),
             linesize,
             height,
-            phantom: std::marker::PhantomData,
         };
 
         assert_eq!(frame_data[0], 4);
@@ -1127,14 +1146,12 @@ mod tests {
             ptr: core::ptr::NonNull::new(end_ptr).unwrap(),
             linesize,
             height,
-            phantom: std::marker::PhantomData,
         };
 
         let frame_data = FrameData {
             ptr: core::ptr::NonNull::new(data.as_mut_ptr()).unwrap(),
             linesize: linesize.abs(),
             height,
-            phantom: std::marker::PhantomData,
         };
 
         assert!(std::panic::catch_unwind(|| {

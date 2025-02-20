@@ -239,7 +239,9 @@ pub mod log;
 pub mod packet;
 /// Rational number specific functionality.
 pub mod rational;
-/// Scalar specific functionality.
+/// [`AudioFrame`] resampling and format conversion.
+pub mod resampler;
+/// Scaler specific functionality.
 pub mod scaler;
 /// Stream specific functionality.
 pub mod stream;

@@ -543,10 +543,7 @@ mod tests {
             .sample_fmt(AVSampleFormat::S16)
             .nb_samples(1024)
             .sample_rate(44100)
-            .channel_layout(
-                AudioChannelLayout::new(2)
-                    .expect("Failed to create a new AudioChannelLayout")
-            )
+            .channel_layout(AudioChannelLayout::new(2).expect("Failed to create a new AudioChannelLayout"))
             .build()
             .expect("Failed to create a new AudioFrame");
 
