@@ -1163,4 +1163,23 @@ mod tests {
         })
         .is_err());
     }
+
+    #[test]
+    fn frame_data_write() {
+        let data: &mut [u8] = &mut [1, 2, 3, 4, 5, 6];
+
+        let mut frame_data = FrameData {
+            ptr: core::ptr::NonNull::new(data.as_mut_ptr()).unwrap(),
+            linesize: 3,
+            height: 2,
+        };
+
+        for i in 1..frame_data.len() {
+            frame_data[i] = frame_data[0]
+        }
+
+        for i in 0..frame_data.len() {
+            assert_eq!(frame_data[i], 1, "all bytes of frame_data should be 0")
+        }
+    }
 }
