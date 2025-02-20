@@ -131,10 +131,7 @@ mod tests {
         // Safety: swr_is_initialized is safe to call
         let is_init = unsafe { swr_is_initialized(resampler.ptr.as_mut_ptr()) };
 
-        assert!(
-            is_init.is_positive() && is_init != 0,
-            "Resampler is not initialized"
-        )
+        assert!(is_init.is_positive() && is_init != 0, "Resampler is not initialized")
     }
 
     #[test]
