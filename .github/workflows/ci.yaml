@@ -46,17 +46,11 @@ jobs:
 
       - name: Run Clippy
         if: ${{ github.event_name == 'pull_request' }}
-        run: |
-          set -xeo pipefail
-          export RUSTFLAGS="-Dwarnings --cfg reqwest_unstable"
-          cargo +${{ env.RUST_TOOLCHAIN }} clippy -Z unstable-options --all-features --all-targets --no-deps
+        run: cargo +${{ env.RUST_TOOLCHAIN }} clippy -Z unstable-options --all-features --all-targets --no-deps -- -Dwarnings
 
       - name: Run Clippy on Powerset
         if: ${{ github.event_name == 'push' }}
-        run: |
-          set -xeo pipefail
-          export RUSTFLAGS="-Dwarnings --cfg reqwest_unstable"
-          just powerset clippy -- --all-targets --no-deps -Z unstable-options
+        run: just powerset clippy -- --all-targets --no-deps -Z unstable-options -- -Dwarnings
 
   fmt:
     name: Fmt
@@ -102,6 +96,8 @@ jobs:
   test:
     name: Test
     runs-on: ubicloud-standard-8
+    env:
+      RUSTFLAGS: "--cfg reqwest_unstable"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -161,6 +157,8 @@ jobs:
     name: Grind
     if: ${{ github.event_name == 'push' }}
     runs-on: ubicloud-standard-8
+    env:
+      RUSTFLAGS: "--cfg reqwest_unstable --cfg valgrind"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -187,7 +185,6 @@ jobs:
       - name: Run valgrind
         run: |
           set -xeo pipefail
-          export RUSTFLAGS="--cfg=valgrind --cfg reqwest_unstable"
           export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER="valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log"
           cargo +${{ env.RUST_TOOLCHAIN }} nextest run --all-features --no-fail-fast --profile ci
 
@@ -196,6 +193,8 @@ jobs:
     runs-on: ubicloud-standard-8
     permissions:
       pull-requests: write
+    env:
+      RUSTDOCFLAGS: "-D warnings --cfg docsrs --enable-index-page -Zunstable-options"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -215,7 +214,6 @@ jobs:
       - name: Build docs
         run: |
           set -xeo pipefail
-          export RUSTDOCFLAGS="-D warnings --cfg docsrs --enable-index-page -Zunstable-options"
           cargo +${{ env.RUST_TOOLCHAIN }} doc --no-deps --all-features
 
       - name: Brawl Override

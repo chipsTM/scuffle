@@ -135,7 +135,6 @@ impl PowerSet {
 
                 let mut cmd = cargo_cmd();
                 cmd.arg(&self.command);
-                cmd.args(&self.args);
                 cmd.arg("--no-default-features");
                 if !features.is_empty() {
                     cmd.arg("--features").arg(comma_delimited(features.iter()));
@@ -145,6 +144,8 @@ impl PowerSet {
                 if !self.no_override_target_dir {
                     cmd.arg("--target-dir").arg(&self.target_dir);
                 }
+
+                cmd.args(&self.args);
 
                 println!("executing {:?} ({}/{})", cmd, i, total);
 
