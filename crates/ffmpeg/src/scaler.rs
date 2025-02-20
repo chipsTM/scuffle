@@ -194,7 +194,7 @@ mod tests {
             if let Some(mut data_buf) = input_frame.data_mut(data_idx as usize) {
                 for row_idx in 0..data_buf.height() {
                     let row = data_buf.get_row_mut(row_idx as usize).unwrap();
-                    rand::thread_rng().fill(row);
+                    rng.fill(row);
                 }
             }
         }

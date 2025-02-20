@@ -98,7 +98,7 @@ impl Resampler {
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
-    use rand::{thread_rng, Rng};
+    use rand::{rng, Rng};
     use rusty_ffmpeg::ffi::swr_is_initialized;
 
     use crate::{
@@ -166,7 +166,7 @@ mod tests {
             .expect("Failed to create input AudioFrame");
 
         let input_data = input_frame.data_mut(0).expect("Data buffer of input frame was invalid");
-        thread_rng().fill(input_data);
+        rng().fill(input_data);
 
         let output = resampler.process(&input_frame).expect("Failed to process frame");
 

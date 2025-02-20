@@ -727,7 +727,7 @@ impl std::ops::DerefMut for AudioFrame {
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
     use insta::assert_debug_snapshot;
-    use rand::{thread_rng, Rng};
+    use rand::{rng, Rng};
 
     use crate::frame::{AudioChannelLayout, AudioFrame, GenericFrame, VideoFrame};
     use crate::rational::Rational;
@@ -870,7 +870,7 @@ mod tests {
                 let data_slice = data.get_row_mut(row as usize).unwrap();
                 randomized_data.push(
                     (0..data_slice.len())
-                        .map(|_| thread_rng().gen()) // generate random data
+                        .map(|_| rng().random()) // generate random data
                         .collect(),
                 );
                 data_slice.copy_from_slice(&randomized_data[row as usize]); // copy random data to the frame
