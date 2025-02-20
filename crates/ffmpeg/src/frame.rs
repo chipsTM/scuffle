@@ -222,49 +222,49 @@ impl GenericFrame {
         AudioFrame(self)
     }
 
-    /// Returns the presentation timestamp of the frame.
-    pub(crate) const fn pts(&self) -> Option<i64> {
+    /// Returns the presentation timestamp of the frame, in `time_base` units.
+    pub const fn pts(&self) -> Option<i64> {
         check_i64(self.0.as_deref_except().pts)
     }
 
-    /// Sets the presentation timestamp of the frame.
-    pub(crate) const fn set_pts(&mut self, pts: Option<i64>) {
+    /// Sets the presentation timestamp of the frame, in `time_base` units.
+    pub const fn set_pts(&mut self, pts: Option<i64>) {
         self.0.as_deref_mut_except().pts = or_nopts(pts);
         self.0.as_deref_mut_except().best_effort_timestamp = or_nopts(pts);
     }
 
-    /// Returns the duration of the frame.
-    pub(crate) const fn duration(&self) -> Option<i64> {
+    /// Returns the duration of the frame, in `time_base` units.
+    pub const fn duration(&self) -> Option<i64> {
         check_i64(self.0.as_deref_except().duration)
     }
 
-    /// Sets the duration of the frame.
-    pub(crate) const fn set_duration(&mut self, duration: Option<i64>) {
+    /// Sets the duration of the frame, in `time_base` units.
+    pub const fn set_duration(&mut self, duration: Option<i64>) {
         self.0.as_deref_mut_except().duration = or_nopts(duration);
     }
 
-    /// Returns the best effort timestamp of the frame.
-    pub(crate) const fn best_effort_timestamp(&self) -> Option<i64> {
+    /// Returns the best effort timestamp of the frame, in `time_base` units.
+    pub const fn best_effort_timestamp(&self) -> Option<i64> {
         check_i64(self.0.as_deref_except().best_effort_timestamp)
     }
 
-    /// Returns the decoding timestamp of the frame.
-    pub(crate) const fn dts(&self) -> Option<i64> {
+    /// Returns the decoding timestamp of the frame, in `time_base` units.
+    pub const fn dts(&self) -> Option<i64> {
         check_i64(self.0.as_deref_except().pkt_dts)
     }
 
-    /// Sets the decoding timestamp of the frame.
+    /// Sets the decoding timestamp of the frame, in `time_base` units.
     pub(crate) const fn set_dts(&mut self, dts: Option<i64>) {
         self.0.as_deref_mut_except().pkt_dts = or_nopts(dts);
     }
 
     /// Returns the time base of the frame.
-    pub(crate) fn time_base(&self) -> Rational {
+    pub fn time_base(&self) -> Rational {
         self.0.as_deref_except().time_base.into()
     }
 
     /// Sets the time base of the frame.
-    pub(crate) fn set_time_base(&mut self, time_base: impl Into<Rational>) {
+    pub fn set_time_base(&mut self, time_base: impl Into<Rational>) {
         self.0.as_deref_mut_except().time_base = time_base.into().into();
     }
 
@@ -291,8 +291,8 @@ impl GenericFrame {
         self.0.as_deref_except().width != 0
     }
 
-    /// Returns the linesize of the frame.
-    pub(crate) const fn linesize(&self, index: usize) -> Option<i32> {
+    /// Returns the linesize of the frame, in bytes.
+    pub const fn linesize(&self, index: usize) -> Option<i32> {
         if index >= self.0.as_deref_except().linesize.len() {
             return None;
         }
@@ -328,6 +328,7 @@ impl VideoFrame {
         #[builder(default = AV_NOPTS_VALUE)] dts: i64,
         #[builder(default = 0)] duration: i64,
         #[builder(default = Rational::ZERO)] time_base: Rational,
+        /// Alignment of the underlying data buffers, set to 0 for automatic.
         #[builder(default = 0)] alignment: i32,
     ) -> Result<Self, FfmpegError> {
         if width <= 0 || height <= 0 {
@@ -597,6 +598,7 @@ impl AudioFrame {
         #[builder(default = AV_NOPTS_VALUE)] pts: i64,
         #[builder(default = AV_NOPTS_VALUE)] dts: i64,
         #[builder(default = Rational::ZERO)] time_base: Rational,
+        /// Alignment of the underlying data buffers, set to 0 for automatic.
         #[builder(default = 0)] alignment: i32,
     ) -> Result<Self, FfmpegError> {
         if sample_rate <= 0 || nb_samples <= 0 {
