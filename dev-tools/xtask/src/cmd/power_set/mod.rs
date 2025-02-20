@@ -42,6 +42,10 @@ pub struct PowerSet {
     #[clap(name = "command", default_value = "clippy")]
     /// Command to run
     command: String,
+    #[clap(long, short, action = clap::ArgAction::SetTrue)]
+    #[clap(alias = "dry-run")]
+    /// Dry run
+    dry_run: bool,
     #[clap(last = true)]
     /// Additional arguments to pass to the command
     args: Vec<String>,
@@ -107,9 +111,19 @@ impl PowerSet {
             tests.insert(package.name.as_str(), features);
         }
 
-        let mut i = 0;
         let total = tests.values().map(|s| s.len()).sum::<usize>();
 
+        if self.dry_run {
+            println!("dry run: {} packages with a total of {} feature sets", tests.len(), total);
+
+            for (package, sets) in tests.iter() {
+                println!("dry run: {} with {} feature sets: {:#?}", package, sets.len(), sets);
+            }
+
+            return Ok(());
+        }
+
+        let mut i = 0;
         let mut failed = Vec::new();
 
         for (package, power_set) in tests.iter() {
@@ -121,7 +135,6 @@ impl PowerSet {
 
                 let mut cmd = cargo_cmd();
                 cmd.arg(&self.command);
-                cmd.args(&self.args);
                 cmd.arg("--no-default-features");
                 if !features.is_empty() {
                     cmd.arg("--features").arg(comma_delimited(features.iter()));
@@ -131,6 +144,8 @@ impl PowerSet {
                 if !self.no_override_target_dir {
                     cmd.arg("--target-dir").arg(&self.target_dir);
                 }
+
+                cmd.args(&self.args);
 
                 println!("executing {:?} ({}/{})", cmd, i, total);
 
