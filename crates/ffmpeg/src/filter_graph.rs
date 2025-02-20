@@ -603,8 +603,8 @@ mod tests {
 
         // create frame w/ mismatched format and sample rate
         let mut frame = GenericFrame::new().expect("Failed to create frame");
-        // Safety: frame was not yet allocated
-        unsafe { frame.set_format(AVSampleFormat::Fltp.into()) };
+        // Safety: frame was not yet allocated and inner pointer is valid
+        unsafe { frame.as_mut_ptr().as_mut().unwrap().format = AVSampleFormat::Fltp.into() };
         let result = source_context.send_frame(&frame);
 
         assert!(result.is_err(), "send_frame should fail when sending an invalid frame");

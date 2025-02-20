@@ -3,11 +3,11 @@ use std::ptr::NonNull;
 
 use crate::consts::{Const, Mut};
 use crate::error::{FfmpegError, FfmpegErrorCode};
+use crate::ffi::*;
 use crate::rational::Rational;
 use crate::smart_object::{SmartObject, SmartPtr};
 use crate::utils::{check_i64, or_nopts};
-use crate::{ffi::*, AVSampleFormat};
-use crate::{AVPictureType, AVPixelFormat};
+use crate::{AVPictureType, AVPixelFormat, AVSampleFormat};
 
 /// Wrapper around the data buffers of AVFrame that handles bottom-to-top line iteration
 #[derive(Debug, PartialEq)]
@@ -273,14 +273,6 @@ impl GenericFrame {
         self.0.as_deref_except().format
     }
 
-    /// Sets the format of the frame.
-    ///
-    /// Safety: this must only ever be called before data allocation, or if both
-    /// formats have the exact same memory layout
-    pub(crate) const unsafe fn set_format(&mut self, format: i32) {
-        self.0.as_deref_mut_except().format = format;
-    }
-
     /// Returns true if the frame is an audio frame.
     pub(crate) const fn is_audio(&self) -> bool {
         self.0.as_deref_except().ch_layout.nb_channels != 0
@@ -329,7 +321,8 @@ impl VideoFrame {
         #[builder(default = 0)] duration: i64,
         #[builder(default = Rational::ZERO)] time_base: Rational,
         /// Alignment of the underlying data buffers, set to 0 for automatic.
-        #[builder(default = 0)] alignment: i32,
+        #[builder(default = 0)]
+        alignment: i32,
     ) -> Result<Self, FfmpegError> {
         if width <= 0 || height <= 0 {
             return Err(FfmpegError::Arguments("width and height must be positive and not 0"));
@@ -376,20 +369,6 @@ impl VideoFrame {
     /// Sets the sample aspect ratio of the frame.
     pub fn set_sample_aspect_ratio(&mut self, sample_aspect_ratio: impl Into<Rational>) {
         self.0 .0.as_deref_mut_except().sample_aspect_ratio = sample_aspect_ratio.into().into();
-    }
-
-    /// Sets the width of the frame.
-    ///
-    /// Safety: this must only ever be called before data allocation
-    pub(crate) const unsafe fn set_width(&mut self, width: usize) {
-        self.0 .0.as_deref_mut_except().width = width as i32;
-    }
-
-    /// Sets the height of the frame.
-    ///
-    /// Safety: this must only ever be called before data allocation
-    pub(crate) const unsafe fn set_height(&mut self, height: usize) {
-        self.0 .0.as_deref_mut_except().height = height as i32;
     }
 
     /// Returns true if the frame is a keyframe.
@@ -546,11 +525,6 @@ impl AudioChannelLayout {
         self.0.as_ref()
     }
 
-    /// Returns a mutable pointer to the channel layout.
-    pub(crate) fn as_mut_ptr(&mut self) -> *mut AVChannelLayout {
-        self.0.as_mut()
-    }
-
     /// Validates the channel layout.
     pub fn validate(&self) -> Result<(), FfmpegError> {
         // Safety: `av_channel_layout_check` is safe to call
@@ -599,7 +573,8 @@ impl AudioFrame {
         #[builder(default = AV_NOPTS_VALUE)] dts: i64,
         #[builder(default = Rational::ZERO)] time_base: Rational,
         /// Alignment of the underlying data buffers, set to 0 for automatic.
-        #[builder(default = 0)] alignment: i32,
+        #[builder(default = 0)]
+        alignment: i32,
     ) -> Result<Self, FfmpegError> {
         if sample_rate <= 0 || nb_samples <= 0 {
             return Err(FfmpegError::Arguments(
@@ -731,11 +706,10 @@ mod tests {
     use insta::assert_debug_snapshot;
     use rand::{rng, Rng};
 
+    use super::FrameData;
     use crate::frame::{AudioChannelLayout, AudioFrame, GenericFrame, VideoFrame};
     use crate::rational::Rational;
     use crate::{AVChannelOrder, AVPictureType, AVPixelFormat, AVSampleFormat};
-
-    use super::FrameData;
 
     #[test]
     fn test_frame_clone() {
@@ -798,10 +772,7 @@ mod tests {
         frame.set_dts(Some(67890));
         frame.set_duration(Some(1000));
         frame.set_time_base(Rational::static_new::<1, 30>());
-        // Safety: the frame was never allocated
-        unsafe {
-            frame.set_format(AVPixelFormat::Yuv420p.into());
-        }
+        frame.0.as_deref_mut_except().format = AVPixelFormat::Yuv420p.into();
 
         assert_debug_snapshot!(frame, @r"
         GenericFrame {
@@ -1021,7 +992,7 @@ mod tests {
         for alignment in cases {
             let mut frame = GenericFrame::new().expect("Failed to create frame");
             // Safety: frame is not yet allocated
-            unsafe { frame.set_format(AVSampleFormat::S16.into()) };
+            frame.0.as_deref_mut_except().format = AVSampleFormat::S16.into();
             frame.0.as_deref_mut_except().nb_samples = 1024;
 
             assert!(

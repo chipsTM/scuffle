@@ -1,11 +1,9 @@
 use rusty_ffmpeg::ffi::{swr_alloc_set_opts2, swr_convert_frame, swr_free, swr_init, SwrContext};
 
-use crate::{
-    enums::AVSampleFormat,
-    error::{FfmpegError, FfmpegErrorCode},
-    frame::{AudioChannelLayout, AudioFrame, GenericFrame},
-    smart_object::SmartPtr,
-};
+use crate::enums::AVSampleFormat;
+use crate::error::{FfmpegError, FfmpegErrorCode};
+use crate::frame::{AudioChannelLayout, AudioFrame, GenericFrame};
+use crate::smart_object::SmartPtr;
 
 /// A wrapper around an [`SwrContext`]. Which is used to resample and convert [`AudioFrame`]s.
 pub struct Resampler {
@@ -101,12 +99,9 @@ mod tests {
     use rand::{rng, Rng};
     use rusty_ffmpeg::ffi::swr_is_initialized;
 
-    use crate::{
-        frame::{AudioChannelLayout, AudioFrame},
-        AVSampleFormat,
-    };
-
     use super::Resampler;
+    use crate::frame::{AudioChannelLayout, AudioFrame};
+    use crate::AVSampleFormat;
 
     #[test]
     fn test_resampler_new() {
