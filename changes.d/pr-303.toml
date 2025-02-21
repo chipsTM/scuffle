@@ -1,0 +1,29 @@
+[[scuffle-ffmpeg]]
+category = "fix"
+description = "`VideoFrame` and `AudioFrame` are now valid upon instantiation, using the `builder` method on each"
+breaking = true
+authors = ["@Juliapixel"]
+
+[[scuffle-ffmpeg]]
+category = "fix"
+description = "`VideoFrame` data accesses no longer cause undefined behavior and respect inverse iteration order"
+breaking = true
+authors = ["@Juliapixel"]
+
+[[scuffle-ffmpeg]]
+category = "fix"
+description = "`VideoFrame::set_width` and `VideoFrame::set_height` were removed due to a soundness hole"
+breaking = true
+authors = ["@Juliapixel"]
+
+[[scuffle-ffmpeg]]
+category = "feat"
+description = "`AudioFrame` data is now accessible via the `data` and `data_mut` methods"
+breaking = false
+authors = ["@Juliapixel"]
+
+[[scuffle-ffmpeg]]
+category = "feat"
+description = "new `Resampler` type exposes `libswresample` functionality"
+breaking = false
+authors = ["@Juliapixel"]
