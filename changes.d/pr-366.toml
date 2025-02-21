@@ -1,4 +1,0 @@
-[[scuffle-settings]]
-category = "chore"
-description = "Update config dependency to 0.15"
-authors = ["@TroyKomodo"]

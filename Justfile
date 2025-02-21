@@ -70,3 +70,7 @@ workspace-hack:
 create-release package:
     cargo +{{RUST_TOOLCHAIN}} xtask change-logs generate --package {{package}}
     release-plz update --package {{package}}
+
+create-release-all:
+    cargo +{{RUST_TOOLCHAIN}} xtask change-logs generate
+    release-plz update
