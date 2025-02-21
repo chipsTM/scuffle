@@ -4,8 +4,8 @@ use std::path::PathBuf;
 use anyhow::Context;
 
 use super::util::Fragment;
-use crate::cmd::change_logs::util::package_to_logs;
 use crate::cmd::IGNORED_PACKAGES;
+use crate::cmd::change_logs::util::package_to_logs;
 
 #[derive(Debug, Clone, clap::Parser)]
 pub struct CheckPr {

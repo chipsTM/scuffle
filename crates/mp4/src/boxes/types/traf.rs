@@ -7,9 +7,9 @@ use super::subs::Subs;
 use super::tfdt::Tfdt;
 use super::tfhd::Tfhd;
 use super::trun::Trun;
+use crate::boxes::DynBox;
 use crate::boxes::header::BoxHeader;
 use crate::boxes::traits::BoxType;
-use crate::boxes::DynBox;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Track Fragment Box

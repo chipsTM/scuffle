@@ -3,10 +3,10 @@ use std::borrow::Cow;
 use std::ffi::CString;
 use std::ptr::NonNull;
 
+use crate::AVDictionaryFlags;
 use crate::error::{FfmpegError, FfmpegErrorCode};
 use crate::ffi::*;
 use crate::smart_object::SmartPtr;
-use crate::AVDictionaryFlags;
 
 /// A dictionary of key-value pairs.
 pub struct Dictionary {
@@ -144,9 +144,10 @@ impl Dictionary {
     /// The caller must also ensure that the dictionary is not freed while this
     /// object is alive, and that we don't use the pointer as mutable
     pub const unsafe fn from_ptr_ref(ptr: *mut AVDictionary) -> Self {
-        // We don't own the dictionary, so we don't need to free it
         Self {
-            ptr: SmartPtr::wrap(ptr as _, |_| {}),
+            // Safety: The safety comment of the function implies this is safe.
+            // We don't own the dictionary, so we don't need to free it
+            ptr: unsafe { SmartPtr::wrap(ptr as _, |_| {}) },
         }
     }
 
@@ -156,11 +157,14 @@ impl Dictionary {
     /// # Safety
     /// `ptr` must be a valid pointer.
     pub const unsafe fn from_ptr_owned(ptr: *mut AVDictionary) -> Self {
+        let destructor = |ptr: &mut *mut AVDictionary| {
+            // Safety: av_dict_free is safe to call & we own the pointer.
+            unsafe { av_dict_free(ptr) }
+        };
+
         Self {
-            ptr: SmartPtr::wrap(ptr, |ptr| {
-                // Safety: av_dict_free is safe to call
-                av_dict_free(ptr)
-            }),
+            // Safety: The safety comment of the function implies this is safe.
+            ptr: unsafe { SmartPtr::wrap(ptr, destructor) },
         }
     }
 

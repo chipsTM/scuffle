@@ -5,9 +5,9 @@ use bytes::{Buf, Bytes};
 use super::btrt::Btrt;
 use super::hvcc::HvcC;
 use super::stsd::{SampleEntry, VisualSampleEntry};
+use crate::boxes::DynBox;
 use crate::boxes::header::BoxHeader;
 use crate::boxes::traits::BoxType;
-use crate::boxes::DynBox;
 use crate::codec::VideoCodec;
 
 #[derive(Debug, Clone, PartialEq)]

@@ -45,8 +45,8 @@ mod tests {
     use bytes::Bytes;
     use scuffle_aac::{AudioObjectType, PartialAudioSpecificConfig};
     use scuffle_amf0::Amf0Value;
-    use scuffle_av1::seq::SequenceHeaderObu;
     use scuffle_av1::ObuHeader;
+    use scuffle_av1::seq::SequenceHeaderObu;
     use scuffle_h264::{Sps, SpsExtended};
 
     use crate::aac::AacPacket;

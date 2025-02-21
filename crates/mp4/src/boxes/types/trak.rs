@@ -5,9 +5,9 @@ use bytes::{Buf, Bytes};
 use super::edts::Edts;
 use super::mdia::Mdia;
 use super::tkhd::Tkhd;
+use crate::boxes::DynBox;
 use crate::boxes::header::BoxHeader;
 use crate::boxes::traits::BoxType;
-use crate::boxes::DynBox;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Track Box

@@ -290,11 +290,13 @@ mod tests {
             let mut stream = pin!(futures_lite::stream::pending::<()>().with_context(ctx));
 
             // This is expected to timeout
-            assert!(stream
-                .next()
-                .with_timeout(std::time::Duration::from_millis(200))
-                .await
-                .is_err());
+            assert!(
+                stream
+                    .next()
+                    .with_timeout(std::time::Duration::from_millis(200))
+                    .await
+                    .is_err()
+            );
         }
 
         handler.shutdown().await;

@@ -56,7 +56,7 @@
 //! let settings: MyConfig = scuffle_settings::parse_settings(options)?;
 //! # Ok(())
 //! # }
-//! # std::env::set_var("MY_APP_SOME_SETTING", "value");
+//! # unsafe { std::env::set_var("MY_APP_SOME_SETTING", "value"); }
 //! # test().unwrap();
 //! ```
 //!
@@ -350,7 +350,7 @@ macro_rules! bootstrap {
 mod tests {
     #[cfg(feature = "cli")]
     use crate::Cli;
-    use crate::{parse_settings, Options};
+    use crate::{Options, parse_settings};
 
     #[derive(Debug, serde::Deserialize)]
     struct TestSettings {
@@ -463,7 +463,10 @@ mod tests {
             env_prefix: Some("SETTINGS_PARSE_ENV_TEST"),
             ..Default::default()
         };
-        std::env::set_var("SETTINGS_PARSE_ENV_TEST_KEY", "envvalue");
+        // Safety: This is a test and we do not have multiple threads.
+        unsafe {
+            std::env::set_var("SETTINGS_PARSE_ENV_TEST_KEY", "envvalue");
+        }
         let settings: TestSettings = parse_settings(options).expect("failed to parse settings");
 
         assert_eq!(settings.key, "envvalue");
@@ -483,7 +486,10 @@ mod tests {
             env_prefix: Some("SETTINGS_OVERRIDES_TEST"),
             ..Default::default()
         };
-        std::env::set_var("SETTINGS_OVERRIDES_TEST_KEY", "envvalue");
+        // Safety: This is a test and we do not have multiple threads.
+        unsafe {
+            std::env::set_var("SETTINGS_OVERRIDES_TEST_KEY", "envvalue");
+        }
         let settings: TestSettings = parse_settings(options).expect("failed to parse settings");
 
         assert_eq!(settings.key, "value");
@@ -502,7 +508,10 @@ mod tests {
             }),
             ..Default::default()
         };
-        std::env::set_var("SETTINGS_TEMPLATES_TEST", "templatevalue");
+        // Safety: This is a test and we do not have multiple threads.
+        unsafe {
+            std::env::set_var("SETTINGS_TEMPLATES_TEST", "templatevalue");
+        }
         let settings: TestSettings = parse_settings(options).expect("failed to parse settings");
 
         assert_eq!(settings.key, "templatevalue");

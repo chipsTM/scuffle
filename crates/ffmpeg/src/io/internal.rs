@@ -14,10 +14,12 @@ pub(crate) unsafe extern "C" fn read_packet<T: std::io::Read>(
     buf: *mut u8,
     buf_size: i32,
 ) -> i32 {
-    let ret = (*(opaque as *mut T))
-        .read(std::slice::from_raw_parts_mut(buf, buf_size as usize))
-        .map(|n| n as i32)
-        .unwrap_or(AVERROR_IO);
+    // Safety: The pointer is valid given the way this function is constructed, the opaque pointer is a pointer to a T.
+    let this = unsafe { &mut *(opaque as *mut T) };
+    // Safety: the buffer has at least `buf_size` bytes.
+    let buffer = unsafe { std::slice::from_raw_parts_mut(buf, buf_size as usize) };
+
+    let ret = this.read(buffer).map(|n| n as i32).unwrap_or(AVERROR_IO);
 
     if ret == 0 {
         return AVERROR_EOF;
@@ -33,16 +35,19 @@ pub(crate) unsafe extern "C" fn write_packet<T: std::io::Write>(
     buf: *const u8,
     buf_size: i32,
 ) -> i32 {
-    (*(opaque as *mut T))
-        .write(std::slice::from_raw_parts(buf, buf_size as usize))
-        .map(|n| n as i32)
-        .unwrap_or(AVERROR_IO)
+    // Safety: The pointer is valid given the way this function is constructed, the opaque pointer is a pointer to a T.
+    let this = unsafe { &mut *(opaque as *mut T) };
+    // Safety: the buffer has at least `buf_size` bytes.
+    let buffer = unsafe { std::slice::from_raw_parts(buf, buf_size as usize) };
+
+    this.write(buffer).map(|n| n as i32).unwrap_or(AVERROR_IO)
 }
 
 /// Safety: The function must be used with the same type as the one used to
 /// generically create the function pointer
 pub(crate) unsafe extern "C" fn seek<T: std::io::Seek>(opaque: *mut libc::c_void, offset: i64, whence: i32) -> i64 {
-    let this = &mut *(opaque as *mut T);
+    // Safety: The pointer is valid given the way this function is constructed, the opaque pointer is a pointer to a T.
+    let this = unsafe { &mut *(opaque as *mut T) };
 
     let mut whence = AVSeekWhence(whence);
 
@@ -285,16 +290,16 @@ impl Inner<()> {
 mod tests {
     use std::ffi::CString;
     use std::io::Cursor;
-    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Once;
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     use libc::c_void;
     use tempfile::Builder;
 
+    use crate::AVSeekWhence;
     use crate::error::FfmpegError;
     use crate::ffi::av_guess_format;
-    use crate::io::internal::{read_packet, seek, write_packet, Inner, InnerOptions, AVERROR_EOF};
-    use crate::AVSeekWhence;
+    use crate::io::internal::{AVERROR_EOF, Inner, InnerOptions, read_packet, seek, write_packet};
 
     #[test]
     fn test_read_packet_eof() {

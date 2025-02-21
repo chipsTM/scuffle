@@ -16,6 +16,7 @@ use scuffle_flv::hevc::HevcPacket;
 use scuffle_flv::script::ScriptData;
 use scuffle_flv::tag::{FlvTag, FlvTagData};
 use scuffle_flv::video::{EnhancedPacket, FrameType, VideoTagBody, VideoTagHeader};
+use scuffle_mp4::BoxType;
 use scuffle_mp4::codec::{AudioCodec, VideoCodec};
 use scuffle_mp4::types::ftyp::{FourCC, Ftyp};
 use scuffle_mp4::types::hdlr::{HandlerType, Hdlr};
@@ -43,7 +44,6 @@ use scuffle_mp4::types::trak::Trak;
 use scuffle_mp4::types::trex::Trex;
 use scuffle_mp4::types::trun::Trun;
 use scuffle_mp4::types::vmhd::Vmhd;
-use scuffle_mp4::BoxType;
 
 mod codecs;
 mod define;
@@ -149,7 +149,7 @@ impl Transmuxer {
             let duration =
                 if self.last_video_timestamp == 0 || tag.timestamp_ms == 0 || tag.timestamp_ms < self.last_video_timestamp {
                     1000 // the first frame is always 1000 ticks where the
-                         // timescale is 1000 * fps.
+                // timescale is 1000 * fps.
                 } else {
                     // Since the delta is in milliseconds (ie 1/1000 of a second)
                     // Rounding errors happen. Our presision is only 1/1000 of a second.

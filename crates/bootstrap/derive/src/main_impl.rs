@@ -1,12 +1,12 @@
 #![allow(unused)]
 
-use darling::ast::NestedMeta;
 use darling::FromMeta;
+use darling::ast::NestedMeta;
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, parse_quote, Ident, Token};
+use syn::{Ident, Token, parse_macro_input, parse_quote};
 
 struct Main {
     options: ParseArgs,

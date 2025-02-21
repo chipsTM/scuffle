@@ -2,7 +2,7 @@ use std::io;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use bytes::Bytes;
-use fixed::types::extra::{U16, U8};
+use fixed::types::extra::{U8, U16};
 use fixed::{FixedI16, FixedI32};
 
 use crate::boxes::header::{BoxHeader, FullBoxHeader};
@@ -144,10 +144,10 @@ impl BoxType for Tkhd {
         let mut size = self.header.size();
         size += if self.header.version == 1 {
             8 + 8 + 4 + 4 + 8 // creation_time, modification_time, track_id,
-                              // reserved, duration
+        // reserved, duration
         } else {
             4 + 4 + 4 + 4 + 4 // creation_time, modification_time, track_id,
-                              // reserved, duration
+            // reserved, duration
         };
 
         size += 4 * 2; // reserved2

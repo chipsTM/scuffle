@@ -94,7 +94,8 @@ impl<T> SmartPtr<T> {
         if ptr.is_null() {
             None
         } else {
-            Some(Self::wrap(ptr, destructor))
+            // Safety: The pointer is valid.
+            Some(unsafe { Self::wrap(ptr, destructor) })
         }
     }
 

@@ -4,12 +4,12 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use bytes::Bytes;
 
 use super::{HandshakeError, HandshakeServer};
+use crate::handshake::ServerHandshakeState;
 use crate::handshake::define::{
     SchemaVersion, {self},
 };
 use crate::handshake::digest::DigestProcessor;
 use crate::handshake::errors::DigestError;
-use crate::handshake::ServerHandshakeState;
 
 #[test]
 fn test_simple_handshake() {

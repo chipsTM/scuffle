@@ -425,10 +425,12 @@ fn test_decoder_error_too_many_partial_chunks() {
         }
 
         // Read the chunk
-        assert!(unpacker
-            .read_chunk(&mut buf)
-            .unwrap_or_else(|_| panic!("chunk failed {}", i))
-            .is_none());
+        assert!(
+            unpacker
+                .read_chunk(&mut buf)
+                .unwrap_or_else(|_| panic!("chunk failed {}", i))
+                .is_none()
+        );
     }
 
     // Write another chunk with a different chunk stream id
@@ -473,10 +475,12 @@ fn test_decoder_error_too_many_chunk_headers() {
         ]);
 
         // Read the chunk (should be a full chunk since the message length is 0)
-        assert!(unpacker
-            .read_chunk(&mut buf)
-            .unwrap_or_else(|_| panic!("chunk failed {}", i))
-            .is_some());
+        assert!(
+            unpacker
+                .read_chunk(&mut buf)
+                .unwrap_or_else(|_| panic!("chunk failed {}", i))
+                .is_some()
+        );
     }
 
     // Write another chunk with a different chunk stream id

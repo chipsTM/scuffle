@@ -5,9 +5,9 @@ use bytes::{Buf, Bytes};
 use super::mvex::Mvex;
 use super::mvhd::Mvhd;
 use super::trak::Trak;
+use crate::boxes::DynBox;
 use crate::boxes::header::BoxHeader;
 use crate::boxes::traits::BoxType;
-use crate::boxes::DynBox;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Movie Box

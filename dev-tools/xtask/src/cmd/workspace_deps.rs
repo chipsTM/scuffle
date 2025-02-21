@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use anyhow::Context;
-use cargo_metadata::camino::{Utf8Path, Utf8PathBuf};
 use cargo_metadata::DependencyKind;
+use cargo_metadata::camino::{Utf8Path, Utf8PathBuf};
 
 use crate::cmd::IGNORED_PACKAGES;
 

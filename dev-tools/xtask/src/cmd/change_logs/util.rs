@@ -1,8 +1,8 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::Context;
-use serde::de::IntoDeserializer;
 use serde::Deserialize;
+use serde::de::IntoDeserializer;
 
 #[derive(Debug, Clone)]
 pub struct Fragment {

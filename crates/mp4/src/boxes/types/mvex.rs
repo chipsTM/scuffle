@@ -4,9 +4,9 @@ use bytes::{Buf, Bytes};
 
 use super::mehd::Mehd;
 use super::trex::Trex;
+use crate::boxes::DynBox;
 use crate::boxes::header::BoxHeader;
 use crate::boxes::traits::BoxType;
-use crate::boxes::DynBox;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Movie Extends Box

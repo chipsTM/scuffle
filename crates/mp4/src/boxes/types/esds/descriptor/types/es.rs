@@ -5,9 +5,9 @@ use bytes::{Buf, Bytes};
 
 use super::decoder_config::DecoderConfigDescriptor;
 use super::sl_config::SLConfigDescriptor;
+use crate::boxes::types::esds::descriptor::DynDescriptor;
 use crate::boxes::types::esds::descriptor::header::{DescriptorHeader, DescriptorTag};
 use crate::boxes::types::esds::descriptor::traits::DescriptorType;
-use crate::boxes::types::esds::descriptor::DynDescriptor;
 
 #[derive(Debug, Clone, PartialEq)]
 /// ES Descriptor

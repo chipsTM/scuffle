@@ -4,9 +4,9 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use bytes::Bytes;
 
 use super::url::Url;
+use crate::boxes::DynBox;
 use crate::boxes::header::{BoxHeader, FullBoxHeader};
 use crate::boxes::traits::BoxType;
-use crate::boxes::DynBox;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Data Reference Box

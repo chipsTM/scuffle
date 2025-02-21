@@ -2,8 +2,8 @@ use std::io;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use bytes::Bytes;
-use fixed::types::extra::U8;
 use fixed::FixedI16;
+use fixed::types::extra::U8;
 
 use crate::boxes::header::{BoxHeader, FullBoxHeader};
 use crate::boxes::traits::BoxType;
@@ -54,7 +54,7 @@ impl BoxType for Smhd {
     fn primitive_size(&self) -> u64 {
         let size = self.header.size();
         let size = size + 2; // balance
-                             // reserved
+        // reserved
         size + 2
     }
 

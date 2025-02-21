@@ -4,7 +4,7 @@ use anyhow::Context;
 
 mod utils;
 
-use utils::{parse_features, test_package_features, XTaskMetadata};
+use utils::{XTaskMetadata, parse_features, test_package_features};
 
 use crate::cmd::IGNORED_PACKAGES;
 use crate::utils::{cargo_cmd, comma_delimited};

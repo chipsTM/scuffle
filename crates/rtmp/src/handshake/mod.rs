@@ -4,7 +4,7 @@ mod errors;
 mod server;
 mod utils;
 
-pub use self::define::{ServerHandshakeState, RTMP_HANDSHAKE_SIZE};
+pub use self::define::{RTMP_HANDSHAKE_SIZE, ServerHandshakeState};
 pub use self::errors::*;
 pub use self::server::HandshakeServer;
 

@@ -97,25 +97,41 @@ extern "C" {
 }
 
 unsafe extern "C" fn log_cb(ptr: *mut libc::c_void, level: libc::c_int, fmt: *const libc::c_char, va: VaList) {
+    let guard = LOG_CALLBACK.load();
+    let Some(cb) = guard.as_ref() else {
+        return;
+    };
+
     let level = LogLevel::from(level);
     let class = NonNull::new(ptr as *mut *mut AVClass)
-        .and_then(|class| NonNull::new(*class.as_ptr()))
         .and_then(|class| {
-            class
-                .as_ref()
-                .item_name
-                .map(|im| CStr::from_ptr(im(ptr)).to_string_lossy().trim().to_owned())
+            // Safety: The pointer is valid
+            NonNull::new(unsafe { *class.as_ptr() })
+        })
+        .and_then(|class| {
+            // Safety: The pointer is valid
+            let class = unsafe { class.as_ref() };
+            let im = class.item_name?;
+            // Safety: The pointer is valid
+            let c_str = unsafe { im(ptr) };
+            // Safety: The returned pointer is a valid CString
+            let c_str = unsafe { CStr::from_ptr(c_str) };
+
+            Some(c_str.to_string_lossy().trim().to_owned())
         });
 
-    let mut buf = [0u8; 1024];
+    let mut buf = [0i8; 1024];
 
-    vsnprintf(buf.as_mut_ptr() as *mut i8, buf.len() as _, fmt, va);
-
-    let msg = CStr::from_ptr(buf.as_ptr() as *const i8).to_string_lossy().trim().to_owned();
-
-    if let Some(cb) = LOG_CALLBACK.load().as_ref() {
-        cb(level, class, msg);
+    // Safety: The pointer is valid and the buffer has enough bytes with the max length set.
+    unsafe {
+        vsnprintf(buf.as_mut_ptr(), buf.len() as _, fmt, va);
     }
+
+    // Safety: The pointer is valid and the buffer has enough bytes with the max length set.
+    let c_str = unsafe { CStr::from_ptr(buf.as_ptr()) };
+    let msg = c_str.to_string_lossy().trim().to_owned();
+
+    cb(level, class, msg);
 }
 
 /// Sets the log callback to use tracing.
@@ -151,9 +167,9 @@ mod tests {
     use std::ffi::CString;
     use std::sync::{Arc, Mutex};
 
-    use crate::ffi::{av_log, av_log_get_level, avcodec_find_decoder};
-    use crate::log::{log_callback_set, log_callback_unset, set_log_level, LogLevel};
     use crate::AVCodecID;
+    use crate::ffi::{av_log, av_log_get_level, avcodec_find_decoder};
+    use crate::log::{LogLevel, log_callback_set, log_callback_unset, set_log_level};
 
     #[test]
     fn test_log_level_as_str_using_from_i32() {
@@ -325,8 +341,8 @@ mod tests {
     #[test]
     #[tracing_test::traced_test]
     fn test_log_callback_tracing() {
-        use tracing::subscriber::set_default;
         use tracing::Level;
+        use tracing::subscriber::set_default;
         use tracing_subscriber::FmtSubscriber;
 
         use crate::log::log_callback_tracing;
@@ -378,8 +394,8 @@ mod tests {
     #[test]
     #[tracing_test::traced_test]
     fn test_log_callback_tracing_deprecated_message() {
-        use tracing::subscriber::set_default;
         use tracing::Level;
+        use tracing::subscriber::set_default;
         use tracing_subscriber::FmtSubscriber;
 
         use crate::log::log_callback_tracing;

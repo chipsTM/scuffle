@@ -101,11 +101,18 @@ impl Packet {
     }
 
     /// Wraps a pointer to a packet.
+    /// We take ownership of the pointer and free it when the `Packet` is dropped.
     ///
     /// # Safety
     /// `ptr` must be a valid pointer to a packet.
     unsafe fn wrap(ptr: *mut AVPacket) -> Option<Self> {
-        SmartPtr::wrap_non_null(ptr, |ptr| av_packet_free(ptr)).map(Self)
+        let destructor = |ptr: &mut *mut AVPacket| {
+            // Safety: The pointer is valid.
+            unsafe { av_packet_free(ptr) };
+        };
+
+        // Safety: The pointer is valid.
+        unsafe { SmartPtr::wrap_non_null(ptr, destructor).map(Self) }
     }
 
     /// Returns a pointer to the packet.

@@ -333,13 +333,13 @@ mod tests {
     use std::collections::BTreeMap;
     use std::num::NonZero;
 
-    use insta::{assert_debug_snapshot, Settings};
+    use insta::{Settings, assert_debug_snapshot};
 
+    use crate::AVDiscard;
     use crate::ffi::AVStream;
     use crate::io::Input;
     use crate::rational::Rational;
     use crate::stream::AVMediaType;
-    use crate::AVDiscard;
 
     #[test]
     fn test_best_stream() {

@@ -1,6 +1,6 @@
 use std::ffi::CStr;
 
-use super::internal::{read_packet, seek, Inner, InnerOptions};
+use super::internal::{Inner, InnerOptions, read_packet, seek};
 use crate::consts::{Const, DEFAULT_BUFFER_SIZE};
 use crate::dict::Dictionary;
 use crate::error::{FfmpegError, FfmpegErrorCode};
@@ -176,7 +176,7 @@ mod tests {
 
     use insta::Settings;
 
-    use super::{FfmpegError, Input, InputOptions, DEFAULT_BUFFER_SIZE};
+    use super::{DEFAULT_BUFFER_SIZE, FfmpegError, Input, InputOptions};
 
     fn configure_insta_filters(settings: &mut Settings) {
         settings.add_filter(r"0x0000000000000000", "[NULL_POINTER]");

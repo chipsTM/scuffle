@@ -62,7 +62,7 @@ impl BoxType for Trex {
         let size = size + 4; // default_sample_description_index
         let size = size + 4; // default_sample_duration
         let size = size + 4; // default_sample_size
-                             // default_sample_flags
+        // default_sample_flags
         size + 4
     }
 

@@ -43,11 +43,7 @@ impl DecoderCodec {
     pub fn new(codec_id: AVCodecID) -> Option<Self> {
         // Safety: `avcodec_find_decoder` is safe to call.
         let codec = unsafe { avcodec_find_decoder(codec_id.0 as crate::ffi::AVCodecID) };
-        if codec.is_null() {
-            None
-        } else {
-            Some(Self(codec))
-        }
+        if codec.is_null() { None } else { Some(Self(codec)) }
     }
 
     /// Creates a [`DecoderCodec`] from a codec name.
@@ -56,11 +52,7 @@ impl DecoderCodec {
 
         // Safety: `avcodec_find_decoder_by_name` is safe to call with a valid c-string.
         let codec = unsafe { avcodec_find_decoder_by_name(c_name.as_ptr()) };
-        if codec.is_null() {
-            None
-        } else {
-            Some(Self(codec))
-        }
+        if codec.is_null() { None } else { Some(Self(codec)) }
     }
 
     /// Returns the raw pointer to the [`AVCodec`].
@@ -118,11 +110,7 @@ impl EncoderCodec {
     pub fn new(codec_id: AVCodecID) -> Option<Self> {
         // Safety: `avcodec_find_encoder` is safe to call.
         let codec = unsafe { avcodec_find_encoder(codec_id.0 as crate::ffi::AVCodecID) };
-        if codec.is_null() {
-            None
-        } else {
-            Some(Self(codec))
-        }
+        if codec.is_null() { None } else { Some(Self(codec)) }
     }
 
     /// Creates an [`EncoderCodec`] from a codec name.
@@ -130,11 +118,7 @@ impl EncoderCodec {
         let c_name = std::ffi::CString::new(name).ok()?;
         // Safety: `avcodec_find_encoder_by_name` is safe to call with a valid c-string.
         let codec = unsafe { avcodec_find_encoder_by_name(c_name.as_ptr()) };
-        if codec.is_null() {
-            None
-        } else {
-            Some(Self(codec))
-        }
+        if codec.is_null() { None } else { Some(Self(codec)) }
     }
 
     /// Returns the raw pointer to the [`AVCodec`].
@@ -167,7 +151,7 @@ impl From<DecoderCodec> for *const AVCodec {
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
     use crate::codec::{AVCodecID, DecoderCodec, EncoderCodec};
-    use crate::ffi::{avcodec_find_decoder, avcodec_find_encoder, AVCodec};
+    use crate::ffi::{AVCodec, avcodec_find_decoder, avcodec_find_encoder};
 
     #[test]
     fn test_decoder_codec_debug_null() {

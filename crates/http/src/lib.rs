@@ -94,8 +94,8 @@ mod tests {
 
     use scuffle_future_ext::FutureExt;
 
-    use crate::service::{fn_http_service, service_clone_factory};
     use crate::HttpServer;
+    use crate::service::{fn_http_service, service_clone_factory};
 
     fn get_available_addr() -> std::io::Result<std::net::SocketAddr> {
         let listener = std::net::TcpListener::bind("127.0.0.1:0")?;

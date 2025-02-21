@@ -7,7 +7,7 @@ use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt};
 
 async fn hello_world(req: Request<axum::body::Body>) -> axum::response::Response<String> {
     tracing::info!("received request: {} {}", req.method(), req.uri());

@@ -4,9 +4,9 @@ use bytes::{Buf, Bytes};
 
 use super::btrt::Btrt;
 use super::stsd::{AudioSampleEntry, SampleEntry};
+use crate::boxes::DynBox;
 use crate::boxes::header::BoxHeader;
 use crate::boxes::traits::BoxType;
-use crate::boxes::DynBox;
 use crate::codec::AudioCodec;
 
 #[derive(Debug, Clone, PartialEq)]

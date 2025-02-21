@@ -8,9 +8,9 @@ use super::nmhd::Nmhd;
 use super::smhd::Smhd;
 use super::stbl::Stbl;
 use super::vmhd::Vmhd;
+use crate::boxes::DynBox;
 use crate::boxes::header::BoxHeader;
 use crate::boxes::traits::BoxType;
-use crate::boxes::DynBox;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Media Information Box
