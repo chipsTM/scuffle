@@ -54,14 +54,11 @@ impl VideoScaler {
         // Safety: `ptr` is a valid pointer & `destructor` has been setup to free the context.
         let ptr = unsafe { SmartPtr::wrap_non_null(ptr, destructor) }.ok_or(FfmpegError::Alloc)?;
 
-        let mut frame = VideoFrame::new()?;
-
-        frame.set_width(width as usize);
-        frame.set_height(height as usize);
-        frame.set_format(pixel_format.into());
-
-        // Safety: `av_frame_get_buffer` is safe to call.
-        unsafe { frame.alloc_frame_buffer(Some(32)) }.expect("Failed to allocate frame buffer");
+        let frame = VideoFrame::builder()
+            .width(width)
+            .height(height)
+            .pix_fmt(pixel_format)
+            .build()?;
 
         Ok(Self {
             ptr,
@@ -183,38 +180,23 @@ mod tests {
         )
         .expect("Failed to create Scalar");
 
-        let mut input_frame: VideoFrame = VideoFrame::new().expect("Failed to create Frame");
-        // Safety: `input_frame` is a valid pointer
-        input_frame.set_width(input_width as usize);
-        input_frame.set_height(input_height as usize);
-        input_frame.set_format(incoming_pixel_fmt.into());
-
-        // Safety: `av_frame_get_buffer` is safe to call.
-        unsafe { input_frame.alloc_frame_buffer(Some(32)) }.expect("Failed to allocate frame buffer");
+        let mut input_frame = VideoFrame::builder()
+            .width(input_width)
+            .height(input_height)
+            .pix_fmt(incoming_pixel_fmt)
+            .build()
+            .expect("Failed to create VideoFrame");
 
         // We need to fill the buffer with random data otherwise the result will be based off uninitialized data.
         let mut rng = rand::rng();
 
-        for y in 0..input_height {
-            // Safety: `frame_mut.data[0]` is a valid pointer
-            let y = (y * input_frame.linesize(0).unwrap()) as usize;
-            let row = &mut input_frame.data_mut(0).unwrap()[y..y + input_width as usize];
-            rng.fill(row);
-        }
-
-        let half_height = (input_height + 1) / 2;
-        let half_width = (input_width + 1) / 2;
-
-        for y in 0..half_height {
-            let y = (y * input_frame.linesize(1).unwrap()) as usize;
-            let row = &mut input_frame.data_mut(1).unwrap()[y..y + half_width as usize];
-            rng.fill(row);
-        }
-
-        for y in 0..half_height {
-            let y = (y * input_frame.linesize(2).unwrap()) as usize;
-            let row = &mut input_frame.data_mut(2).unwrap()[y..y + half_width as usize];
-            rng.fill(row);
+        for data_idx in 0..rusty_ffmpeg::ffi::AV_NUM_DATA_POINTERS {
+            if let Some(mut data_buf) = input_frame.data_mut(data_idx as usize) {
+                for row_idx in 0..data_buf.height() {
+                    let row = data_buf.get_row_mut(row_idx as usize).unwrap();
+                    rng.fill(row);
+                }
+            }
         }
 
         let result = scalar.process(&input_frame);
@@ -231,7 +213,7 @@ mod tests {
             width: 1280,
             height: 720,
             sample_aspect_ratio: Rational {
-                numerator: 0,
+                numerator: 1,
                 denominator: 1,
             },
             pts: None,

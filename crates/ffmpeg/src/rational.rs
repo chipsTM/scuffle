@@ -18,6 +18,8 @@ impl Default for Rational {
 }
 
 impl Rational {
+    /// The one rational number.
+    pub const ONE: Rational = Rational::static_new::<1, 1>();
     /// The zero rational number.
     pub const ZERO: Rational = Rational::static_new::<0, 1>();
 
