@@ -3,8 +3,8 @@ use std::io;
 use byteorder::WriteBytesExt;
 use bytes::Bytes;
 
-use super::header::DescriptorTag;
 use super::DescriptorHeader;
+use super::header::DescriptorTag;
 
 pub trait DescriptorType {
     const TAG: DescriptorTag;

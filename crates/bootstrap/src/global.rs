@@ -373,8 +373,10 @@ mod tests {
         assert!(Global::on_exit(&global, Err(anyhow::anyhow!("error"))).await.is_err());
 
         assert!(matches!(Global::on_service_exit(&global, "test", Ok(())).await, Ok(())));
-        assert!(Global::on_service_exit(&global, "test", Err(anyhow::anyhow!("error")))
-            .await
-            .is_err());
+        assert!(
+            Global::on_service_exit(&global, "test", Err(anyhow::anyhow!("error")))
+                .await
+                .is_err()
+        );
     }
 }

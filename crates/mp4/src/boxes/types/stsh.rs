@@ -47,7 +47,7 @@ impl BoxType for Stsh {
     fn primitive_size(&self) -> u64 {
         let size = self.header.size();
         let size = size + 4; // entry_count
-                             // entries
+        // entries
         size + (self.entries.len() as u64 * 8)
     }
 

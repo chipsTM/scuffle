@@ -2,7 +2,7 @@ use std::io;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use bytes::Bytes;
-use fixed::types::extra::{U16, U8};
+use fixed::types::extra::{U8, U16};
 use fixed::{FixedI16, FixedI32};
 
 use crate::boxes::header::{BoxHeader, FullBoxHeader};
@@ -115,10 +115,10 @@ impl BoxType for Mvhd {
 
         if self.header.version == 1 {
             size += 8 + 8 + 4 + 8; // creation_time, modification_time,
-                                   // timescale, duration
+        // timescale, duration
         } else {
             size += 4 + 4 + 4 + 4; // creation_time, modification_time,
-                                   // timescale, duration
+            // timescale, duration
         }
 
         size += 4 + 2 + 2; // rate, volume, reserved

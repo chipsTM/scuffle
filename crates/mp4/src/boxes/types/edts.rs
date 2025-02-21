@@ -3,9 +3,9 @@ use std::io;
 use bytes::{Buf, Bytes};
 
 use super::elst::Elst;
+use crate::boxes::DynBox;
 use crate::boxes::header::BoxHeader;
 use crate::boxes::traits::BoxType;
-use crate::boxes::DynBox;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Edit Box

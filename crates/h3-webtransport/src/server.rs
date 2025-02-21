@@ -235,7 +235,7 @@ where
                         } => {
                             return Err(self
                                 .inner
-                                .close(code, reason.unwrap_or_else(|| String::into_boxed_str(String::from("")))))
+                                .close(code, reason.unwrap_or_else(|| String::into_boxed_str(String::from("")))));
                         }
                         _ => return Err(err),
                     };

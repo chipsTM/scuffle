@@ -173,13 +173,13 @@ impl VideoTagBody {
 
                 match packet_type {
                     EnhancedPacketType::SequenceEnd => {
-                        return Ok(VideoTagBody::Enhanced(EnhancedPacket::SequenceEnd { video_codec }))
+                        return Ok(VideoTagBody::Enhanced(EnhancedPacket::SequenceEnd { video_codec }));
                     }
                     EnhancedPacketType::Metadata => {
                         return Ok(VideoTagBody::Enhanced(EnhancedPacket::Metadata {
                             video_codec,
                             data: reader.extract_remaining(),
-                        }))
+                        }));
                     }
                     _ => {}
                 }

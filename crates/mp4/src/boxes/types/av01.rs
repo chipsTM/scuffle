@@ -8,9 +8,9 @@ use scuffle_bytes_util::BytesCursorExt;
 use super::av1c::Av1C;
 use super::btrt::Btrt;
 use super::stsd::{SampleEntry, VisualSampleEntry};
+use crate::boxes::DynBox;
 use crate::boxes::header::BoxHeader;
 use crate::boxes::traits::BoxType;
-use crate::boxes::DynBox;
 use crate::codec::VideoCodec;
 
 #[derive(Debug, Clone, PartialEq)]

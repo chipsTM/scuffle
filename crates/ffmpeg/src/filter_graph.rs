@@ -230,11 +230,7 @@ impl Filter {
         // valid
         let filter = unsafe { avfilter_get_by_name(name.as_ptr()) };
 
-        if filter.is_null() {
-            None
-        } else {
-            Some(Self(filter))
-        }
+        if filter.is_null() { None } else { Some(Self(filter)) }
     }
 
     /// Get the pointer to the filter.
@@ -323,10 +319,10 @@ impl FilterContextSink<'_> {
 mod tests {
     use std::ffi::CString;
 
+    use crate::AVSampleFormat;
     use crate::ffi::avfilter_get_by_name;
     use crate::filter_graph::{Filter, FilterGraph, FilterGraphParser};
     use crate::frame::{AudioChannelLayout, AudioFrame, GenericFrame};
-    use crate::AVSampleFormat;
 
     #[test]
     fn test_filter_graph_new() {

@@ -9,9 +9,9 @@ use bytes::Bytes;
 use super::clap::Clap;
 use super::colr::Colr;
 use super::pasp::Pasp;
+use crate::boxes::DynBox;
 use crate::boxes::header::{BoxHeader, FullBoxHeader};
 use crate::boxes::traits::BoxType;
-use crate::boxes::DynBox;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Sample Description Box

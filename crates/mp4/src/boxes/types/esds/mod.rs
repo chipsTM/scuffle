@@ -2,9 +2,9 @@ use std::io;
 
 use bytes::{Buf, Bytes};
 
+use self::descriptor::DynDescriptor;
 use self::descriptor::traits::DescriptorType;
 use self::descriptor::types::es::EsDescriptor;
-use self::descriptor::DynDescriptor;
 use crate::boxes::header::{BoxHeader, FullBoxHeader};
 use crate::boxes::traits::BoxType;
 

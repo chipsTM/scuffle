@@ -17,9 +17,9 @@ use super::stsz::Stsz;
 use super::stts::Stts;
 use super::stz2::Stz2;
 use super::subs::Subs;
+use crate::boxes::DynBox;
 use crate::boxes::header::BoxHeader;
 use crate::boxes::traits::BoxType;
-use crate::boxes::DynBox;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Sample Table Box

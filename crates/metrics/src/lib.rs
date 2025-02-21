@@ -60,7 +60,7 @@ pub use collector::{
     CounterF64, CounterU64, GaugeF64, GaugeI64, GaugeU64, HistogramF64, HistogramU64, UpDownCounterF64, UpDownCounterI64,
 };
 pub use opentelemetry;
-pub use scuffle_metrics_derive::{metrics, MetricEnum};
+pub use scuffle_metrics_derive::{MetricEnum, metrics};
 
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
@@ -68,10 +68,10 @@ mod tests {
     use std::sync::Arc;
 
     use opentelemetry::{Key, KeyValue, Value};
+    use opentelemetry_sdk::Resource;
     use opentelemetry_sdk::metrics::data::{ResourceMetrics, Sum};
     use opentelemetry_sdk::metrics::reader::MetricReader;
     use opentelemetry_sdk::metrics::{ManualReader, ManualReaderBuilder, SdkMeterProvider};
-    use opentelemetry_sdk::Resource;
 
     #[test]
     fn derive_enum() {

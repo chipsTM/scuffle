@@ -244,8 +244,8 @@ impl<T: ChannelCompatSend> std::io::Write for ChannelCompat<T> {
 mod tests {
     use std::io::{Read, Write};
 
-    use rand::distr::StandardUniform;
     use rand::Rng;
+    use rand::distr::StandardUniform;
 
     use crate::io::channel::{ChannelCompat, ChannelCompatRecv, ChannelCompatSend};
 

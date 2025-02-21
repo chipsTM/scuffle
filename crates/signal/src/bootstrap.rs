@@ -79,14 +79,14 @@ impl<Global: SignalConfig> Service<Global> for SignalSvc {
 mod tests {
     use std::sync::Arc;
 
-    use scuffle_bootstrap::global::GlobalWithoutConfig;
     use scuffle_bootstrap::Service;
+    use scuffle_bootstrap::global::GlobalWithoutConfig;
     use scuffle_future_ext::FutureExt;
     use tokio::signal::unix::SignalKind;
 
     use super::{SignalConfig, SignalSvc};
-    use crate::tests::raise_signal;
     use crate::SignalHandler;
+    use crate::tests::raise_signal;
 
     async fn force_shutdown_two_signals<Global: GlobalWithoutConfig + SignalConfig>() {
         let (ctx, handler) = scuffle_context::Context::new();
@@ -114,11 +114,13 @@ mod tests {
             _ => panic!("unexpected result"),
         }
 
-        assert!(handler
-            .shutdown()
-            .with_timeout(tokio::time::Duration::from_millis(100))
-            .await
-            .is_ok());
+        assert!(
+            handler
+                .shutdown()
+                .with_timeout(tokio::time::Duration::from_millis(100))
+                .await
+                .is_ok()
+        );
     }
 
     struct TestGlobal;
@@ -164,11 +166,13 @@ mod tests {
         raise_signal(tokio::signal::unix::SignalKind::interrupt());
         assert!(result.await.is_ok());
 
-        assert!(handler
-            .shutdown()
-            .with_timeout(tokio::time::Duration::from_millis(100))
-            .await
-            .is_ok());
+        assert!(
+            handler
+                .shutdown()
+                .with_timeout(tokio::time::Duration::from_millis(100))
+                .await
+                .is_ok()
+        );
     }
 
     #[tokio::test]
@@ -218,11 +222,13 @@ mod tests {
         // Expected to timeout
         assert!(result.with_timeout(tokio::time::Duration::from_millis(100)).await.is_err());
 
-        assert!(handler
-            .shutdown()
-            .with_timeout(tokio::time::Duration::from_millis(100))
-            .await
-            .is_ok());
+        assert!(
+            handler
+                .shutdown()
+                .with_timeout(tokio::time::Duration::from_millis(100))
+                .await
+                .is_ok()
+        );
     }
 
     struct SmallTimeoutTestGlobal;
@@ -264,10 +270,12 @@ mod tests {
             _ => panic!("unexpected result"),
         }
 
-        assert!(handler
-            .shutdown()
-            .with_timeout(tokio::time::Duration::from_millis(100))
-            .await
-            .is_ok());
+        assert!(
+            handler
+                .shutdown()
+                .with_timeout(tokio::time::Duration::from_millis(100))
+                .await
+                .is_ok()
+        );
     }
 }

@@ -4,9 +4,9 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use bytes::{Buf, Bytes};
 
 use super::decoder_specific_info::DecoderSpecificInfoDescriptor;
+use crate::boxes::types::esds::descriptor::DynDescriptor;
 use crate::boxes::types::esds::descriptor::header::{DescriptorHeader, DescriptorTag};
 use crate::boxes::types::esds::descriptor::traits::DescriptorType;
-use crate::boxes::types::esds::descriptor::DynDescriptor;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Decoder Config Descriptor

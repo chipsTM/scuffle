@@ -5,8 +5,8 @@ use scuffle_future_ext::FutureExt;
 use tokio::process::Command;
 use tokio::sync::mpsc;
 
-use crate::channels::{ChannelData, UniqueID};
 use crate::Session;
+use crate::channels::{ChannelData, UniqueID};
 
 #[tokio::test]
 #[cfg(not(valgrind))] // test is time-sensitive, consider refactoring?
@@ -93,10 +93,12 @@ async fn test_basic_rtmp_clean() {
     assert!(got_audio);
     assert!(got_metadata);
 
-    assert!(ffmpeg_handle
-        .await
-        .expect("failed to join handle")
-        .expect("failed to handle ffmpeg connection"));
+    assert!(
+        ffmpeg_handle
+            .await
+            .expect("failed to join handle")
+            .expect("failed to handle ffmpeg connection")
+    );
 
     // TODO: Fix this assertion
     // assert!(ffmpeg.try_wait().expect("failed to wait for ffmpeg").is_none());
@@ -194,8 +196,10 @@ async fn test_basic_rtmp_unclean() {
     ffmpeg.kill().await.expect("failed to kill ffmpeg");
 
     // the server should have detected the ffmpeg process has died uncleanly
-    assert!(!ffmpeg_handle
-        .await
-        .expect("failed to join handle")
-        .expect("failed to handle ffmpeg connection"));
+    assert!(
+        !ffmpeg_handle
+            .await
+            .expect("failed to join handle")
+            .expect("failed to handle ffmpeg connection")
+    );
 }

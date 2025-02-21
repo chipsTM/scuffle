@@ -12,7 +12,7 @@ use cargo_metadata::{BuildScript, DependencyKind, Edition};
 use cargo_platform::Cfg;
 use target_triple::TARGET;
 
-use crate::{features, Config};
+use crate::{Config, features};
 
 #[derive(Default, Debug)]
 /// Describes where to find the binaries built for the dependencies

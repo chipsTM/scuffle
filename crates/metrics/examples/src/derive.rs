@@ -1,7 +1,7 @@
 use example::Kind;
 use opentelemetry::KeyValue;
-use opentelemetry_sdk::metrics::{PeriodicReader, SdkMeterProvider};
 use opentelemetry_sdk::Resource;
+use opentelemetry_sdk::metrics::{PeriodicReader, SdkMeterProvider};
 
 #[scuffle_metrics::metrics]
 mod example {

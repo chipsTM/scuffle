@@ -92,11 +92,7 @@ impl FrameData {
 
     /// Returns a reference to the byte at a given index
     pub fn get(&self, index: usize) -> Option<&u8> {
-        if index < self.len() {
-            Some(self.index(index))
-        } else {
-            None
-        }
+        if index < self.len() { Some(self.index(index)) } else { None }
     }
 
     /// Returns a mutable reference to the byte at a given index
@@ -179,11 +175,18 @@ impl GenericFrame {
     }
 
     /// Wraps a pointer to an `AVFrame`.
+    /// Takes ownership of the frame, meaning it will be freed when the [`GenericFrame`] is dropped.
     ///
     /// # Safety
     /// `ptr` must be a valid pointer to an `AVFrame`.
     pub(crate) unsafe fn wrap(ptr: *mut AVFrame) -> Option<Self> {
-        SmartPtr::wrap_non_null(ptr, |ptr| av_frame_free(ptr)).map(Self)
+        let destructor = |ptr: &mut *mut AVFrame| {
+            // Safety: av_frame_free is safe to call & we own the pointer.
+            unsafe { av_frame_free(ptr) }
+        };
+
+        // Safety: The safety comment of the function implies this is safe.
+        unsafe { SmartPtr::wrap_non_null(ptr, destructor).map(Self) }
     }
 
     /// Allocates a buffer for the frame.
@@ -353,37 +356,37 @@ impl VideoFrame {
 
     /// Returns the width of the frame.
     pub const fn width(&self) -> usize {
-        self.0 .0.as_deref_except().width as usize
+        self.0.0.as_deref_except().width as usize
     }
 
     /// Returns the height of the frame.
     pub const fn height(&self) -> usize {
-        self.0 .0.as_deref_except().height as usize
+        self.0.0.as_deref_except().height as usize
     }
 
     /// Returns the sample aspect ratio of the frame.
     pub fn sample_aspect_ratio(&self) -> Rational {
-        self.0 .0.as_deref_except().sample_aspect_ratio.into()
+        self.0.0.as_deref_except().sample_aspect_ratio.into()
     }
 
     /// Sets the sample aspect ratio of the frame.
     pub fn set_sample_aspect_ratio(&mut self, sample_aspect_ratio: impl Into<Rational>) {
-        self.0 .0.as_deref_mut_except().sample_aspect_ratio = sample_aspect_ratio.into().into();
+        self.0.0.as_deref_mut_except().sample_aspect_ratio = sample_aspect_ratio.into().into();
     }
 
     /// Returns true if the frame is a keyframe.
     pub const fn is_keyframe(&self) -> bool {
-        self.0 .0.as_deref_except().key_frame != 0
+        self.0.0.as_deref_except().key_frame != 0
     }
 
     /// Returns the picture type of the frame.
     pub const fn pict_type(&self) -> AVPictureType {
-        AVPictureType(self.0 .0.as_deref_except().pict_type as i32)
+        AVPictureType(self.0.0.as_deref_except().pict_type as i32)
     }
 
     /// Sets the picture type of the frame.
     pub const fn set_pict_type(&mut self, pict_type: AVPictureType) {
-        self.0 .0.as_deref_mut_except().pict_type = pict_type.0 as u32;
+        self.0.0.as_deref_mut_except().pict_type = pict_type.0 as u32;
     }
 
     /// Returns a reference to the data of the frame. By specifying the index of the plane.
@@ -405,7 +408,7 @@ impl VideoFrame {
             }
         };
 
-        let raw = NonNull::new(*(self.0 .0.as_deref_except().data.get(index)?))?;
+        let raw = NonNull::new(*(self.0.0.as_deref_except().data.get(index)?))?;
 
         Some(Const::new(FrameData {
             ptr: raw,
@@ -433,7 +436,7 @@ impl VideoFrame {
             }
         };
 
-        let raw = NonNull::new(*(self.0 .0.as_deref_except().data.get(index)?))?;
+        let raw = NonNull::new(*(self.0.0.as_deref_except().data.get(index)?))?;
 
         Some(Mut::new(FrameData {
             ptr: raw,
@@ -444,7 +447,7 @@ impl VideoFrame {
 
     /// Get the pixel format of the frame.
     pub const fn format(&self) -> AVPixelFormat {
-        AVPixelFormat(self.0 .0.as_deref_except().format)
+        AVPixelFormat(self.0.0.as_deref_except().format)
     }
 }
 
@@ -606,32 +609,32 @@ impl AudioFrame {
 
     /// Returns the channel layout of the frame.
     pub const fn channel_layout(&self) -> AVChannelLayout {
-        self.0 .0.as_deref_except().ch_layout
+        self.0.0.as_deref_except().ch_layout
     }
 
     /// Returns the channel count of the frame.
     pub const fn channel_count(&self) -> usize {
-        self.0 .0.as_deref_except().ch_layout.nb_channels as usize
+        self.0.0.as_deref_except().ch_layout.nb_channels as usize
     }
 
     /// Returns the number of samples in the frame.
     pub const fn nb_samples(&self) -> i32 {
-        self.0 .0.as_deref_except().nb_samples
+        self.0.0.as_deref_except().nb_samples
     }
 
     /// Returns the sample rate of the frame.
     pub const fn sample_rate(&self) -> i32 {
-        self.0 .0.as_deref_except().sample_rate
+        self.0.0.as_deref_except().sample_rate
     }
 
     /// Sets the sample rate of the frame.
     pub const fn set_sample_rate(&mut self, sample_rate: usize) {
-        self.0 .0.as_deref_mut_except().sample_rate = sample_rate as i32;
+        self.0.0.as_deref_mut_except().sample_rate = sample_rate as i32;
     }
 
     /// Returns a reference to the data of the frame. By specifying the index of the plane.
     pub fn data(&self, index: usize) -> Option<&[u8]> {
-        let ptr = *self.0 .0.as_deref_except().data.get(index)?;
+        let ptr = *self.0.0.as_deref_except().data.get(index)?;
 
         if ptr.is_null() {
             return None;
@@ -650,7 +653,7 @@ impl AudioFrame {
 
     /// Returns a mutable reference to the data of the frame. By specifying the index of the plane.
     pub fn data_mut(&mut self, index: usize) -> Option<&mut [u8]> {
-        let ptr = *self.0 .0.as_deref_except().data.get(index)?;
+        let ptr = *self.0.0.as_deref_except().data.get(index)?;
 
         if ptr.is_null() {
             return None;
@@ -704,7 +707,7 @@ impl std::ops::DerefMut for AudioFrame {
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
     use insta::assert_debug_snapshot;
-    use rand::{rng, Rng};
+    use rand::{Rng, rng};
 
     use super::FrameData;
     use crate::frame::{AudioChannelLayout, AudioFrame, GenericFrame, VideoFrame};
@@ -1127,14 +1130,18 @@ mod tests {
             height,
         };
 
-        assert!(std::panic::catch_unwind(|| {
-            let _ = inverse_frame_data[6];
-        })
-        .is_err());
-        assert!(std::panic::catch_unwind(|| {
-            let _ = frame_data[6];
-        })
-        .is_err());
+        assert!(
+            std::panic::catch_unwind(|| {
+                let _ = inverse_frame_data[6];
+            })
+            .is_err()
+        );
+        assert!(
+            std::panic::catch_unwind(|| {
+                let _ = frame_data[6];
+            })
+            .is_err()
+        );
     }
 
     #[test]

@@ -1,10 +1,10 @@
-use darling::ast::NestedMeta;
 use darling::FromMeta;
+use darling::ast::NestedMeta;
 use quote::ToTokens;
+use syn::Token;
 use syn::parse::Parse;
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
-use syn::Token;
 
 #[derive(Debug, FromMeta)]
 #[darling(default)]

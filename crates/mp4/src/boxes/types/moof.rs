@@ -4,9 +4,9 @@ use bytes::{Buf, Bytes};
 
 use super::mfhd::Mfhd;
 use super::traf::Traf;
+use crate::boxes::DynBox;
 use crate::boxes::header::BoxHeader;
 use crate::boxes::traits::BoxType;
-use crate::boxes::DynBox;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Movie Fragment Box

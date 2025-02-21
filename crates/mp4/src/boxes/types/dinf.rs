@@ -2,10 +2,10 @@ use std::io;
 
 use bytes::{Buf, Bytes};
 
+use crate::boxes::DynBox;
 use crate::boxes::header::BoxHeader;
 use crate::boxes::traits::BoxType;
 use crate::boxes::types::dref::Dref;
-use crate::boxes::DynBox;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Data Information Box

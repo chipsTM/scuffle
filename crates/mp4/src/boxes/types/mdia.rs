@@ -5,9 +5,9 @@ use bytes::{Buf, Bytes};
 use super::hdlr::Hdlr;
 use super::mdhd::Mdhd;
 use super::minf::Minf;
+use crate::boxes::DynBox;
 use crate::boxes::header::BoxHeader;
 use crate::boxes::traits::BoxType;
-use crate::boxes::DynBox;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Media Box

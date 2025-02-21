@@ -36,8 +36,8 @@
 //! `SPDX-License-Identifier: MIT OR Apache-2.0`
 #![cfg_attr(all(coverage_nightly, test), feature(coverage_attribute))]
 
-use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicUsize};
 
 use tokio_util::sync::CancellationToken;
 
@@ -354,34 +354,43 @@ mod tests {
         assert!(!ctx.is_done());
 
         // This is expected to timeout
-        assert!(handler
-            .shutdown()
-            .with_timeout(std::time::Duration::from_millis(200))
-            .await
-            .is_err());
+        assert!(
+            handler
+                .shutdown()
+                .with_timeout(std::time::Duration::from_millis(200))
+                .await
+                .is_err()
+        );
         assert!(handler.is_done());
         assert!(ctx.is_done());
-        assert!(ctx
-            .into_done()
-            .with_timeout(std::time::Duration::from_millis(200))
-            .await
-            .is_ok());
+        assert!(
+            ctx.into_done()
+                .with_timeout(std::time::Duration::from_millis(200))
+                .await
+                .is_ok()
+        );
 
-        assert!(handler
-            .shutdown()
-            .with_timeout(std::time::Duration::from_millis(200))
-            .await
-            .is_ok());
-        assert!(handler
-            .wait()
-            .with_timeout(std::time::Duration::from_millis(200))
-            .await
-            .is_ok());
-        assert!(handler
-            .done()
-            .with_timeout(std::time::Duration::from_millis(200))
-            .await
-            .is_ok());
+        assert!(
+            handler
+                .shutdown()
+                .with_timeout(std::time::Duration::from_millis(200))
+                .await
+                .is_ok()
+        );
+        assert!(
+            handler
+                .wait()
+                .with_timeout(std::time::Duration::from_millis(200))
+                .await
+                .is_ok()
+        );
+        assert!(
+            handler
+                .done()
+                .with_timeout(std::time::Duration::from_millis(200))
+                .await
+                .is_ok()
+        );
         assert!(handler.is_done());
     }
 

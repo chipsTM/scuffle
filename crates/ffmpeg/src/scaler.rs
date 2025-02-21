@@ -1,8 +1,8 @@
+use crate::AVPixelFormat;
 use crate::error::{FfmpegError, FfmpegErrorCode};
 use crate::ffi::*;
 use crate::frame::VideoFrame;
 use crate::smart_object::SmartPtr;
-use crate::AVPixelFormat;
 
 /// A scaler is a wrapper around an [`SwsContext`]. Which is used to scale or transform video frames.
 pub struct VideoScaler {

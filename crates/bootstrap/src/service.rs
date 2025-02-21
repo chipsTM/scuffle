@@ -1,6 +1,6 @@
 use std::pin::Pin;
 use std::sync::Arc;
-use std::task::{ready, Context, Poll};
+use std::task::{Context, Poll, ready};
 
 #[cfg(any(test, doctest))]
 #[doc(hidden)]
@@ -125,11 +125,13 @@ mod tests {
 
         assert!(matches!(svc.run(global, ctx).await, Ok(())));
 
-        assert!(handler
-            .shutdown()
-            .with_timeout(tokio::time::Duration::from_millis(200))
-            .await
-            .is_ok());
+        assert!(
+            handler
+                .shutdown()
+                .with_timeout(tokio::time::Duration::from_millis(200))
+                .await
+                .is_ok()
+        );
     }
 
     #[tokio::test]
@@ -141,11 +143,13 @@ mod tests {
         assert!(fut_fn.run(global, ctx).await.is_ok());
 
         handler.cancel();
-        assert!(handler
-            .shutdown()
-            .with_timeout(tokio::time::Duration::from_millis(200))
-            .await
-            .is_ok());
+        assert!(
+            handler
+                .shutdown()
+                .with_timeout(tokio::time::Duration::from_millis(200))
+                .await
+                .is_ok()
+        );
     }
 
     #[tokio::test]

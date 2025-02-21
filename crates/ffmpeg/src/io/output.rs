@@ -1,7 +1,7 @@
 use std::ffi::CString;
 use std::ptr::NonNull;
 
-use super::internal::{seek, write_packet, Inner, InnerOptions};
+use super::internal::{Inner, InnerOptions, seek, write_packet};
 use crate::consts::DEFAULT_BUFFER_SIZE;
 use crate::dict::Dictionary;
 use crate::error::{FfmpegError, FfmpegErrorCode};

@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use opentelemetry::{otel_error, otel_warn, InstrumentationScope, KeyValue};
+use opentelemetry::{InstrumentationScope, KeyValue, otel_error, otel_warn};
+use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::metrics::data::{Gauge, Histogram, ResourceMetrics, Sum};
 use opentelemetry_sdk::metrics::reader::MetricReader;
 use opentelemetry_sdk::metrics::{ManualReader, ManualReaderBuilder};
-use opentelemetry_sdk::Resource;
 use prometheus_client::encoding::{EncodeCounterValue, EncodeGaugeValue, NoLabelSet};
 use prometheus_client::metrics::MetricType;
 use prometheus_client::registry::Unit;

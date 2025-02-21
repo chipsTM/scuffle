@@ -1,4 +1,4 @@
-use rusty_ffmpeg::ffi::{swr_alloc_set_opts2, swr_convert_frame, swr_free, swr_init, SwrContext};
+use rusty_ffmpeg::ffi::{SwrContext, swr_alloc_set_opts2, swr_convert_frame, swr_free, swr_init};
 
 use crate::enums::AVSampleFormat;
 use crate::error::{FfmpegError, FfmpegErrorCode};
@@ -96,12 +96,12 @@ impl Resampler {
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
-    use rand::{rng, Rng};
+    use rand::{Rng, rng};
     use rusty_ffmpeg::ffi::swr_is_initialized;
 
     use super::Resampler;
-    use crate::frame::{AudioChannelLayout, AudioFrame};
     use crate::AVSampleFormat;
+    use crate::frame::{AudioChannelLayout, AudioFrame};
 
     #[test]
     fn test_resampler_new() {
