@@ -56,7 +56,7 @@
 //! let settings: MyConfig = scuffle_settings::parse_settings(options)?;
 //! # Ok(())
 //! # }
-//! # std::env::set_var("MY_APP_SOME_SETTING", "value");
+//! # unsafe { std::env::set_var("MY_APP_SOME_SETTING", "value"); }
 //! # test().unwrap();
 //! ```
 //!
