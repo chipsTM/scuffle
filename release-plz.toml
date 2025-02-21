@@ -17,10 +17,6 @@ git_release_body = """
 name = "scuffle-workspace-hack"
 release = false
 
-[[package]]
-name = "scuffle-ffmpeg"
-publish_features = ["build"]
-
 [changelog]
 header = """# Changelog
 
