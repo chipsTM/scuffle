@@ -1,9 +1,0 @@
-[[scuffle-ffmpeg]]
-category = "chore"
-description = "Update rand dependency to 0.9"
-authors = ["@TroyKomodo"]
-
-[[scuffle-rtmp]]
-category = "chore"
-description = "Update rand dependency to 0.9"
-authors = ["@TroyKomodo"]

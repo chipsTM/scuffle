@@ -15,6 +15,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0](https://github.com/ScuffleCloud/scuffle/compare/scuffle-ffmpeg-v0.1.3...scuffle-ffmpeg-v0.2.0) - 2025-02-21
+
+### ⚠️ Breaking changes
+
+- feat: switch to rusty_ffmpeg instead of ffmpeg-sys-next ([#290](https://github.com/scufflecloud/scuffle/pull/290)) (@TroyKomodo)
+- fix: `VideoFrame` and `AudioFrame` are now valid upon instantiation, using the `builder` method on each ([#303](https://github.com/scufflecloud/scuffle/pull/303)) (@Juliapixel)
+- fix: `VideoFrame` data accesses no longer cause undefined behavior and respect inverse iteration order ([#303](https://github.com/scufflecloud/scuffle/pull/303)) (@Juliapixel)
+- fix: `VideoFrame::set_width` and `VideoFrame::set_height` were removed due to a soundness hole ([#303](https://github.com/scufflecloud/scuffle/pull/303)) (@Juliapixel)
+
+### 🛠️ Non-breaking changes
+
+- chore: update to rust edition 2024 ([#373](https://github.com/scufflecloud/scuffle/pull/373)) (@TroyKomodo)
+- chore: Update rand dependency to 0.9 ([#365](https://github.com/scufflecloud/scuffle/pull/365)) (@TroyKomodo)
+- feat: `AudioFrame` data is now accessible via the `data` and `data_mut` methods ([#303](https://github.com/scufflecloud/scuffle/pull/303)) (@Juliapixel)
+- feat: new `Resampler` type exposes `libswresample` functionality ([#303](https://github.com/scufflecloud/scuffle/pull/303)) (@Juliapixel)
+
 ## [0.1.3](https://github.com/ScuffleCloud/scuffle/compare/scuffle-ffmpeg-v0.1.2...scuffle-ffmpeg-v0.1.3) - 2025-02-11
 
 - Fixed windows build (#238)
