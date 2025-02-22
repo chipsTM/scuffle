@@ -69,9 +69,13 @@ pub fn log_callback_set(callback: impl Fn(LogLevel, Option<String>, String) + Se
 pub fn log_callback_set_boxed(callback: Function) {
     LOG_CALLBACK.store(Some(Arc::new(callback)));
 
+    // Safety: the `log_cb` function has the same structure as the required `AVLogCallback` function.
+    // The reason we do this transmute is because of the way `VaList` is defined on different architectures.
+    #[allow(clippy::missing_transmute_annotations)]
+    let log_cb_transmuted = unsafe { std::mem::transmute(log_cb as *const ()) };
     // Safety: `av_log_set_callback` is safe to call.
     unsafe {
-        av_log_set_callback(Some(log_cb));
+        av_log_set_callback(Some(log_cb_transmuted));
     }
 }
 
@@ -85,20 +89,12 @@ pub fn log_callback_unset() {
     }
 }
 
-#[cfg(all(unix, target_arch = "x86_64"))]
-type VaList = *mut __va_list_tag;
-
-#[cfg(all(unix, target_arch = "aarch64"))]
-type VaList = [u64; 4];
-
-#[cfg(windows)]
-type VaList = va_list;
-
 unsafe extern "C" {
-    fn vsnprintf(buffer: *mut libc::c_char, count: libc::size_t, format: *const libc::c_char, ap: VaList) -> i32;
+    fn vsnprintf(str: *mut libc::c_char, size: libc::size_t, format: *const libc::c_char, ap: ::va_list::VaList) -> libc::c_int;
 }
 
-unsafe extern "C" fn log_cb(ptr: *mut libc::c_void, level: libc::c_int, fmt: *const libc::c_char, va: VaList) {
+
+unsafe extern "C" fn log_cb(ptr: *mut libc::c_void, level: libc::c_int, fmt: *const libc::c_char, va: ::va_list::VaList) {
     let guard = LOG_CALLBACK.load();
     let Some(cb) = guard.as_ref() else {
         return;

@@ -26,6 +26,7 @@ nutype-enum.workspace = true
 rand = "0.9"
 bon = "3.3.2"
 thiserror = "2.0"
+va_list = "0.2"
 
 [dev-dependencies]
 insta = {version = "1.42", features = ["filters"]}
