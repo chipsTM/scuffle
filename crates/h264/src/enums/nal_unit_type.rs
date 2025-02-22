@@ -89,10 +89,3 @@ nutype_enum! {
         Unspecified2 = 24
     }
 }
-
-// TODO: do i need this?
-// impl PartialEq<u8> for NALUnitType {
-//     fn eq(&self, other: &u8) -> bool {
-//         self.0 == *other
-//     }
-// }
