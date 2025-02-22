@@ -203,7 +203,7 @@ mod tests {
     use bytes::Bytes;
 
     use crate::config::{AVCDecoderConfigurationRecord, AvccExtendedConfig};
-    use crate::sps::{ColorConfig, Sps, SpsExtended};
+    use crate::sps::Sps;
 
     #[test]
     fn test_config_demux() {
@@ -211,50 +211,87 @@ mod tests {
 
         let config = AVCDecoderConfigurationRecord::demux(&mut io::Cursor::new(data)).unwrap();
 
-        assert_eq!(config.configuration_version, 1);
-        assert_eq!(config.profile_indication, 100);
-        assert_eq!(config.profile_compatibility, 0);
-        assert_eq!(config.level_indication, 31);
-        assert_eq!(config.length_size_minus_one, 3);
-        assert_eq!(
-            config.extended_config,
-            Some(AvccExtendedConfig {
-                bit_depth_chroma_minus8: 0,
-                bit_depth_luma_minus8: 0,
-                chroma_format_idc: 1,
-                sequence_parameter_set_ext: vec![],
-            })
-        );
-
-        assert_eq!(config.sps.len(), 1);
-        assert_eq!(config.pps.len(), 1);
+        insta::assert_debug_snapshot!(config, @r#"
+        AVCDecoderConfigurationRecord {
+            configuration_version: 1,
+            profile_indication: 100,
+            profile_compatibility: 0,
+            level_indication: 31,
+            length_size_minus_one: 3,
+            sps: [
+                b"gd\0\x1f\xac\xd9A\xe0m\xf9\xe6\xa0  (\0\0\x03\0\x08\0\0\x03\x01\xe0x\xc1\x8c\xb0",
+            ],
+            pps: [
+                b"h\xeb\xe3\xcb\"\xc0",
+            ],
+            extended_config: Some(
+                AvccExtendedConfig {
+                    chroma_format_idc: 1,
+                    bit_depth_luma_minus8: 0,
+                    bit_depth_chroma_minus8: 0,
+                    sequence_parameter_set_ext: [],
+                },
+            ),
+        }
+        "#);
 
         let sps = &config.sps[0];
         let sps = Sps::parse(sps.clone()).unwrap();
 
-        assert_eq!(sps.profile_idc, 100);
-        assert_eq!(sps.level_idc, 31);
-        assert_eq!(
-            sps.ext,
-            Some(SpsExtended {
-                chroma_format_idc: 1,
-                bit_depth_luma_minus8: 0,
-                bit_depth_chroma_minus8: 0,
-            })
-        );
-
-        assert_eq!(sps.width, 480);
-        assert_eq!(sps.height, 852);
-        assert_eq!(sps.frame_rate, 30.0);
-        assert_eq!(
-            sps.color_config,
-            Some(ColorConfig {
-                full_range: false,
-                matrix_coefficients: 1,
-                color_primaries: 1,
-                transfer_characteristics: 1,
-            })
-        )
+        insta::assert_debug_snapshot!(sps, @r"
+        Sps {
+            forbidden_zero_bit: false,
+            nal_ref_idc: 3,
+            nal_unit_type: NALUnitType::SPS,
+            profile_idc: 100,
+            constraint_set0_flag: false,
+            constraint_set1_flag: false,
+            constraint_set2_flag: false,
+            constraint_set3_flag: false,
+            constraint_set4_flag: false,
+            constraint_set5_flag: false,
+            level_idc: 31,
+            seq_parameter_set_id: 0,
+            ext: Some(
+                SpsExtended {
+                    chroma_format_idc: 1,
+                    separate_color_plane_flag: false,
+                    bit_depth_luma_minus8: 0,
+                    bit_depth_chroma_minus8: 0,
+                    qpprime_y_zero_transform_bypass_flag: false,
+                    seq_scaling_matrix_present_flag: false,
+                },
+            ),
+            log2_max_frame_num_minus4: 0,
+            pic_order_cnt_type: 0,
+            max_num_ref_frames: 4,
+            gaps_in_frame_num_value_allowed_flag: false,
+            pic_width_in_mbs_minus1: 29,
+            pic_height_in_map_units_minus1: 53,
+            frame_mbs_only_flag: true,
+            direct_8x8_inference_flag: true,
+            frame_cropping_flag: true,
+            frame_crop_left_offset: 0,
+            frame_crop_right_offset: 0,
+            frame_crop_top_offset: 0,
+            frame_crop_bottom_offset: 6,
+            width: 480,
+            height: 852,
+            vui_parameters_present_flag: true,
+            video_signal_type_present_flag: true,
+            color_description_present_flag: true,
+            color_config: Some(
+                ColorConfig {
+                    video_full_range_flag: false,
+                    color_primaries: 1,
+                    transfer_characteristics: 1,
+                    matrix_coefficients: 1,
+                },
+            ),
+            timing_info_present_flag: true,
+            frame_rate: 30.0,
+        }
+        ");
     }
 
     #[test]
@@ -273,18 +310,17 @@ mod tests {
 
     #[test]
     fn test_parse_sps_with_zero_num_units_in_tick() {
-        let sps = Bytes::from(b"gd\0\x1f\xac\xd9A\xe0m\xf9\xe6\xa0  (\0\0\x03\0\0\0\0\x03\x01\xe0x\xc1\x8c\xb0 ".to_vec());
-        let sps = Sps::parse(sps);
+        let sps = Bytes::from(
+            b"gd\0\x1f\xac\xd9A\xe0m\xf9\xe6\xa0  (\0\0\x03\0\0\0\0\x03\x01\xe0x\xc1\x8c\xb0\x80\0\0\0\0".to_vec(),
+        );
 
-        match sps {
-            Ok(_) => panic!("Expected error for num_units_in_tick = 0, but got Ok"),
-            Err(e) => assert_eq!(
-                e.kind(),
-                std::io::ErrorKind::InvalidData,
-                "Expected InvalidData error, got {:?}",
-                e
-            ),
-        }
+        let err = Sps::parse(sps).expect_err("Expected error for num_units_in_tick = 0");
+        assert_eq!(
+            err.kind(),
+            std::io::ErrorKind::InvalidData,
+            "Expected InvalidData error, got {:?}",
+            err
+        );
     }
 
     #[test]

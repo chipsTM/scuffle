@@ -47,7 +47,7 @@ mod tests {
     use scuffle_amf0::Amf0Value;
     use scuffle_av1::ObuHeader;
     use scuffle_av1::seq::SequenceHeaderObu;
-    use scuffle_h264::{Sps, SpsExtended};
+    use scuffle_h264::Sps;
 
     use crate::aac::AacPacket;
     use crate::audio::{AudioData, AudioDataBody, SoundRate, SoundSize, SoundType};
@@ -241,20 +241,53 @@ mod tests {
             // SPS should be able to be decoded into a sequence parameter set
             let sps = Sps::parse(sps.clone()).expect("expected sequence parameter set");
 
-            assert_eq!(sps.profile_idc, 100);
-            assert_eq!(sps.level_idc, 51);
-            assert_eq!(sps.width, 3840);
-            assert_eq!(sps.height, 2160);
-            assert_eq!(sps.frame_rate, 60.0);
-
-            assert_eq!(
-                sps.ext,
-                Some(SpsExtended {
-                    chroma_format_idc: 1,
-                    bit_depth_luma_minus8: 0,
-                    bit_depth_chroma_minus8: 0,
-                })
-            )
+            insta::assert_debug_snapshot!(sps, @r"
+            Sps {
+                forbidden_zero_bit: false,
+                nal_ref_idc: 3,
+                nal_unit_type: NALUnitType::SPS,
+                profile_idc: 100,
+                constraint_set0_flag: false,
+                constraint_set1_flag: false,
+                constraint_set2_flag: false,
+                constraint_set3_flag: false,
+                constraint_set4_flag: false,
+                constraint_set5_flag: false,
+                level_idc: 51,
+                seq_parameter_set_id: 0,
+                ext: Some(
+                    SpsExtended {
+                        chroma_format_idc: 1,
+                        separate_color_plane_flag: false,
+                        bit_depth_luma_minus8: 0,
+                        bit_depth_chroma_minus8: 0,
+                        qpprime_y_zero_transform_bypass_flag: false,
+                        seq_scaling_matrix_present_flag: false,
+                    },
+                ),
+                log2_max_frame_num_minus4: 0,
+                pic_order_cnt_type: 0,
+                max_num_ref_frames: 4,
+                gaps_in_frame_num_value_allowed_flag: false,
+                pic_width_in_mbs_minus1: 239,
+                pic_height_in_map_units_minus1: 134,
+                frame_mbs_only_flag: true,
+                direct_8x8_inference_flag: true,
+                frame_cropping_flag: false,
+                frame_crop_left_offset: 0,
+                frame_crop_right_offset: 0,
+                frame_crop_top_offset: 0,
+                frame_crop_bottom_offset: 0,
+                width: 3840,
+                height: 2160,
+                vui_parameters_present_flag: true,
+                video_signal_type_present_flag: false,
+                color_description_present_flag: false,
+                color_config: None,
+                timing_info_present_flag: true,
+                frame_rate: 60.0,
+            }
+            ");
         }
 
         // Audio Sequence Header Tag

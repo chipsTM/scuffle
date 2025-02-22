@@ -22,7 +22,7 @@ pub fn stsd_entry(config: AVCDecoderConfigurationRecord) -> Result<(DynBox, Sps)
             color_primaries: color_config.color_primaries as u16,
             matrix_coefficients: color_config.matrix_coefficients as u16,
             transfer_characteristics: color_config.transfer_characteristics as u16,
-            full_range_flag: color_config.full_range,
+            full_range_flag: color_config.video_full_range_flag,
         })
     });
 

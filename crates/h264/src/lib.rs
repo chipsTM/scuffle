@@ -36,7 +36,10 @@
 #![deny(unsafe_code)]
 
 mod config;
+mod enums;
 mod sps;
+
+pub use enums::*;
 
 pub use self::config::{AVCDecoderConfigurationRecord, AvccExtendedConfig};
 pub use self::sps::{ColorConfig, Sps, SpsExtended};
