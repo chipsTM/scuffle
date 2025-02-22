@@ -1,0 +1,4 @@
+[[scuffle-ffmpeg]]
+category = "feat"
+description = "add support for arm64 builds"
+authors = ["@TroyKomodo"]
