@@ -175,7 +175,15 @@ impl Dictionary {
         let value = value.into_c_str().ok_or(FfmpegError::Arguments("value cannot be empty"))?;
 
         // Safety: av_dict_set is safe to call
-        FfmpegErrorCode(unsafe { av_dict_set(self.ptr.as_mut(), key.as_ptr(), value.as_ptr(), 0) }).result()?;
+        FfmpegErrorCode(unsafe {
+            av_dict_set(
+                self.ptr.as_mut(),
+                key.as_ptr() as *const _,
+                value.as_ptr() as *const _,
+                0,
+            )
+        })
+        .result()?;
         Ok(())
     }
 
@@ -186,13 +194,20 @@ impl Dictionary {
 
         let mut entry =
             // Safety: av_dict_get is safe to call
-            NonNull::new(unsafe { av_dict_get(self.as_ptr(), key.as_ptr(), std::ptr::null_mut(), AVDictionaryFlags::IgnoreSuffix.into()) })?;
+            NonNull::new(unsafe {
+                av_dict_get(
+                    self.as_ptr(),
+                    key.as_ptr() as *const _,
+                    std::ptr::null_mut(),
+                    AVDictionaryFlags::IgnoreSuffix.into(),
+                )
+            })?;
 
         // Safety: The pointer here is valid.
         let mut_ref = unsafe { entry.as_mut() };
 
         // Safety: The pointer here is valid.
-        Some(unsafe { CStr::from_ptr(mut_ref.value) })
+        Some(unsafe { CStr::from_ptr(mut_ref.value as *const _) })
     }
 
     /// Returns true if the dictionary is empty.
@@ -266,12 +281,15 @@ impl<'a> Iterator for DictionaryIterator<'a> {
     type Item = (&'a CStr, &'a CStr);
 
     fn next(&mut self) -> Option<Self::Item> {
+        // Safety: The bytes are "\0" which means there is exactly 1 null byte at the end.
+        static NULL_STR: &CStr = unsafe { CStr::from_bytes_with_nul_unchecked(b"\0") };
+
         // Safety: av_dict_get is safe to call
         self.entry = unsafe {
             av_dict_get(
                 self.dict.as_ptr(),
                 // ffmpeg expects a null terminated string when iterating over the dictionary entries.
-                &[0i8] as *const libc::c_char,
+                NULL_STR.as_ptr() as *const _,
                 self.entry,
                 AVDictionaryFlags::IgnoreSuffix.into(),
             )
@@ -283,9 +301,9 @@ impl<'a> Iterator for DictionaryIterator<'a> {
         let entry_ref = unsafe { entry.as_mut() };
 
         // Safety: The pointer here is valid.
-        let key = unsafe { CStr::from_ptr(entry_ref.key) };
+        let key = unsafe { CStr::from_ptr(entry_ref.key as *const _) };
         // Safety: The pointer here is valid.
-        let value = unsafe { CStr::from_ptr(entry_ref.value) };
+        let value = unsafe { CStr::from_ptr(entry_ref.value as *const _) };
 
         Some((key, value))
     }

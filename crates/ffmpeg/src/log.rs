@@ -85,14 +85,16 @@ pub fn log_callback_unset() {
     }
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, target_arch = "x86_64"))]
 type VaList = *mut __va_list_tag;
+
+#[cfg(all(unix, target_arch = "aarch64"))]
+type VaList = [u64; 4];
 
 #[cfg(windows)]
 type VaList = va_list;
 
-#[cfg(windows)]
-extern "C" {
+unsafe extern "C" {
     fn vsnprintf(buffer: *mut libc::c_char, count: libc::size_t, format: *const libc::c_char, ap: VaList) -> i32;
 }
 
@@ -115,20 +117,25 @@ unsafe extern "C" fn log_cb(ptr: *mut libc::c_void, level: libc::c_int, fmt: *co
             // Safety: The pointer is valid
             let c_str = unsafe { im(ptr) };
             // Safety: The returned pointer is a valid CString
-            let c_str = unsafe { CStr::from_ptr(c_str) };
+            let c_str = unsafe { CStr::from_ptr(c_str as *const _) };
 
             Some(c_str.to_string_lossy().trim().to_owned())
         });
 
-    let mut buf = [0i8; 1024];
+    let mut buf: [std::os::raw::c_char; 1024] = [0; 1024];
 
     // Safety: The pointer is valid and the buffer has enough bytes with the max length set.
     unsafe {
-        vsnprintf(buf.as_mut_ptr(), buf.len() as _, fmt, va);
+        vsnprintf(
+            buf.as_mut_ptr() as *mut _,
+            buf.len() as _,
+            fmt,
+            va,
+        );
     }
 
     // Safety: The pointer is valid and the buffer has enough bytes with the max length set.
-    let c_str = unsafe { CStr::from_ptr(buf.as_ptr()) };
+    let c_str = unsafe { CStr::from_ptr(buf.as_ptr() as *const _) };
     let msg = c_str.to_string_lossy().trim().to_owned();
 
     cb(level, class, msg);
