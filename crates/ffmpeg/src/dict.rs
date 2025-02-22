@@ -175,15 +175,8 @@ impl Dictionary {
         let value = value.into_c_str().ok_or(FfmpegError::Arguments("value cannot be empty"))?;
 
         // Safety: av_dict_set is safe to call
-        FfmpegErrorCode(unsafe {
-            av_dict_set(
-                self.ptr.as_mut(),
-                key.as_ptr() as *const _,
-                value.as_ptr() as *const _,
-                0,
-            )
-        })
-        .result()?;
+        FfmpegErrorCode(unsafe { av_dict_set(self.ptr.as_mut(), key.as_ptr() as *const _, value.as_ptr() as *const _, 0) })
+            .result()?;
         Ok(())
     }
 
@@ -281,15 +274,12 @@ impl<'a> Iterator for DictionaryIterator<'a> {
     type Item = (&'a CStr, &'a CStr);
 
     fn next(&mut self) -> Option<Self::Item> {
-        // Safety: The bytes are "\0" which means there is exactly 1 null byte at the end.
-        static NULL_STR: &CStr = unsafe { CStr::from_bytes_with_nul_unchecked(b"\0") };
-
         // Safety: av_dict_get is safe to call
         self.entry = unsafe {
             av_dict_get(
                 self.dict.as_ptr(),
                 // ffmpeg expects a null terminated string when iterating over the dictionary entries.
-                NULL_STR.as_ptr() as *const _,
+                c"".as_ptr() as *const _,
                 self.entry,
                 AVDictionaryFlags::IgnoreSuffix.into(),
             )

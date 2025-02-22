@@ -126,12 +126,7 @@ unsafe extern "C" fn log_cb(ptr: *mut libc::c_void, level: libc::c_int, fmt: *co
 
     // Safety: The pointer is valid and the buffer has enough bytes with the max length set.
     unsafe {
-        vsnprintf(
-            buf.as_mut_ptr() as *mut _,
-            buf.len() as _,
-            fmt,
-            va,
-        );
+        vsnprintf(buf.as_mut_ptr() as *mut _, buf.len() as _, fmt, va);
     }
 
     // Safety: The pointer is valid and the buffer has enough bytes with the max length set.
