@@ -90,9 +90,13 @@ pub fn log_callback_unset() {
 }
 
 unsafe extern "C" {
-    fn vsnprintf(str: *mut libc::c_char, size: libc::size_t, format: *const libc::c_char, ap: ::va_list::VaList) -> libc::c_int;
+    fn vsnprintf(
+        str: *mut libc::c_char,
+        size: libc::size_t,
+        format: *const libc::c_char,
+        ap: ::va_list::VaList,
+    ) -> libc::c_int;
 }
-
 
 unsafe extern "C" fn log_cb(ptr: *mut libc::c_void, level: libc::c_int, fmt: *const libc::c_char, va: ::va_list::VaList) {
     let guard = LOG_CALLBACK.load();
