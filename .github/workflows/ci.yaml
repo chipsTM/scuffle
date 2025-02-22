@@ -22,7 +22,12 @@ env:
 jobs:
   clippy:
     name: Clippy
-    runs-on: ubicloud-standard-8
+    strategy:
+      matrix:
+        runner:
+          - ubicloud-standard-8
+          - ubicloud-standard-8-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,7 +41,7 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: clippy
-          shared-key: clippy
+          shared-key: clippy-${{ matrix.runner }}
           tools: just,cargo-hakari
           cache-backend: ubicloud
 
@@ -95,7 +100,12 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubicloud-standard-8
+    strategy:
+      matrix:
+        runner:
+          - ubicloud-standard-8
+          - ubicloud-standard-8-arm
+    runs-on: ${{ matrix.runner }}
     env:
       RUSTFLAGS: "--cfg reqwest_unstable"
     steps:
@@ -112,7 +122,7 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           tools: cargo-nextest,cargo-llvm-cov
           components: llvm-tools-preview
-          shared-key: test
+          shared-key: test-${{ matrix.runner }}
           cache-backend: ubicloud
 
       # Note; we don't run the powerset here because it's very slow on CI
@@ -156,7 +166,12 @@ jobs:
   grind:
     name: Grind
     if: ${{ github.event_name == 'push' }}
-    runs-on: ubicloud-standard-8
+    strategy:
+      matrix:
+        runner:
+          - ubicloud-standard-8
+          - ubicloud-standard-8-arm
+    runs-on: ${{ matrix.runner }}
     env:
       RUSTFLAGS: "--cfg reqwest_unstable --cfg valgrind"
     steps:
@@ -173,7 +188,7 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           tools: cargo-nextest,cargo-llvm-cov
           components: llvm-tools-preview
-          shared-key: grind
+          shared-key: grind-${{ matrix.runner }}
           cache-backend: ubicloud
 
       - name: Install Valgrind
@@ -190,7 +205,12 @@ jobs:
 
   docs:
     name: Docs
-    runs-on: ubicloud-standard-8
+    strategy:
+      matrix:
+        runner:
+          - ubicloud-standard-8
+          - ubicloud-standard-8-arm
+    runs-on: ${{ matrix.runner }}
     permissions:
       pull-requests: write
     env:
@@ -208,7 +228,7 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: rust-docs
-          shared-key: docs
+          shared-key: docs-${{ matrix.runner }}
           cache-backend: ubicloud
 
       - name: Build docs
@@ -217,28 +237,29 @@ jobs:
           cargo +${{ env.RUST_TOOLCHAIN }} doc --no-deps --all-features
 
       - name: Brawl Override
-        if: ${{ startsWith(github.ref, 'refs/heads/automation/brawl/try/') }}
+        if: ${{ matrix.runner == 'ubicloud-standard-8' && startsWith(github.ref, 'refs/heads/automation/brawl/try/') }}
         id: brawl-override
         run: |
           PR_NUMBER=$(echo ${{ github.ref }} | sed -n 's/^refs\/heads\/automation\/brawl\/try\/\([0-9]*\)$/\1/p')
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
       - name: Insert custom html for PR
-        if: ${{ startsWith(github.ref, 'refs/heads/automation/brawl/try/') || github.event.pull_request.head.repo.full_name == github.repository }}
+        if: ${{ matrix.runner == 'ubicloud-standard-8' && (startsWith(github.ref, 'refs/heads/automation/brawl/try/') || github.event.pull_request.head.repo.full_name == github.repository) }}
         run: .github/scripts/patch-docs.sh ${{ github.event.repository.html_url }} ${{ env.SHA }} ${{ steps.brawl-override.outputs.pr_number || github.event.pull_request.number }}
 
       - name: Insert custom html for merge
-        if: ${{ startsWith(github.ref, 'refs/heads/automation/brawl/merge/') }}
+        if: ${{ matrix.runner == 'ubicloud-standard-8' && startsWith(github.ref, 'refs/heads/automation/brawl/merge/') }}
         run: .github/scripts/patch-docs.sh ${{ github.event.repository.html_url }} ${{ env.SHA }}
 
       - name: Upload docs
         uses: actions/upload-artifact@v4
+        if: ${{ matrix.runner == 'ubicloud-standard-8' }}
         with:
           name: docs
           path: target/doc
 
       - name: Deploy
-        if: ${{ startsWith(github.ref, 'refs/heads/automation/brawl/try/') || github.event.pull_request.head.repo.full_name == github.repository }}
+        if: ${{ matrix.runner == 'ubicloud-standard-8' && (startsWith(github.ref, 'refs/heads/automation/brawl/try/') || github.event.pull_request.head.repo.full_name == github.repository) }}
         id: deploy
         uses: cloudflare/wrangler-action@v3
         with:

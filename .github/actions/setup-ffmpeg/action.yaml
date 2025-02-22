@@ -1,5 +1,13 @@
 name: Setup FFmpeg
 description: Installs FFmpeg on the system
+inputs:
+  architecture:
+    description: "The architecture the runner is running on"
+    required: false
+  version:
+    description: "The version of FFmpeg to install"
+    required: false
+    default: "7.1"
 runs:
   using: "composite"
   steps:
@@ -10,17 +18,36 @@ runs:
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends nasm
 
-    - name: Install ffmpeg
+    - name: Install FFmpeg
       shell: bash
       run: |
         set -xeo pipefail
 
-        curl -L https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-linux64-gpl-shared-7.1.tar.xz -o ffmpeg.tar.xz
+        ARCH=$(uname -m)
+        if [[ -z "${{ inputs.architecture }}" ]]; then
+          case "$ARCH" in
+            x86_64) FF_ARCH="linux64" ;;
+            aarch64) FF_ARCH="linuxarm64" ;;
+            *) echo "Unsupported architecture: $ARCH" && exit 1 ;;
+          esac
+        fi
+
+        if [[ "${{ inputs.version }}" == "master" ]]; then
+          FF_VERSION="master"
+          FF_SMALL_VERSION=""
+        else
+          FF_VERSION="n${{ inputs.version }}-latest"
+          FF_SMALL_VERSION="${{ inputs.version }}"
+        fi
+
+        FF_URL="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-${FF_VERSION}-${FF_ARCH}-gpl-shared-${FF_SMALL_VERSION}.tar.xz"
+
+        echo "Downloading FFmpeg from $FF_URL"
+        curl -L "$FF_URL" -o ffmpeg.tar.xz
         tar -xvf ffmpeg.tar.xz
 
-        sudo mv ffmpeg-n7.1-latest-linux64-gpl-shared-7.1/include/* /usr/local/include
-        sudo mv ffmpeg-n7.1-latest-linux64-gpl-shared-7.1/lib/* /usr/local/lib
-        sudo mv ffmpeg-n7.1-latest-linux64-gpl-shared-7.1/bin/* /usr/local/bin
-        sudo rm -rf ffmpeg-n7.1-latest-linux64-gpl-shared-7.1
-        sudo rm -rf ffmpeg.tar.xz
+        sudo mv ffmpeg-*/include/* /usr/local/include
+        sudo mv ffmpeg-*/lib/* /usr/local/lib
+        sudo mv ffmpeg-*/bin/* /usr/local/bin
+        sudo rm -rf ffmpeg-* ffmpeg.tar.xz
         sudo ldconfig
