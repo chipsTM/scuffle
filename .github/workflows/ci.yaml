@@ -34,7 +34,9 @@ jobs:
           ref: ${{ env.SHA }}
 
       - name: Run matrix prep
-        run: python3 .github/scripts/ci-matrix-prep.py '${{ toJson(github) }}' | tee -a $GITHUB_OUTPUT
+        run: |
+          set -xeo pipefail
+          python3 .github/scripts/ci-matrix-prep.py '${{ toJson(github) }}' | tee -a $GITHUB_OUTPUT
         id: compute
 
   jobs:
@@ -45,6 +47,10 @@ jobs:
         include: ${{ fromJson(needs.matrix_prep.outputs.matrix) }}
     runs-on: ${{ matrix.runner }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+
       - name: Setup FFmpeg
         if: ${{ matrix.ffmpeg != false }}
         uses: ./.github/actions/setup-ffmpeg
