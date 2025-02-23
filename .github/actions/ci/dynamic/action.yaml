@@ -24,8 +24,7 @@ runs:
         cat <<'DYNAMIC_USES_EOF' >./.tmp-dynamic-uses/action.yml
         inputs:
           with:
-            required: false
-            default: '{}'
+            required: true
         outputs:
           outputs:
             value: ${{ '$' }}{{ toJSON(steps.run.outputs) }}
@@ -37,14 +36,14 @@ runs:
           - name: Run
             id: run
             uses: ${{ inputs.uses }}
-            with: ${{ '$' }}{{ fromJson(inputs.fields || '{}') }}
+            with: ${{ '$' }}{{ fromJson(inputs.with || '{}') }}
         DYNAMIC_USES_EOF
     - name: Run
       id: run
       uses: ./.tmp-dynamic-uses
       with:
         with: |
-          ${{ inputs.fields }}
+          ${{ inputs.with }}
     - name: Cleanup
       if: always() && steps.run.outcome != 'success'
       shell: bash
