@@ -1,0 +1,30 @@
+name: Grind
+inputs:
+  target:
+    description: "The target to run Valgrind on"
+    required: true
+  valgrind:
+    description: "The Valgrind command to use"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Install Valgrind
+      shell: bash
+      run: |
+        set -xeo pipefail
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends valgrind
+
+    - name: Setup env
+      if: ${{ inputs.env }}
+      run: |
+        cat <<EOF >> $GITHUB_ENV
+        ${{ inputs.env }}
+        EOF
+
+    - name: Run valgrind
+      shell: bash
+      env:
+        RUSTFLAGS: "--cfg reqwest_unstable --cfg valgrind"
+      run: cargo nextest run --all-features --no-fail-fast --profile ci

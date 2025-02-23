@@ -8,9 +8,9 @@ from dataclasses import dataclass, asdict
 # The first argument is the github context
 GITHUB_CONTEXT = json.loads(sys.argv[1])
 
+GITHUB_DEFAULT_RUNNER = "ubuntu-24.04"
 LINUX_X86_64 = "ubicloud-standard-8"
 LINUX_ARM64 = "ubicloud-standard-8-arm"
-
 
 def is_brawl(mode: Optional[str] = None) -> bool:
     if mode is None:
@@ -41,7 +41,7 @@ def pr_number() -> Optional[int]:
 @dataclass
 class RustSetup:
     toolchain: str
-    shared_key: str
+    shared_key: Optional[str]
     components: str = ""
     tools: str = ""
     cache_backend: str = "ubicloud"
@@ -73,18 +73,26 @@ class TestMatrix:
 @dataclass
 class GrindMatrix:
     os: str
-    target: str
-    valgrind: str
+    job_name: str
+    env: str
+    rust: RustSetup
+
+@dataclass
+class FmtMatrix:
+    os: str
     job_name: str
     rust: RustSetup
 
 @dataclass
-class Response:
-    docs: list[DocsMatrix]
-    clippy: list[ClippyMatrix]
-    test: list[TestMatrix]
-    grind: list[GrindMatrix]
+class HakariMatrix:
+    os: str
+    job_name: str
+    rust: RustSetup
 
+@dataclass
+class Job:
+    job_name: str
+    inputs: GrindMatrix | DocsMatrix | ClippyMatrix | TestMatrix | FmtMatrix | HakariMatrix
 
 def create_docs_jobs() -> list[DocsMatrix]:
     jobs: list[DocsMatrix] = []
@@ -221,12 +229,11 @@ def create_grind_jobs() -> list[GrindMatrix]:
             GrindMatrix(
                 os=LINUX_X86_64,
                 job_name=f"Grind (Linux x86_64)",
-                target="X86_64_UNKNOWN_LINUX_GNU",
-                valgrind="valgrind",
+                env="X86_64_UNKNOWN_LINUX_GNU=valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log",
                 rust=RustSetup(
                     toolchain="nightly",
-                    components="rust-valgrind",
                     shared_key="grind-linux-x86_64",
+                    tools="cargo-nextest",
                     cache_backend="ubicloud",
                 ),
             )
@@ -236,13 +243,11 @@ def create_grind_jobs() -> list[GrindMatrix]:
             GrindMatrix(
                 os=LINUX_ARM64,
                 job_name=f"Grind (Linux arm64)",
-                target="AARCH64_UNKNOWN_LINUX_GNU",
-                valgrind="valgrind",
+                env="AARCH64_UNKNOWN_LINUX_GNU=valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log",
                 rust=RustSetup(
                     toolchain="nightly",
-                    components="rust-valgrind",
                     shared_key="grind-linux-arm64",
-                    tools="",
+                    tools="cargo-nextest",
                     cache_backend="ubicloud",
                 ),
             )
@@ -250,16 +255,57 @@ def create_grind_jobs() -> list[GrindMatrix]:
 
     return jobs
 
+def create_fmt_jobs() -> list[FmtMatrix]:
+    jobs: list[FmtMatrix] = []
 
-def main():
-    response = Response(
-        docs=create_docs_jobs(),
-        clippy=create_clippy_jobs(),
-        test=create_test_jobs(),
-        grind=create_grind_jobs(),
+    jobs.append(
+        FmtMatrix(
+            os=GITHUB_DEFAULT_RUNNER,
+            job_name=f"Fmt",
+            rust=RustSetup(
+                toolchain="nightly",
+                components="rustfmt",
+                shared_key=None,
+                cache_backend="github",
+            ),
+        )
     )
 
-    print(f"matrix={json.dumps(asdict(response))}")
+    return jobs
+
+def create_hakari_jobs() -> list[HakariMatrix]:
+    jobs: list[HakariMatrix] = []
+
+    jobs.append(
+        HakariMatrix(
+            os=GITHUB_DEFAULT_RUNNER,
+            job_name=f"Hakari",
+            rust=RustSetup(
+                toolchain="nightly",
+                components="rustfmt",
+                tools="cargo-hakari",
+                shared_key=None,
+                cache_backend="github",
+            ),
+        )
+    )
+
+    return jobs
+
+def create_jobs() -> list[Job]:
+    jobs: list[Job] = []
+    jobs.extend([Job(job_name="docs", inputs=job) for job in create_docs_jobs()])
+    jobs.extend([Job(job_name="clippy", inputs=job) for job in create_clippy_jobs()])
+    jobs.extend([Job(job_name="test", inputs=job) for job in create_test_jobs()])
+    jobs.extend([Job(job_name="grind", inputs=job) for job in create_grind_jobs()])
+    jobs.extend([Job(job_name="fmt", inputs=job) for job in create_fmt_jobs()])
+    jobs.extend([Job(job_name="hakari", inputs=job) for job in create_hakari_jobs()])
+
+    return jobs
+
+
+def main():
+    print(f"matrix={json.dumps([asdict(job) for job in create_jobs()])}")
 
 if __name__ == "__main__":
     main()
