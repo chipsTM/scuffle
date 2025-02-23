@@ -73,7 +73,8 @@ jobs:
             echo "Setting $secret to $value"
           done
 
-      - uses: ./.github/actions/ci/dynamic
+      - name: Run ./.github/actions/ci/${{ matrix.job }}
+        uses: ./.github/actions/ci/dynamic
         with:
           uses: ./.github/actions/ci/${{ matrix.job }}
           with: ${{ toJson(matrix.inputs) }}
