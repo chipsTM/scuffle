@@ -28,7 +28,7 @@ runs:
       with:
         fail_ci_if_error: true
         files: ./lcov.info
-        token: ${{ secrets.CODECOV_TOKEN }}
+        token: ${{ env.CODECOV_TOKEN }}
         override_pr: ${{ matrix.pr_number }}
         override_commit: ${{ matrix.commit_sha }}
         verbose: true
@@ -38,6 +38,6 @@ runs:
       uses: codecov/test-results-action@v1
       with:
         files: ./target/nextest/ci/junit.xml
-        token: ${{ secrets.CODECOV_TOKEN }}
+        token: ${{ env.CODECOV_TOKEN }}
         override_pr: ${{ matrix.pr_number }}
         override_commit: ${{ matrix.commit_sha }}
