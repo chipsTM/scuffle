@@ -18,31 +18,30 @@ runs:
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends nasm
 
-    - name: Install FFmpeg
-      shell: bash
+    - name: Determine File
+      id: file
       run: |
         set -xeo pipefail
 
-        ARCH=$(uname -m)
-        if [[ -z "${{ inputs.arch }}" ]]; then
-          case "$ARCH" in
-            x86_64) FF_ARCH="linux64" ;;
-            aarch64) FF_ARCH="linuxarm64" ;;
-            *) echo "Unsupported architecture: $ARCH" && exit 1 ;;
-          esac
-        else
-          FF_ARCH="${{ inputs.arch }}"
+        ARCH='${{ inputs.arch }}'
+        if [[ -z "$ARCH" ]]; then
+          ARCH=$(uname -m)
         fi
 
-        if [[ "${{ inputs.version }}" == "master" ]]; then
-          FF_VERSION="master"
-          FF_SMALL_VERSION=""
-        else
-          FF_VERSION="n${{ inputs.version }}-latest"
-          FF_SMALL_VERSION="${{ inputs.version }}"
-        fi
+        case "$ARCH" in
+          x86_64) FF_ARCH="linux64" ;;
+          aarch64) FF_ARCH="linuxarm64" ;;
+          *) echo "Unsupported architecture: $ARCH" && exit 1 ;;
+        esac
 
-        FF_URL="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-${FF_VERSION}-${FF_ARCH}-gpl-shared-${FF_SMALL_VERSION}.tar.xz"
+        case "${{ inputs.version || '7.1' }}" in
+          "7.1") FILE="ffmpeg-n7.1-${FF_ARCH}-gpl-shared-7.1.tar.xz" ;;
+          "6.1") FILE="ffmpeg-n6.1-${FF_ARCH}-gpl-shared-6.1.tar.xz" ;;
+          "master") FILE="ffmpeg-master-${FF_ARCH}-gpl-shared.tar.xz" ;;
+          *) echo "Unsupported version: ${{ inputs.version }}" && exit 1 ;;
+        esac
+
+        FF_URL="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/${FILE}"
 
         echo "Downloading FFmpeg from $FF_URL"
         curl -L "$FF_URL" -o ffmpeg.tar.xz
