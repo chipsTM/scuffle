@@ -3,7 +3,7 @@ import os
 import json
 import subprocess
 from typing import Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 # The first argument is the github context
 GITHUB_CONTEXT = json.loads(sys.argv[1])
@@ -275,8 +275,7 @@ def main():
         grind=create_grind_response(),
     )
 
-    print(f"matrix={json.dumps(response)}")
-
+    print(f"matrix={json.dumps(asdict(response))}")
 
 if __name__ == "__main__":
     main()
