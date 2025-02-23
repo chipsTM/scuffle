@@ -64,7 +64,7 @@ jobs:
       - uses: jenseng/dynamic-uses@v1
         with:
           uses: ./.github/actions/ci/${{ matrix.job }}
-          with: ${{ matrix.inputs }}
+          with: ${{ toJson(matrix.inputs) }}
 
   brawl-done:
     runs-on: ubuntu-24.04
