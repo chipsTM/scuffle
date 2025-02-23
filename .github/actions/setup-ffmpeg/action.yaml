@@ -1,7 +1,7 @@
 name: Setup FFmpeg
 description: Installs FFmpeg on the system
 inputs:
-  architecture:
+  arch:
     description: "The architecture the runner is running on"
     required: false
   version:
@@ -24,12 +24,14 @@ runs:
         set -xeo pipefail
 
         ARCH=$(uname -m)
-        if [[ -z "${{ inputs.architecture }}" ]]; then
+        if [[ -z "${{ inputs.arch }}" ]]; then
           case "$ARCH" in
             x86_64) FF_ARCH="linux64" ;;
             aarch64) FF_ARCH="linuxarm64" ;;
             *) echo "Unsupported architecture: $ARCH" && exit 1 ;;
           esac
+        else
+          FF_ARCH="${{ inputs.arch }}"
         fi
 
         if [[ "${{ inputs.version }}" == "master" ]]; then
