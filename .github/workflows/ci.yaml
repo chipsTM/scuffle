@@ -41,7 +41,8 @@ jobs:
     name: Clippy
     needs: matrix_prep
     strategy:
-      matrix: ${{ fromJson(needs.matrix_prep.outputs.matrix.clippy) }}
+      matrix:
+        include: ${{ fromJson(needs.matrix_prep.outputs.matrix.clippy) }}
     runs-on: ${{ matrix.clippy.os }}
     steps:
       - uses: actions/checkout@v4
@@ -115,7 +116,8 @@ jobs:
     name: Test
     needs: matrix_prep
     strategy:
-      matrix: ${{ fromJson(needs.matrix_prep.outputs.matrix.test) }}
+      matrix:
+        include: ${{ fromJson(needs.matrix_prep.outputs.matrix.test) }}
     runs-on: ${{ matrix.os }}
     env:
       RUSTFLAGS: "--cfg reqwest_unstable"
@@ -164,7 +166,8 @@ jobs:
     name: Grind
     needs: matrix_prep
     strategy:
-      matrix: ${{ fromJson(needs.matrix_prep.outputs.matrix.grind) }}
+      matrix:
+        include: ${{ fromJson(needs.matrix_prep.outputs.matrix.grind) }}
     runs-on: ${{ matrix.os }}
     env:
       RUSTFLAGS: "--cfg reqwest_unstable --cfg valgrind"
@@ -196,7 +199,8 @@ jobs:
     name: ${{ matrix.full_name }}
     needs: matrix_prep
     strategy:
-      matrix: ${{ fromJson(needs.matrix_prep.outputs.matrix.docs) }}
+      matrix:
+        include: ${{ fromJson(needs.matrix_prep.outputs.matrix.docs) }}
     runs-on: ${{ matrix.docs.os }}
     permissions:
       pull-requests: write
