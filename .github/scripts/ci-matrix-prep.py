@@ -79,30 +79,14 @@ class GrindMatrix:
     rust: RustSetup
 
 @dataclass
-class DocsResponse:
+class Response:
     docs: list[DocsMatrix]
-
-@dataclass
-class ClippyResponse:
     clippy: list[ClippyMatrix]
-
-@dataclass
-class TestResponse:
     test: list[TestMatrix]
-
-@dataclass
-class GrindResponse:
     grind: list[GrindMatrix]
 
-@dataclass
-class Response:
-    docs: DocsResponse
-    clippy: ClippyResponse
-    test: TestResponse
-    grind: GrindResponse
 
-
-def create_docs_response() -> DocsResponse:
+def create_docs_jobs() -> list[DocsMatrix]:
     jobs: list[DocsMatrix] = []
 
     jobs.append(
@@ -142,10 +126,10 @@ def create_docs_response() -> DocsResponse:
             )
         )
 
-    return DocsResponse(docs=jobs)
+    return jobs
 
 
-def create_clippy_response() -> ClippyResponse:
+def create_clippy_jobs() -> list[ClippyMatrix]:
     jobs: list[ClippyMatrix] = []
 
     jobs.append(
@@ -179,10 +163,10 @@ def create_clippy_response() -> ClippyResponse:
             )
         )
 
-    return ClippyResponse(clippy=jobs)
+    return jobs
 
 
-def create_test_response() -> TestResponse:
+def create_test_jobs() -> list[TestMatrix]:
     jobs: list[TestMatrix] = []
 
     commit_sha = os.environ["SHA"]
@@ -226,10 +210,10 @@ def create_test_response() -> TestResponse:
             )
         )
 
-    return TestResponse(test=jobs)
+    return jobs
 
 
-def create_grind_response() -> GrindResponse:
+def create_grind_jobs() -> list[GrindMatrix]:
     jobs: list[GrindMatrix] = []
 
     if is_brawl():
@@ -264,15 +248,15 @@ def create_grind_response() -> GrindResponse:
             )
         )
 
-    return GrindResponse(grind=jobs)
+    return jobs
 
 
 def main():
     response = Response(
-        docs=create_docs_response(),
-        clippy=create_clippy_response(),
-        test=create_test_response(),
-        grind=create_grind_response(),
+        docs=create_docs_jobs(),
+        clippy=create_clippy_jobs(),
+        test=create_test_jobs(),
+        grind=create_grind_jobs(),
     )
 
     print(f"matrix={json.dumps(asdict(response))}")
