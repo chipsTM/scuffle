@@ -36,7 +36,7 @@ jobs:
       - name: Run matrix prep
         run: |
           set -xeo pipefail
-          python3 .github/scripts/ci-matrix-prep.py '${{ toJson(github) }}' '${{ toJson(secrets) }}' | tee -a $GITHUB_OUTPUT
+          python3 .github/scripts/ci-matrix-prep.py '${{ toJson(github) }}' | tee -a $GITHUB_OUTPUT
         id: compute
 
   jobs:
@@ -60,6 +60,22 @@ jobs:
         if: ${{ matrix.rust != null }}
         uses: ./.github/actions/setup-rust
         with: ${{ matrix.rust }}
+
+      - name: Setup Secrets
+        if: ${{ matrix.secrets != null }}
+        run: |
+          set -xeo pipefail
+          # Store all secrets as a JSON string in a bash variable.
+          secrets='${{ toJson(secrets) }}'
+
+          # Iterate over each secret name provided in the matrix.
+          for secret in $(echo '${{ toJson(matrix.secrets) }}' | jq -r '.[]'); do
+            # Extract the value corresponding to the secret key from the JSON.
+            value=$(echo "$secrets" | jq -r --arg key "$secret" '.[$key]')
+
+            # Export the secret as an environment variable for subsequent steps.
+            echo "$secret=$value" >> $GITHUB_ENV
+          done
 
       - uses: jenseng/dynamic-uses@v1
         with:

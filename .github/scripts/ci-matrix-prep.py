@@ -6,8 +6,7 @@ from typing import Optional
 from dataclasses import dataclass, asdict
 
 # The first argument is the github context
-GITHUB_CONTEXT = json.loads(sys.argv[1])
-SECRETS = json.loads(sys.argv[2])
+GITHUB_CONTEXT: dict = json.loads(sys.argv[1])
 
 GITHUB_DEFAULT_RUNNER = "ubuntu-24.04"
 LINUX_X86_64 = "ubicloud-standard-8"
@@ -59,8 +58,6 @@ class DocsMatrix:
     artifact_name: Optional[str]
     pr_number: Optional[int]
     deploy_docs: bool
-    cf_docs_api_key: Optional[str]
-    cf_docs_account_id: Optional[str]
 
 @dataclass
 class ClippyMatrix:
@@ -93,7 +90,7 @@ class Job:
         GrindMatrix | DocsMatrix | ClippyMatrix | TestMatrix | FmtMatrix | HakariMatrix
     )
     job: str
-
+    secrets: Optional[list[str]] = None
 
 def create_docs_jobs() -> list[Job]:
     jobs: list[Job] = []
@@ -110,8 +107,6 @@ def create_docs_jobs() -> list[Job]:
                 # since that will be deployed after the merge is successful
                 deploy_docs=not is_brawl("merge"),
                 pr_number=pr_number(),
-                cf_docs_api_key=SECRETS["CF_DOCS_API_KEY"],
-                cf_docs_account_id=SECRETS["CF_DOCS_ACCOUNT_ID"],
             ),
             rust=RustSetup(
                 toolchain="nightly",
@@ -120,6 +115,7 @@ def create_docs_jobs() -> list[Job]:
                 tools="",
                 cache_backend="ubicloud",
             ),
+            secrets=["CF_DOCS_API_KEY", "CF_DOCS_ACCOUNT_ID"],
         )
     )
 
@@ -134,8 +130,6 @@ def create_docs_jobs() -> list[Job]:
                     artifact_name=None,
                     deploy_docs=False,
                     pr_number=pr_number(),
-                    cf_docs_api_key=None,
-                    cf_docs_account_id=None,
                 ),
                 rust=RustSetup(
                     toolchain="nightly",
