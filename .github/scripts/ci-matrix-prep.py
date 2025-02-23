@@ -19,7 +19,7 @@ def is_brawl(mode: Optional[str] = None) -> bool:
         mode = f"{mode}/"
 
     return GITHUB_CONTEXT["event_name"] == "push" and GITHUB_CONTEXT["ref"].startswith(
-        f"refs/heads/brawl/{mode}"
+        f"refs/heads/automation/brawl/{mode}"
     )
 
 
@@ -31,7 +31,7 @@ def pr_number() -> Optional[int]:
     if is_pr():
         return GITHUB_CONTEXT["event"]["number"]
     elif is_brawl("try"):
-        return int(GITHUB_CONTEXT["ref"].strip("refs/heads/brawl/try/"))
+        return int(GITHUB_CONTEXT["ref"].strip("refs/heads/automation/brawl/try/"))
 
     return None
 
@@ -217,7 +217,7 @@ def create_test_jobs() -> list[Job]:
                 tools="cargo-nextest,cargo-llvm-cov",
                 cache_backend="ubicloud",
             ),
-            secrets=["CF_DOCS_API_KEY", "CF_DOCS_ACCOUNT_ID"],
+            secrets=["CODECOV_TOKEN"],
         )
     )
 
