@@ -34,7 +34,7 @@ jobs:
           ref: ${{ env.SHA }}
 
       - name: Run matrix prep
-        run: .github/scripts/ci-matrix-prep.py '${{ toJson(github) }}' >> $GITHUB_OUTPUT
+        run: python3 .github/scripts/ci-matrix-prep.py '${{ toJson(github) }}' >> $GITHUB_OUTPUT
         id: compute
 
   clippy:
