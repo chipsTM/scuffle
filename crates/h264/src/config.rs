@@ -264,11 +264,16 @@ mod tests {
             ),
             log2_max_frame_num_minus4: 0,
             pic_order_cnt_type: 0,
+            log2_max_pic_order_cnt_lsb_minus4: Some(
+                2,
+            ),
+            pic_order_cnt_type1: None,
             max_num_ref_frames: 4,
             gaps_in_frame_num_value_allowed_flag: false,
             pic_width_in_mbs_minus1: 29,
             pic_height_in_map_units_minus1: 53,
             frame_mbs_only_flag: true,
+            mb_adaptive_frame_field_flag: false,
             direct_8x8_inference_flag: true,
             frame_cropping_flag: true,
             frame_crop_left_offset: 0,
@@ -278,10 +283,22 @@ mod tests {
             width: 480,
             height: 852,
             vui_parameters_present_flag: true,
+            aspect_ratio_info_present_flag: false,
+            sample_aspect_ratio: SarDimensions {
+                aspect_ratio_idc: AspectRatioIdc::Unspecified,
+                sar_width: 0,
+                sar_height: 0,
+            },
+            overscan_info_present_flag: false,
+            overscan_appropriate_flag: None,
             video_signal_type_present_flag: true,
+            chroma_loc_info_present_flag: false,
+            chroma_sample_loc_type_top_field: 0,
+            chroma_sample_loc_type_bottom_field: 0,
             color_description_present_flag: true,
             color_config: Some(
                 ColorConfig {
+                    video_format: VideoFormat::Unspecified,
                     video_full_range_flag: false,
                     color_primaries: 1,
                     transfer_characteristics: 1,
@@ -289,7 +306,15 @@ mod tests {
                 },
             ),
             timing_info_present_flag: true,
-            frame_rate: 30.0,
+            timing_info: TimingInfo {
+                num_units_in_tick: Some(
+                    1,
+                ),
+                time_scale: Some(
+                    60,
+                ),
+                frame_rate: 30.0,
+            },
         }
         ");
     }
@@ -306,21 +331,6 @@ mod tests {
         config.mux(&mut buf).unwrap();
 
         assert_eq!(buf, data.to_vec());
-    }
-
-    #[test]
-    fn test_parse_sps_with_zero_num_units_in_tick() {
-        let sps = Bytes::from(
-            b"gd\0\x1f\xac\xd9A\xe0m\xf9\xe6\xa0  (\0\0\x03\0\0\0\0\x03\x01\xe0x\xc1\x8c\xb0\x80\0\0\0\0".to_vec(),
-        );
-
-        let err = Sps::parse(sps).expect_err("Expected error for num_units_in_tick = 0");
-        assert_eq!(
-            err.kind(),
-            std::io::ErrorKind::InvalidData,
-            "Expected InvalidData error, got {:?}",
-            err
-        );
     }
 
     #[test]

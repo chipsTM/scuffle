@@ -1,11 +1,11 @@
-use std::io;
+use std::{io, num::NonZeroU32};
 
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::Bytes;
 use scuffle_bytes_util::BitReader;
 use scuffle_expgolomb::BitReaderExpGolombExt;
 
-use crate::NALUnitType;
+use crate::{AspectRatioIdc, NALUnitType, VideoFormat};
 
 #[derive(Debug, Clone, PartialEq)]
 /// The Sequence Parameter Set.
@@ -204,17 +204,46 @@ pub struct Sps {
     ///
     /// There are a few subsequent fields that are read if `pic_order_cnt_type` is 0 or 1.
     ///
-    /// In the case of 1, `log2_max_pic_order_cnt_lsb_minus4` is read as an exp golomb (unsigned).
+    /// In the case of 0, `log2_max_pic_order_cnt_lsb_minus4` is read as an exp golomb (unsigned).
     ///
-    /// In the case of 2, `delta_pic_order_always_zero_flag`, `offset_for_non_ref_pic`,
+    /// In the case of 1, `delta_pic_order_always_zero_flag`, `offset_for_non_ref_pic`,
     /// `offset_for_top_to_bottom_field`, `num_ref_frames_in_pic_order_cnt_cycle` and
-    /// `offset_for_ref_frame` will be read.
+    /// `offset_for_ref_frame` will be read and stored in pic_order_cnt_type1.
+    ///
+    /// Refer to the PicOrderCountType1 struct for more info.
     ///
     /// Note that this crate does NOT use the aforementioned fields for decoding.
-    /// The parse function will still read the values if passed in correctly,
-    /// but this struct does not store them at this time.
+    /// The parse function will still read the values if passed in correctly.
     /// If you have an application that requires this feature, please reach out to us at <https://scuffle.cloud>.
     pub pic_order_cnt_type: u8,
+
+    /// The `log2_max_pic_order_cnt_lsb_minus4` is the value used when deriving MaxFrameNum from the equation:
+    /// `MaxPicOrderCntLsb` = 2^(`log2_max_frame_num_minus4` + 4) from subclause 8.2.1.
+    ///
+    /// This is an `Option<u8>` because the value is only set if `pic_order_cnt_type == 0`.
+    ///
+    /// The value of this ranges from \[0, 12\].
+    ///
+    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
+    /// The smallest encoding would be for `0` which is encoded as `1`, which is a single bit.
+    /// The largest encoding would be for `12` which is encoded as `000 1101`, which is 7 bits.
+    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    ///
+    /// For more information:
+    ///
+    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
+    ///
+    /// Note that this crate does NOT use the `log2_max_pic_order_cnt_lsb_minus4` for decoding.
+    /// The parse function will still read the values if passed in correctly.
+    /// If you have an application that requires this feature, please reach out to us at <https://scuffle.cloud>.
+    pub log2_max_pic_order_cnt_lsb_minus4: Option<u8>,
+
+    /// An optional `PicOrderCountType1`. This is computed from other fields, and isn't directly set.
+    ///
+    /// If `pic_order_cnt_type == 1`, then the `PicOrderCountType1` will be computed.
+    ///
+    /// Refer to the PicOrderCountType1 struct for more info.
+    pub pic_order_cnt_type1: Option<PicOrderCountType1>,
 
     /// The `max_num_ref_frames` is the max short-term and long-term reference frames,
     /// complementary reference field pairs, and non-paired reference fields that
@@ -279,6 +308,7 @@ pub struct Sps {
     ///
     /// 0 means the coded pictures of the coded video sequence are either coded fields or coded frames
     /// and we will read the `mb_adaptive_frame_field_flag`.
+    ///
     /// 1 means every coded picture of the coded video sequence is a coded frame with only frame macroblocks.
     ///
     /// We then use this to calculate the height as:
@@ -289,10 +319,18 @@ pub struct Sps {
     /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
     ///
     /// Note that this crate does NOT use the `mb_adaptive_frame_field_flag` field for decoding.
-    /// The parse function will still read the values if passed in correctly,
-    /// but this struct does not store them at this time.
+    /// The parse function will still read the values if passed in correctly.
     /// If you have an application that requires this feature, please reach out to us at <https://scuffle.cloud>.
     pub frame_mbs_only_flag: bool,
+
+    /// The `mb_adaptive_frame_field_flag` is a single bit.
+    ///
+    /// 0 means there is no switching between frame and field macroblocks in a picture.
+    ///
+    /// 1 means the might be switching between frame and field macroblocks in a picture.
+    ///
+    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    pub mb_adaptive_frame_field_flag: bool,
 
     /// The `direct_8x8_inference_flag` specifies the method used to derive the luma motion
     /// vectors for B_Skip, B_Direct_8x8 and B_Direct_16x16 from subclause 8.4.1.2, and is a single bit.
@@ -307,6 +345,7 @@ pub struct Sps {
     /// The `frame_cropping_flag` is a single bit.
     ///
     /// 0 means the width and height aren't cropped.
+    ///
     /// 1 means that we will parse the 4 frame crop offsets and use them to calculate the width and height.
     ///
     /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
@@ -369,13 +408,13 @@ pub struct Sps {
 
     /// The height as a u64. This is computed from other fields, and isn't directly set.
     ///
-    /// `height = ((2 - frame_mbs_only_flag as u64) * (pic_height_in_map_units_minus1 + 1) * 16)
-    /// - frame_crop_bottom_offset * 2 - frame_crop_top_offset * 2``
+    /// `height = ((2 - frame_mbs_only_flag as u64) * (pic_height_in_map_units_minus1 + 1) * 16) - frame_crop_bottom_offset * 2 - frame_crop_top_offset * 2`
     pub height: u64,
 
-    /// The `vui_parameters_present_flag` is a single bit. ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    /// The `vui_parameters_present_flag` is a single bit. ISO/IEC-14496-10-2022 - 7.4.2.1.1 and E.2.1
     ///
     /// 0 means we have a frame rate of 0 and we do not have a color config.
+    ///
     /// 1 means we will compute the framerate (it may be 0) and the color config.
     ///
     /// If this is set, the parse function will read the `aspect_ratio_info_present_flag`, `aspect_ratio_idc`,
@@ -384,21 +423,122 @@ pub struct Sps {
     /// and `chroma_sample_loc_type_bottom_field` fields.
     ///
     /// Note that this crate does NOT use the aforementioned fields for decoding.
-    /// The parse function will still read the values if passed in correctly,
-    /// but this struct does not store them at this time.
+    /// The parse function will still read the values if passed in correctly.
     /// If you have an application that requires this feature, please reach out to us at <https://scuffle.cloud>.
     pub vui_parameters_present_flag: bool,
+
+    /// The `aspect_ratio_info_present_flag` is a single bit. ISO/IEC-14496-10-2022 - E.2.1
+    ///
+    /// 0 means there isn't an `aspect_ratio_idc`, which will be defaulted to 0.
+    ///
+    /// 1 means there is an `aspect_ratio_idc`, which will be read.
+    ///
+    /// If this is set, the parse function will read the `aspect_ratio_info_present_flag`, `aspect_ratio_idc`,
+    /// `sar_width`, `sar_height`
+    pub aspect_ratio_info_present_flag: bool,
+
+    /// The `sample_aspect_ratio` as the `SarDimensions` struct. This is computed by other fields,
+    /// and isn't directly set.
+    ///
+    /// If the `aspect_ratio_info_present_flag` is set, then the `aspect_ratio_idc` will be read and stored.
+    ///
+    /// If the `aspect_ratio_idc` is 255, then the `sar_width` and `sar_height` will be read and stored.
+    ///
+    /// The default values are set to 0 for the `aspect_ratio_idc`, `sar_width`, and `sar_height`.
+    /// Therefore, this will always be returned by the parse function.
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    ///
+    /// Refer to the SarDimensions struct for more info.
+    pub sample_aspect_ratio: SarDimensions,
+
+    /// The `overscan_info_present_flag` is a single bit.
+    ///
+    /// 0 means the `overscan_appropriate_flag` will NOT be read.
+    ///
+    /// 1 means the `overscan_appropriate_flag` will be read.
+    ///
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    pub overscan_info_present_flag: bool,
+
+    /// The `overscan_appropriate_flag` is a single bit.
+    ///
+    /// If the `overscan_info_present_flag` is set, then this field will be read and stored.
+    ///
+    /// 0 means the overscan should not be used. (ex: screensharing or security cameras)
+    ///
+    /// 1 means the overscan can be used. (ex: entertainment TV programming or live video conference)
+    ///
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    pub overscan_appropriate_flag: Option<bool>,
 
     /// The `video_signal_type_present_flag` is a single bit that determines whether we compute the `ColorConfig`.
     /// ISO/IEC-14496-10-2022 - E.2.1
     pub video_signal_type_present_flag: bool,
 
+    /// The `chroma_loc_info_present_flag` is a single bit that determines whether
+    /// `chroma_sample_loc_type_top_field` and `chroma_sample_loc_type_bottom_field` will be read and stored.
+    ///
+    /// 0 means the values will NOT be read and stored, and will be defaulted to 0.
+    /// 1 means the values will be read and stored.
+    ///
+    /// If the `chroma_format_idc` is NOT 1, this should be 0.
+    ///
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    ///
+    /// Note that this crate does NOT use the aformentioned fields for decoding.
+    /// The parse function will still read the values if passed in correctly.
+    /// If you have an application that requires this feature, please reach out to us at <https://scuffle.cloud>.
+    pub chroma_loc_info_present_flag: bool,
+
+    /// The `chroma_sample_loc_type_top_field` specifies the location of chroma samples.
+    ///
+    /// The value of this ranges from \[0, 5\]. By default, this value is set to 0.
+    ///
+    /// See ISO/IEC-14496-10-2022 - E.2.1 Figure E-1 for more info.
+    ///
+    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
+    /// The smallest encoding would be for `0` which is encoded as `1`, which is a single bit.
+    /// The largest encoding would be for `5` which is encoded as `0 0110`, which is 5 bits.
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    ///
+    /// For more information:
+    ///
+    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
+    ///
+    /// Note that this crate does NOT use the `chroma_sample_loc_type_top_field` field for decoding.
+    /// The parse function will still read the values if passed in correctly.
+    /// If you have an application that requires this feature, please reach out to us at <https://scuffle.cloud>.
+    pub chroma_sample_loc_type_top_field: u8,
+
+    /// The `chroma_sample_loc_type_bottom_field`
+    ///
+    /// The value of this ranges from \[0, 5\]. By default, this value is set to 0.
+    ///
+    /// See ISO/IEC-14496-10-2022 - E.2.1 Figure E-1 for more info.
+    ///
+    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
+    /// The smallest encoding would be for `0` which is encoded as `1`, which is a single bit.
+    /// The largest encoding would be for `5` which is encoded as `0 0110`, which is 5 bits.
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    ///
+    /// For more information:
+    ///
+    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
+    ///
+    /// Note that this crate does NOT use the `chroma_sample_loc_type_bottom_field` field for decoding.
+    /// The parse function will still read the values if passed in correctly.
+    /// If you have an application that requires this feature, please reach out to us at <https://scuffle.cloud>.
+    pub chroma_sample_loc_type_bottom_field: u8,
+
     /// The `color_description_present_flag` is a single bit that determines whether we read
     /// values to set for the `color_primaries`, `transfer_characteristics`, and `matrix_coefficients`
     /// all of which are passed into the `ColorConfig`.
     ///
-    /// 1 means we read u8s (1 u8 per field) to store into the above fields.
     /// 0 means we set each of the fields to 2, which means unspecified.
+    ///
+    /// 1 means we read u8s (1 u8 per field) to store into the above fields.
+    ///
+    /// ISO/IEC-14496-10-2022 - E.2.1
     pub color_description_present_flag: bool,
 
     /// An optional `ColorConfig`. This is computed from other fields, and isn't directly set.
@@ -416,39 +556,162 @@ pub struct Sps {
     /// the frame rate.
     ///
     /// 0 means we don't compute the frame rate (defaults to 0.0).
+    ///
     /// 1 means we read 2 u32's (big endian) to then compute the frame rate as long as
     /// `num_units_in_tick` is nonzero.
     ///
     /// ISO/IEC-14496-10-2022 - E.2.1
-    ///
-    /// Both `num_units_in_tick` and `time_scale` are read the values if passed in correctly,
-    /// but this struct does not store them at this time.
-    /// If you have an application that requires this feature, please reach out to us at <https://scuffle.cloud>.
     pub timing_info_present_flag: bool,
 
-    /// The framerate as a f64. This is computed from other fields, and isn't directly set.
+    /// The `timing_info` as a `TimingInfo` struct. This is computed from other fields, and isn't directly set.
     ///
-    /// If `timing_info_present_flag` is set, then the `frame_rate` will be computed, and
-    /// if `num_units_in_tick` is nonzero, then the framerate will be:
-    /// `frame_rate = time_scale as f64 / (2.0 * num_units_in_tick as f64)`
-    pub frame_rate: f64,
+    /// If `timing_info_present_flag` is set, then the `TimingInfo` will be computed, and
+    /// is comprised of the `num_units_in_tick`, `time_scale`, and `frame_rate`.
+    ///
+    /// Note that the `frame_rate` is computed from other fields and isn't directly set.
+    ///
+    /// Refer to the TimingInfo struct for more info.
+    pub timing_info: TimingInfo,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+/// `SarDimensions` contains the fields that are set when `aspect_ratio_info_present_flag == 1`,
+/// and `aspect_ratio_idc == 255`.
+///
+/// This contains the following fields: `sar_width` and `sar_height`.
+///
+/// This crate does NOT use the aforementioned fields for decoding.
+/// The parse function will still read the values if passed in correctly.
+/// If you have an application that requires this feature OR if we are missing any other h264 features
+/// that you need, please reach out to us at <https://scuffle.cloud>.
+pub struct SarDimensions {
+    /// The `aspect_ratio_idc` is the sample aspect ratio of the luma samples as a u8.
+    ///
+    /// This is a full byte, and defaults to 0.
+    ///
+    /// Refer to the `AspectRatioIdc` nutype enum for more info.
+    ///
+    /// ISO/IEC-14496-10-2022 - E.2.1 Table E-1
+    pub aspect_ratio_idc: AspectRatioIdc,
+
+    /// The `sar_width` is the horizontal size of the aspect ratio as a u16.
+    ///
+    /// This is a full 2 bytes.
+    ///
+    /// The value is supposed to be "relatively prime or equal to 0". If set to 0,
+    /// the sample aspect ratio is considered to be unspecified by ISO/IEC-14496-10-2022.
+    ///
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    pub sar_width: u16,
+
+    /// The `offset_for_non_ref_pic` is the vertical size of the aspect ratio as a u16.
+    ///
+    /// This is a full 2 bytes.
+    ///
+    /// The value is supposed to be "relatively prime or equal to 0". If set to 0,
+    /// the sample aspect ratio is considered to be unspecified by ISO/IEC-14496-10-2022.
+    ///
+    /// The value is supposed to be "relatively prime or equal to 0".
+    ///
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    pub sar_height: u16,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+/// `PicOrderCountType1` contains the fields that are set when `pic_order_cnt_type == 1`.
+///
+/// This contains the following fields: `delta_pic_order_always_zero_flag`,
+/// `offset_for_non_ref_pic`, `offset_for_top_to_bottom_field`, and
+/// `offset_for_ref_frame`.
+///
+/// This crate does NOT use the aforementioned fields for decoding.
+/// The parse function will still read the values if passed in correctly.
+/// If you have an application that requires this feature OR if we are missing any other h264 features
+/// that you need, please reach out to us at <https://scuffle.cloud>.
+pub struct PicOrderCountType1 {
+    /// The `delta_pic_order_always_zero_flag` is a single bit.
+    ///
+    /// 0 means the `delta_pic_order_cnt[0]` is in the slice headers and `delta_pic_order_cnt[1]`
+    /// might not be in the slice headers.
+    ///
+    /// 1 means the `delta_pic_order_cnt[0]` and `delta_pic_order_cnt[1]` are NOT in the slice headers
+    /// and will be set to 0 by default.
+    ///
+    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    pub delta_pic_order_always_zero_flag: bool,
+
+    /// The `offset_for_non_ref_pic` is used to calculate the pic order count for a non-reference picture
+    /// from subclause 8.2.1.
+    ///
+    /// The value of this ranges from \[-2^(31), 2^(31) - 1\].
+    ///
+    /// This is a variable number of bits as it is encoded by a SIGNED exp golomb.
+    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    ///
+    /// For more information:
+    ///
+    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
+    pub offset_for_non_ref_pic: i64,
+
+    /// The `offset_for_top_to_bottom_field` is used to calculate the pic order count of a bottom field from
+    /// subclause 8.2.1.
+    ///
+    /// The value of this ranges from \[-2^(31), 2^(31) - 1\].
+    ///
+    /// This is a variable number of bits as it is encoded by a SIGNED exp golomb.
+    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    ///
+    /// For more information:
+    ///
+    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
+    pub offset_for_top_to_bottom_field: i64,
+
+    /// The `num_ref_frames_in_pic_order_cnt_cycle` is used in the decoding process for the picture order
+    /// count in 8.2.1.
+    ///
+    /// The value of this ranges from \[0, 255\].
+    ///
+    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
+    /// The smallest encoding would be for `0` which is encoded as `1`, which is a single bit.
+    /// The largest encoding would be for `255` which is encoded as `0 0000 0001 0000 0000`, which is 17 bits.
+    ///
+    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    pub num_ref_frames_in_pic_order_cnt_cycle: u64,
+
+    /// The `offset_for_ref_frame` is a vec where each value used in decoding the picture order count
+    /// from subclause 8.2.1.
+    ///
+    /// When `pic_order_cnt_type == 1`, `ExpectedDeltaPerPicOrderCntCycle` can be derived by:
+    /// ```python
+    /// ExpectedDeltaPerPicOrderCntCycle = sum(offset_for_ref_frame)
+    /// ```
+    ///
+    /// The value of this ranges from \[-2^(31), 2^(31) - 1\].
+    ///
+    /// This is a variable number of bits as it is encoded by a SIGNED exp golomb.
+    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    ///
+    /// For more information:
+    ///
+    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
+    pub offset_for_ref_frame: Vec<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 /// The color config for SPS. ISO/IEC-14496-10-2022 - E.2.1
 ///
-/// There are a few fields from the spec that we read but do not store, namely:
-/// `aspect_ratio_info_present_flag`, `aspect_ratio_idc`, `sar_width`, `sar_height`,
-/// `overscan_info_present_flag`, `overscan_appropriate_flag`, `video_format`,
-/// `chroma_loc_info_present_flag`, `chroma_sample_loc_type_top_field`,
-/// and `chroma_sample_loc_type_bottom_field`.
-///
 /// This crate does NOT use the aforementioned fields for decoding.
-/// The parse function will still read the values if passed in correctly,
-/// but this struct does not store them at this time.
+/// The parse function will still read the values if passed in correctly.
 /// If you have an application that requires this feature OR if we are missing any other h264 features
 /// that you need, please reach out to us at <https://scuffle.cloud>.
 pub struct ColorConfig {
+    /// The `video_format` is comprised of 3 bits stored as a u8.
+    ///
+    /// Refer to the `VideoFormat` nutype enum for more info.
+    ///
+    /// ISO/IEC-14496-10-2022 - E.2.1 Table E-2
+    pub video_format: VideoFormat,
+
     /// The `video_full_range_flag` is a single bit indicating the black level and range of
     /// luma and chroma signals.
     ///
@@ -467,6 +730,51 @@ pub struct ColorConfig {
     /// The `matrix_coefficients` byte as a u8. If `color_description_present_flag` is not set,
     /// the value defaults to 2. ISO/IEC-14496-10-2022 - E.2.1 Table E-5
     pub matrix_coefficients: u8,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+/// `TimingInfo` contains the fields that are set when `timing_info_present_flag == 1`.
+///
+/// This contains the following fields: `num_units_in_tick` and `time_scale`.
+///
+/// ISO/IEC-14496-10-2022 - E.2.1
+///
+/// Refer to the direct fields for more information.
+///
+/// Note that we stop computing once we calculate the `frame_rate` since we don't use any other information
+/// when decoding. If you have an application that requires the above features OR if we are missing
+/// any other h264 features that you need, please reach out to us at <https://scuffle.cloud>.
+pub struct TimingInfo {
+    /// The `num_units_in_tick` is the smallest unit used to measure time.
+    ///
+    /// It is used alongside `time_scale` to compute the `frame_rate` as follows:
+    ///
+    /// `frame_rate = time_scale / (2 * num_units_in_tick)`
+    ///
+    /// It must be greater than 0, therefore, it is an `Option<NonZeroU32>`. If it isn't provided,
+    /// the value is defaulted to None instead of 0.
+    ///
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    pub num_units_in_tick: Option<NonZeroU32>,
+
+    /// The `time_scale` is the number of time units that pass in 1 second (hz).
+    ///
+    /// It is used alongside `num_units_in_tick` to compute the `frame_rate` as follows:
+    ///
+    /// `frame_rate = time_scale / (2 * num_units_in_tick)`
+    ///
+    /// It must be greater than 0, therefore, it is an `Option<NonZeroU32>`. If it isn't provided,
+    /// the value is defaulted to None instead of 0.
+    ///
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    pub time_scale: Option<NonZeroU32>,
+
+    /// The framerate as a f64. This is computed from other fields, and isn't directly set.
+    ///
+    /// If `timing_info_present_flag` is set, then the `frame_rate` will be computed, and
+    /// if `num_units_in_tick` is nonzero, then the framerate will be:
+    /// `frame_rate = time_scale as f64 / (2.0 * num_units_in_tick as f64)`
+    pub frame_rate: f64,
 }
 
 impl Sps {
@@ -534,25 +842,40 @@ impl Sps {
 
         let log2_max_frame_num_minus4 = bit_reader.read_exp_golomb()? as u8;
         let pic_order_cnt_type = bit_reader.read_exp_golomb()? as u8;
+
+        let mut log2_max_pic_order_cnt_lsb_minus4 = None;
+        let mut pic_order_cnt_type1 = None;
+
         if pic_order_cnt_type == 0 {
-            bit_reader.read_exp_golomb()?; // log2_max_pic_order_cnt_lsb_minus4
+            log2_max_pic_order_cnt_lsb_minus4 = Some(bit_reader.read_exp_golomb()? as u8);
         } else if pic_order_cnt_type == 1 {
-            bit_reader.seek_bits(1)?; // delta_pic_order_always_zero_flag
-            bit_reader.read_signed_exp_golomb()?; // offset_for_non_ref_pic
-            bit_reader.read_signed_exp_golomb()?; // offset_for_top_to_bottom_field
+            let delta_pic_order_always_zero_flag = bit_reader.read_bit()?;
+            let offset_for_non_ref_pic = bit_reader.read_signed_exp_golomb()?;
+            let offset_for_top_to_bottom_field = bit_reader.read_signed_exp_golomb()?;
             let num_ref_frames_in_pic_order_cnt_cycle = bit_reader.read_exp_golomb()?;
+            let mut offset_for_ref_frame = vec![];
             for _ in 0..num_ref_frames_in_pic_order_cnt_cycle {
-                bit_reader.read_signed_exp_golomb()?; // offset_for_ref_frame
+                offset_for_ref_frame.push(bit_reader.read_signed_exp_golomb()?);
             }
+
+            pic_order_cnt_type1 = Some(PicOrderCountType1 {
+                delta_pic_order_always_zero_flag,
+                offset_for_non_ref_pic,
+                offset_for_top_to_bottom_field,
+                num_ref_frames_in_pic_order_cnt_cycle,
+                offset_for_ref_frame,
+            })
         }
 
         let max_num_ref_frames = bit_reader.read_exp_golomb()? as u8;
         let gaps_in_frame_num_value_allowed_flag = bit_reader.read_bit()?;
         let pic_width_in_mbs_minus1 = bit_reader.read_exp_golomb()?;
         let pic_height_in_map_units_minus1 = bit_reader.read_exp_golomb()?;
+
         let frame_mbs_only_flag = bit_reader.read_bit()?;
+        let mut mb_adaptive_frame_field_flag = false; // defaults to 0 (7.4.2.1.1)
         if !frame_mbs_only_flag {
-            bit_reader.seek_bits(1)?; // mb_adaptive_frame_field_flag
+            mb_adaptive_frame_field_flag = bit_reader.read_bit()?;
         }
 
         let direct_8x8_inference_flag = bit_reader.read_bit()?;
@@ -564,47 +887,73 @@ impl Sps {
 
         let frame_cropping_flag = bit_reader.read_bit()?;
         if frame_cropping_flag {
-            frame_crop_left_offset = bit_reader.read_exp_golomb()?; // frame_crop_left_offset
-            frame_crop_right_offset = bit_reader.read_exp_golomb()?; // frame_crop_right_offset
-            frame_crop_top_offset = bit_reader.read_exp_golomb()?; // frame_crop_top_offset
-            frame_crop_bottom_offset = bit_reader.read_exp_golomb()?; // frame_crop_bottom_offset
+            frame_crop_left_offset = bit_reader.read_exp_golomb()?;
+            frame_crop_right_offset = bit_reader.read_exp_golomb()?;
+            frame_crop_top_offset = bit_reader.read_exp_golomb()?;
+            frame_crop_bottom_offset = bit_reader.read_exp_golomb()?;
         }
 
         let width = ((pic_width_in_mbs_minus1 + 1) * 16) - frame_crop_right_offset * 2 - frame_crop_left_offset * 2;
         let height = ((2 - frame_mbs_only_flag as u64) * (pic_height_in_map_units_minus1 + 1) * 16)
             - frame_crop_bottom_offset * 2
             - frame_crop_top_offset * 2;
-
-        let mut frame_rate = 0.0;
-
         let vui_parameters_present_flag = bit_reader.read_bit()?;
 
+        let mut aspect_ratio_info_present_flag = false;
+        let mut sample_aspect_ratio = SarDimensions {
+            aspect_ratio_idc: AspectRatioIdc(0), // defaults to 0 ISO/IEC-14496-10-2022 - E.2.1 Table E-1
+            sar_width: 0,
+            sar_height: 0,
+        };
+
+        let mut overscan_info_present_flag = false;
+        let mut overscan_appropriate_flag = None;
+
         let mut video_signal_type_present_flag = false;
+
         let mut color_description_present_flag = false;
         let mut color_config = None;
 
+        let mut chroma_loc_info_present_flag = false;
+        let mut chroma_sample_loc_type_top_field = 0;
+        let mut chroma_sample_loc_type_bottom_field = 0;
+
         let mut timing_info_present_flag = false;
+        let mut timing_info = TimingInfo {
+            num_units_in_tick: None,
+            time_scale: None,
+            frame_rate: 0.0
+        };
 
         if vui_parameters_present_flag {
             // We read the VUI parameters to get the frame rate.
 
-            // aspect_ratio_info_present_flag
-            if bit_reader.read_bit()? {
+            aspect_ratio_info_present_flag = bit_reader.read_bit()?;
+            if aspect_ratio_info_present_flag {
+                let mut sar_width = 0; // defaults to 0, E.2.1
+                let mut sar_height = 0; // deafults to 0, E.2.1
+
                 let aspect_ratio_idc = bit_reader.read_u8()?;
                 if aspect_ratio_idc == 255 {
-                    bit_reader.seek_bits(16)?; // sar_width
-                    bit_reader.seek_bits(16)?; // sar_height
+                    sar_width = bit_reader.read_bits(16)? as u16;
+                    sar_height = bit_reader.read_bits(16)? as u16;
+                }
+
+                sample_aspect_ratio = SarDimensions {
+                    aspect_ratio_idc: AspectRatioIdc(aspect_ratio_idc),
+                    sar_width,
+                    sar_height,
                 }
             }
 
-            // overscan_info_present_flag
-            if bit_reader.read_bit()? {
-                bit_reader.seek_bits(1)?; // overscan_appropriate_flag
+            overscan_info_present_flag = bit_reader.read_bit()?;
+            if overscan_info_present_flag {
+                overscan_appropriate_flag = Some(bit_reader.read_bit()?);
             }
 
             video_signal_type_present_flag = bit_reader.read_bit()?;
             if video_signal_type_present_flag {
-                bit_reader.seek_bits(3)?; // video_format E.2.1 Table E-2
+                let video_format = bit_reader.read_bits(3)? as u8;
                 let video_full_range_flag = bit_reader.read_bit()?;
 
                 let color_primaries;
@@ -623,6 +972,7 @@ impl Sps {
                 }
 
                 color_config = Some(ColorConfig {
+                    video_format: VideoFormat(video_format), // defalut value is 5 E.2.1 Table E-2
                     video_full_range_flag,
                     color_primaries,
                     transfer_characteristics,
@@ -630,29 +980,52 @@ impl Sps {
                 });
             }
 
-            // chroma_loc_info_present_flag
-            if bit_reader.read_bit()? {
-                bit_reader.read_exp_golomb()?; // chroma_sample_loc_type_top_field
-                bit_reader.read_exp_golomb()?; // chroma_sample_loc_type_bottom_field
+            chroma_loc_info_present_flag = bit_reader.read_bit()?;
+            if sps_ext
+                .clone()
+                .unwrap_or(SpsExtended {
+                    chroma_format_idc: 1,
+                    separate_color_plane_flag: false,
+                    bit_depth_luma_minus8: 0,
+                    bit_depth_chroma_minus8: 0,
+                    qpprime_y_zero_transform_bypass_flag: false,
+                    seq_scaling_matrix_present_flag: false,
+                })
+                .chroma_format_idc
+                != 1
+                && chroma_loc_info_present_flag
+            {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "chroma_loc_info_present_flag cannot be set to 1 when chroma_format_idc is not 1",
+                ));
+            }
+
+            if chroma_loc_info_present_flag {
+                chroma_sample_loc_type_top_field = bit_reader.read_exp_golomb()? as u8;
+                chroma_sample_loc_type_bottom_field = bit_reader.read_exp_golomb()? as u8;
             }
 
             timing_info_present_flag = bit_reader.read_bit()?;
             if timing_info_present_flag {
-                let num_units_in_tick = bit_reader.read_u32::<BigEndian>()?;
-                let time_scale = bit_reader.read_u32::<BigEndian>()?;
+                let num_units_in_tick = NonZeroU32::new(bit_reader.read_u32::<BigEndian>()?);
+                let time_scale = NonZeroU32::new(bit_reader.read_u32::<BigEndian>()?);
 
-                if num_units_in_tick == 0 {
-                    return Err(io::Error::new(io::ErrorKind::InvalidData, "num_units_in_tick cannot be zero"));
+                let frame_rate = time_scale.expect("`time_scale` is 0").get() as f64
+                / (2.0 * num_units_in_tick.expect("`num_units_in_tick` is 0").get() as f64);
+
+                timing_info = TimingInfo {
+                    num_units_in_tick,
+                    time_scale,
+                    frame_rate
                 }
-
-                frame_rate = time_scale as f64 / (2.0 * num_units_in_tick as f64);
             }
         }
 
         Ok(Sps {
             forbidden_zero_bit,
             nal_ref_idc,
-            nal_unit_type: crate::NALUnitType(nal_unit_type),
+            nal_unit_type: NALUnitType(nal_unit_type),
             profile_idc,
             constraint_set0_flag,
             constraint_set1_flag,
@@ -665,11 +1038,14 @@ impl Sps {
             ext: sps_ext,
             log2_max_frame_num_minus4,
             pic_order_cnt_type,
+            log2_max_pic_order_cnt_lsb_minus4,
+            pic_order_cnt_type1,
             max_num_ref_frames,
             gaps_in_frame_num_value_allowed_flag,
             pic_width_in_mbs_minus1,
             pic_height_in_map_units_minus1,
             frame_mbs_only_flag,
+            mb_adaptive_frame_field_flag,
             direct_8x8_inference_flag,
             frame_cropping_flag,
             frame_crop_left_offset,
@@ -679,12 +1055,24 @@ impl Sps {
             width,
             height,
             vui_parameters_present_flag,
+            aspect_ratio_info_present_flag,
+            sample_aspect_ratio,
+            overscan_info_present_flag,
+            overscan_appropriate_flag,
             video_signal_type_present_flag,
+            chroma_loc_info_present_flag,
+            chroma_sample_loc_type_top_field,
+            chroma_sample_loc_type_bottom_field,
             color_description_present_flag,
             color_config,
             timing_info_present_flag,
-            frame_rate,
+            timing_info,
         })
+    }
+
+    /// Returns the frame rate as a f64.
+    pub fn frame_rate(self) -> f64 {
+        self.timing_info.frame_rate
     }
 }
 
@@ -710,7 +1098,9 @@ pub struct SpsExtended {
     /// The `separate_colour_plane_flag` is a single bit.
     ///
     /// 0 means the the color components aren't coded separately and `ChromaArrayType` is set to `chroma_format_idc`.
-    /// 1 means the 3 color components of the 4:4:4 chroma format are coded separately and `ChromaArrayType` is set to 0.
+    ///
+    /// 1 means the 3 color components of the 4:4:4 chroma format are coded separately and
+    /// `ChromaArrayType` is set to 0.
     ///
     /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
     pub separate_color_plane_flag: bool,
@@ -749,6 +1139,7 @@ pub struct SpsExtended {
     ///
     /// 0 means the transform coefficient decoding and picture construction processes wont
     /// use the transform bypass operation.
+    ///
     /// 1 means that when QP'_Y is 0 then a transform bypass operation for the transform
     /// coefficient decoding and picture construction processes will be applied before
     /// the deblocking filter process from subclause 8.5.
@@ -759,6 +1150,7 @@ pub struct SpsExtended {
     /// The `seq_scaling_matrix_present_flag` is a single bit.
     ///
     /// 0 means the flags are NOT present.
+    ///
     /// 1 means the flags `seq_scaling_matrix_present_flag[i]` for i values \[0, 7\] or \[0, 11\] are set.
     ///
     /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
@@ -819,10 +1211,10 @@ impl SpsExtended {
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
-    use std::io;
+    use std::io::{self, Write};
 
     use bytes::Bytes;
-    use scuffle_bytes_util::BitReader;
+    use scuffle_bytes_util::{BitReader, BitWriter};
 
     use crate::sps::{Sps, SpsExtended};
 
@@ -912,11 +1304,16 @@ mod tests {
             ),
             log2_max_frame_num_minus4: 0,
             pic_order_cnt_type: 0,
+            log2_max_pic_order_cnt_lsb_minus4: Some(
+                4,
+            ),
+            pic_order_cnt_type1: None,
             max_num_ref_frames: 4,
             gaps_in_frame_num_value_allowed_flag: false,
             pic_width_in_mbs_minus1: 239,
             pic_height_in_map_units_minus1: 134,
             frame_mbs_only_flag: true,
+            mb_adaptive_frame_field_flag: false,
             direct_8x8_inference_flag: true,
             frame_cropping_flag: false,
             frame_crop_left_offset: 0,
@@ -926,11 +1323,30 @@ mod tests {
             width: 3840,
             height: 2160,
             vui_parameters_present_flag: true,
+            aspect_ratio_info_present_flag: true,
+            sample_aspect_ratio: SarDimensions {
+                aspect_ratio_idc: AspectRatioIdc::Square,
+                sar_width: 0,
+                sar_height: 0,
+            },
+            overscan_info_present_flag: false,
+            overscan_appropriate_flag: None,
             video_signal_type_present_flag: false,
+            chroma_loc_info_present_flag: false,
+            chroma_sample_loc_type_top_field: 0,
+            chroma_sample_loc_type_bottom_field: 0,
             color_description_present_flag: false,
             color_config: None,
             timing_info_present_flag: true,
-            frame_rate: 60.0,
+            timing_info: TimingInfo {
+                num_units_in_tick: Some(
+                    1,
+                ),
+                time_scale: Some(
+                    120,
+                ),
+                frame_rate: 60.0,
+            },
         }
         ");
     }
@@ -966,11 +1382,16 @@ mod tests {
             ext: None,
             log2_max_frame_num_minus4: 11,
             pic_order_cnt_type: 0,
+            log2_max_pic_order_cnt_lsb_minus4: Some(
+                12,
+            ),
+            pic_order_cnt_type1: None,
             max_num_ref_frames: 1,
             gaps_in_frame_num_value_allowed_flag: false,
             pic_width_in_mbs_minus1: 39,
             pic_height_in_map_units_minus1: 29,
             frame_mbs_only_flag: true,
+            mb_adaptive_frame_field_flag: false,
             direct_8x8_inference_flag: false,
             frame_cropping_flag: false,
             frame_crop_left_offset: 0,
@@ -980,11 +1401,26 @@ mod tests {
             width: 640,
             height: 480,
             vui_parameters_present_flag: true,
+            aspect_ratio_info_present_flag: false,
+            sample_aspect_ratio: SarDimensions {
+                aspect_ratio_idc: AspectRatioIdc::Unspecified,
+                sar_width: 0,
+                sar_height: 0,
+            },
+            overscan_info_present_flag: false,
+            overscan_appropriate_flag: None,
             video_signal_type_present_flag: false,
+            chroma_loc_info_present_flag: false,
+            chroma_sample_loc_type_top_field: 0,
+            chroma_sample_loc_type_bottom_field: 0,
             color_description_present_flag: false,
             color_config: None,
             timing_info_present_flag: false,
-            frame_rate: 0.0,
+            timing_info: TimingInfo {
+                num_units_in_tick: None,
+                time_scale: None,
+                frame_rate: 0.0,
+            },
         }
         ");
     }
@@ -1031,11 +1467,14 @@ mod tests {
             ),
             log2_max_frame_num_minus4: 0,
             pic_order_cnt_type: 2,
+            log2_max_pic_order_cnt_lsb_minus4: None,
+            pic_order_cnt_type1: None,
             max_num_ref_frames: 3,
             gaps_in_frame_num_value_allowed_flag: false,
             pic_width_in_mbs_minus1: 119,
             pic_height_in_map_units_minus1: 67,
             frame_mbs_only_flag: true,
+            mb_adaptive_frame_field_flag: false,
             direct_8x8_inference_flag: true,
             frame_cropping_flag: true,
             frame_crop_left_offset: 0,
@@ -1045,10 +1484,22 @@ mod tests {
             width: 1920,
             height: 1080,
             vui_parameters_present_flag: true,
+            aspect_ratio_info_present_flag: true,
+            sample_aspect_ratio: SarDimensions {
+                aspect_ratio_idc: AspectRatioIdc::Square,
+                sar_width: 0,
+                sar_height: 0,
+            },
+            overscan_info_present_flag: false,
+            overscan_appropriate_flag: None,
             video_signal_type_present_flag: true,
+            chroma_loc_info_present_flag: false,
+            chroma_sample_loc_type_top_field: 0,
+            chroma_sample_loc_type_bottom_field: 0,
             color_description_present_flag: true,
             color_config: Some(
                 ColorConfig {
+                    video_format: VideoFormat::Unspecified,
                     video_full_range_flag: false,
                     color_primaries: 1,
                     transfer_characteristics: 1,
@@ -1056,7 +1507,15 @@ mod tests {
                 },
             ),
             timing_info_present_flag: true,
-            frame_rate: 60.0,
+            timing_info: TimingInfo {
+                num_units_in_tick: Some(
+                    1,
+                ),
+                time_scale: Some(
+                    120,
+                ),
+                frame_rate: 60.0,
+            },
         }
         ");
     }
@@ -1097,11 +1556,24 @@ mod tests {
             ext: None,
             log2_max_frame_num_minus4: 0,
             pic_order_cnt_type: 1,
+            log2_max_pic_order_cnt_lsb_minus4: None,
+            pic_order_cnt_type1: Some(
+                PicOrderCountType1 {
+                    delta_pic_order_always_zero_flag: false,
+                    offset_for_non_ref_pic: 0,
+                    offset_for_top_to_bottom_field: 0,
+                    num_ref_frames_in_pic_order_cnt_cycle: 1,
+                    offset_for_ref_frame: [
+                        0,
+                    ],
+                },
+            ),
             max_num_ref_frames: 0,
             gaps_in_frame_num_value_allowed_flag: false,
             pic_width_in_mbs_minus1: 39,
             pic_height_in_map_units_minus1: 29,
             frame_mbs_only_flag: true,
+            mb_adaptive_frame_field_flag: false,
             direct_8x8_inference_flag: true,
             frame_cropping_flag: false,
             frame_crop_left_offset: 0,
@@ -1111,11 +1583,26 @@ mod tests {
             width: 640,
             height: 480,
             vui_parameters_present_flag: false,
+            aspect_ratio_info_present_flag: false,
+            sample_aspect_ratio: SarDimensions {
+                aspect_ratio_idc: AspectRatioIdc::Unspecified,
+                sar_width: 0,
+                sar_height: 0,
+            },
+            overscan_info_present_flag: false,
+            overscan_appropriate_flag: None,
             video_signal_type_present_flag: false,
+            chroma_loc_info_present_flag: false,
+            chroma_sample_loc_type_top_field: 0,
+            chroma_sample_loc_type_bottom_field: 0,
             color_description_present_flag: false,
             color_config: None,
             timing_info_present_flag: false,
-            frame_rate: 0.0,
+            timing_info: TimingInfo {
+                num_units_in_tick: None,
+                time_scale: None,
+                frame_rate: 0.0,
+            },
         }
         ");
     }
@@ -1154,11 +1641,16 @@ mod tests {
             ext: None,
             log2_max_frame_num_minus4: 0,
             pic_order_cnt_type: 0,
+            log2_max_pic_order_cnt_lsb_minus4: Some(
+                0,
+            ),
+            pic_order_cnt_type1: None,
             max_num_ref_frames: 0,
             gaps_in_frame_num_value_allowed_flag: false,
             pic_width_in_mbs_minus1: 39,
             pic_height_in_map_units_minus1: 29,
             frame_mbs_only_flag: false,
+            mb_adaptive_frame_field_flag: false,
             direct_8x8_inference_flag: true,
             frame_cropping_flag: false,
             frame_crop_left_offset: 0,
@@ -1168,10 +1660,24 @@ mod tests {
             width: 640,
             height: 960,
             vui_parameters_present_flag: true,
+            aspect_ratio_info_present_flag: true,
+            sample_aspect_ratio: SarDimensions {
+                aspect_ratio_idc: AspectRatioIdc::ExtendedSar,
+                sar_width: 291,
+                sar_height: 1110,
+            },
+            overscan_info_present_flag: true,
+            overscan_appropriate_flag: Some(
+                false,
+            ),
             video_signal_type_present_flag: true,
+            chroma_loc_info_present_flag: true,
+            chroma_sample_loc_type_top_field: 0,
+            chroma_sample_loc_type_bottom_field: 0,
             color_description_present_flag: false,
             color_config: Some(
                 ColorConfig {
+                    video_format: VideoFormat::Component,
                     video_full_range_flag: false,
                     color_primaries: 2,
                     transfer_characteristics: 2,
@@ -1179,9 +1685,67 @@ mod tests {
                 },
             ),
             timing_info_present_flag: false,
-            frame_rate: 0.0,
+            timing_info: TimingInfo {
+                num_units_in_tick: None,
+                time_scale: None,
+                frame_rate: 0.0,
+            },
         }
         ");
+    }
+
+    #[test]
+    fn test_chroma_loc_info_present_flag_error() {
+        let mut sps = Vec::new();
+        let mut writer = BitWriter::new(&mut sps);
+
+        let _ = writer.write_all(&[0x07, 0x64, 0x00, 0x00]);
+        let _ = writer.write_bit(true);
+
+        // ext
+        let _ = writer.write_bit(true);
+        let _ = writer.write_bit(true);
+        let _ = writer.write_bit(true);
+        let _ = writer.write_bit(true);
+        let _ = writer.write_bit(false);
+
+        // log2
+        let _ = writer.write_bit(true);
+        let _ = writer.write_bit(true);
+        let _ = writer.write_bit(true);
+
+        // max num ref frames
+        let _ = writer.write_bit(true);
+        let _ = writer.write_bit(false);
+        let _ = writer.write_bit(true);
+        let _ = writer.write_bit(true);
+
+        // frame mbs only flag
+        let _ = writer.write_bit(true);
+
+        // direct8x8 and frame cropping
+        let _ = writer.write_bit(false);
+        let _ = writer.write_bit(false);
+
+        // enter vui
+        let _ = writer.write_bit(true);
+
+        let _ = writer.write_bit(false);
+        let _ = writer.write_bit(false);
+        let _ = writer.write_bit(false);
+        let _ = writer.write_bit(true);
+
+        let _ = writer.align();
+
+        let result = Sps::parse(sps.into());
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::InvalidData);
+        assert_eq!(
+            err.to_string(),
+            "chroma_loc_info_present_flag cannot be set to 1 when chroma_format_idc is not 1"
+        );
     }
 
     #[test]

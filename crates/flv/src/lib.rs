@@ -267,11 +267,16 @@ mod tests {
                 ),
                 log2_max_frame_num_minus4: 0,
                 pic_order_cnt_type: 0,
+                log2_max_pic_order_cnt_lsb_minus4: Some(
+                    4,
+                ),
+                pic_order_cnt_type1: None,
                 max_num_ref_frames: 4,
                 gaps_in_frame_num_value_allowed_flag: false,
                 pic_width_in_mbs_minus1: 239,
                 pic_height_in_map_units_minus1: 134,
                 frame_mbs_only_flag: true,
+                mb_adaptive_frame_field_flag: false,
                 direct_8x8_inference_flag: true,
                 frame_cropping_flag: false,
                 frame_crop_left_offset: 0,
@@ -281,11 +286,30 @@ mod tests {
                 width: 3840,
                 height: 2160,
                 vui_parameters_present_flag: true,
+                aspect_ratio_info_present_flag: true,
+                sample_aspect_ratio: SarDimensions {
+                    aspect_ratio_idc: AspectRatioIdc::Square,
+                    sar_width: 0,
+                    sar_height: 0,
+                },
+                overscan_info_present_flag: false,
+                overscan_appropriate_flag: None,
                 video_signal_type_present_flag: false,
+                chroma_loc_info_present_flag: false,
+                chroma_sample_loc_type_top_field: 0,
+                chroma_sample_loc_type_bottom_field: 0,
                 color_description_present_flag: false,
                 color_config: None,
                 timing_info_present_flag: true,
-                frame_rate: 60.0,
+                timing_info: TimingInfo {
+                    num_units_in_tick: Some(
+                        1,
+                    ),
+                    time_scale: Some(
+                        120,
+                    ),
+                    frame_rate: 60.0,
+                },
             }
             ");
         }
