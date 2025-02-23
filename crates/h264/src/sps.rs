@@ -1,4 +1,6 @@
-use std::{io, num::NonZeroU32};
+use std::io;
+use std::num::NonZeroU32;
+
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::Bytes;
 use scuffle_bytes_util::BitReader;
@@ -1761,8 +1763,6 @@ mod tests {
         ");
 
         assert_eq!(480.0, result.frame_rate());
-
-
     }
 
     #[test]
