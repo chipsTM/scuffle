@@ -125,7 +125,7 @@ def create_docs_jobs() -> list[Job]:
                 runner=LINUX_ARM64,
                 job_name=f"Docs (Linux arm64)",
                 job="docs",
-                ffmpeg=True,
+                ffmpeg=FfmpegSetup(),
                 inputs=DocsMatrix(
                     artifact_name=None,
                     deploy_docs=False,
@@ -152,7 +152,7 @@ def create_clippy_jobs() -> list[Job]:
             runner=LINUX_X86_64,
             job_name=f"Clippy (Linux x86_64)",
             job="clippy",
-            ffmpeg=True,
+            ffmpeg=FfmpegSetup(),
             inputs=ClippyMatrix(
                 powerset=is_brawl(),
             ),
@@ -172,7 +172,7 @@ def create_clippy_jobs() -> list[Job]:
                 runner=LINUX_ARM64,
                 job_name=f"Clippy (Linux arm64)",
                 job="clippy",
-                ffmpeg=True,
+                ffmpeg=FfmpegSetup(),
                 inputs=ClippyMatrix(
                     powerset=True,
                 ),
@@ -205,7 +205,7 @@ def create_test_jobs() -> list[Job]:
             runner=LINUX_X86_64,
             job_name=f"Test (Linux x86_64)",
             job="test",
-            ffmpeg=True,
+            ffmpeg=FfmpegSetup(),
             inputs=TestMatrix(
                 pr_number=pr_number(),
                 commit_sha=commit_sha,
@@ -226,7 +226,7 @@ def create_test_jobs() -> list[Job]:
                 runner=LINUX_ARM64,
                 job_name=f"Test (Linux arm64)",
                 job="test",
-                ffmpeg=True,
+                ffmpeg=FfmpegSetup(),
                 inputs=TestMatrix(
                     pr_number=pr_number(),
                     commit_sha=commit_sha,
@@ -253,7 +253,7 @@ def create_grind_jobs() -> list[Job]:
                 runner=LINUX_X86_64,
                 job_name=f"Grind (Linux x86_64)",
                 job="grind",
-                ffmpeg=True,
+                ffmpeg=FfmpegSetup(),
                 inputs=GrindMatrix(
                     env="X86_64_UNKNOWN_LINUX_GNU=valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log",
                 ),
@@ -271,7 +271,7 @@ def create_grind_jobs() -> list[Job]:
                 runner=LINUX_ARM64,
                 job_name=f"Grind (Linux arm64)",
                 job="grind",
-                ffmpeg=True,
+                ffmpeg=FfmpegSetup(),
                 inputs=GrindMatrix(
                     env="AARCH64_UNKNOWN_LINUX_GNU=valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log",
                 ),
@@ -295,7 +295,7 @@ def create_fmt_jobs() -> list[Job]:
             runner=GITHUB_DEFAULT_RUNNER,
             job_name=f"Fmt",
             job="fmt",
-            ffmpeg=True,
+            ffmpeg=FfmpegSetup(),
             inputs=FmtMatrix(),
             rust=RustSetup(
                 toolchain="nightly",
@@ -317,7 +317,7 @@ def create_hakari_jobs() -> list[Job]:
             runner=GITHUB_DEFAULT_RUNNER,
             job_name=f"Hakari",
             job="hakari",
-            ffmpeg=True,
+            ffmpeg=FfmpegSetup(),
             inputs=HakariMatrix(),
             rust=RustSetup(
                 toolchain="nightly",
