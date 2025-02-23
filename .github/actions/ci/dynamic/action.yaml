@@ -43,7 +43,8 @@ runs:
       id: run
       uses: ./.tmp-dynamic-uses
       with:
-        with: ${{ inputs.fields }}
+        with: |
+          ${{ inputs.fields }}
     - name: Cleanup
       if: always() && steps.run.outcome != 'success'
       shell: bash

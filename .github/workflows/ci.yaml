@@ -77,7 +77,8 @@ jobs:
         uses: ./.github/actions/ci/dynamic
         with:
           uses: ./.github/actions/ci/${{ matrix.job }}
-          with: ${{ toJson(matrix.inputs) }}
+          with: |
+            ${{ toJson(matrix.inputs) }}
 
   brawl-done:
     runs-on: ubuntu-24.04
