@@ -46,12 +46,12 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Setup FFmpeg
-        if: ${{ matrix.ffmpeg }}
+        if: ${{ matrix.ffmpeg != false }}
         uses: ./.github/actions/setup-ffmpeg
         with: ${{ matrix.ffmpeg }}
 
       - name: Setup Rust
-        if: ${{ matrix.rust }}
+        if: ${{ matrix.rust != false }}
         uses: ./.github/actions/setup-rust
         with: ${{ matrix.rust }}
 
