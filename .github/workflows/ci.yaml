@@ -64,7 +64,7 @@ jobs:
       - name: Setup Secrets
         if: ${{ matrix.secrets != null }}
         run: |
-          set -xeo pipefail
+          set -eo pipefail
           # Store all secrets as a JSON string in a bash variable.
           secrets='${{ toJson(secrets) }}'
 
@@ -75,6 +75,7 @@ jobs:
 
             # Export the secret as an environment variable for subsequent steps.
             echo "$secret=$value" >> $GITHUB_ENV
+            echo "Setting $secret to $value"
           done
 
       - uses: jenseng/dynamic-uses@v1
