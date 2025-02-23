@@ -37,13 +37,13 @@ runs:
           - name: Run
             id: run
             uses: ${{ inputs.uses }}
-            with: ${{ '$' }}{{ fromJson(inputs.fields) }}
+            with: ${{ '$' }}{{ fromJson(inputs.fields || '{}') }}
         DYNAMIC_USES_EOF
     - name: Run
       id: run
       uses: ./.tmp-dynamic-uses
       with:
-        with: ${{ inputs.fields || '{}' }}
+        with: ${{ inputs.fields }}
     - name: Cleanup
       if: always() && steps.run.outcome != 'success'
       shell: bash
