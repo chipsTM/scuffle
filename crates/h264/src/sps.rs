@@ -1,6 +1,4 @@
-use std::io;
-use std::num::NonZeroU32;
-
+use std::{io, num::NonZeroU32};
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::Bytes;
 use scuffle_bytes_util::BitReader;
@@ -48,6 +46,8 @@ pub struct Sps {
 
     /// `constraint_set0_flag`: `1` if it abides by the constraints in A.2.1, `0` if unsure or otherwise.
     ///
+    /// If `profile_idc` is 44, 100, 110, 122, or 244, this is automatically set to false.
+    ///
     /// It is a single bit. ISO/IEC-14496-10-2022 - 7.4.2.1.1
     ///
     /// Note that this crate does NOT use the `constraint_set0_flag` field for decoding.
@@ -57,6 +57,8 @@ pub struct Sps {
 
     /// `constraint_set1_flag`: `1` if it abides by the constraints in A.2.2, `0` if unsure or otherwise.
     ///
+    /// If `profile_idc` is 44, 100, 110, 122, or 244, this is automatically set to false.
+    ///
     /// It is a single bit. ISO/IEC-14496-10-2022 - 7.4.2.1.1
     ///
     /// Note that this crate does NOT use the `constraint_set1_flag` field for decoding.
@@ -65,6 +67,8 @@ pub struct Sps {
     pub constraint_set1_flag: bool,
 
     /// `constraint_set2_flag`: `1` if it abides by the constraints in A.2.3, `0` if unsure or otherwise.
+    ///
+    /// If `profile_idc` is 44, 100, 110, 122, or 244, this is automatically set to false.
     ///
     /// It is a single bit. ISO/IEC-14496-10-2022 - 7.4.2.1.1
     ///
@@ -822,12 +826,50 @@ impl Sps {
 
         let profile_idc = bit_reader.read_u8()?;
 
-        let constraint_set0_flag = bit_reader.read_bit()?;
-        let constraint_set1_flag = bit_reader.read_bit()?;
-        let constraint_set2_flag = bit_reader.read_bit()?;
-        let constraint_set3_flag = bit_reader.read_bit()?;
-        let constraint_set4_flag = bit_reader.read_bit()?;
-        let constraint_set5_flag = bit_reader.read_bit()?;
+        let constraint_set0_flag;
+        let constraint_set1_flag;
+        let constraint_set2_flag;
+
+        match profile_idc {
+            // 7.4.2.1.1
+            44 | 100 | 110 | 122 | 244 => {
+                // constraint_set0 thru 2 must be false in this case
+                let _ = bit_reader.seek_bits(3);
+                constraint_set0_flag = false;
+                constraint_set1_flag = false;
+                constraint_set2_flag = false;
+            }
+            _ => {
+                // otherwise we parse the bits as expected
+                constraint_set0_flag = bit_reader.read_bit()?;
+                constraint_set1_flag = bit_reader.read_bit()?;
+                constraint_set2_flag = bit_reader.read_bit()?;
+            }
+        }
+
+        let constraint_set3_flag = if profile_idc == 44 {
+            let _ = bit_reader.seek_bits(1);
+            false
+        } else {
+            bit_reader.read_bit()?
+        };
+
+        let constraint_set4_flag = match profile_idc {
+            // 7.4.2.1.1
+            77 | 88 | 100 | 118 | 128 | 134 => bit_reader.read_bit()?,
+            _ => {
+                let _ = bit_reader.seek_bits(1);
+                false
+            }
+        };
+
+        let constraint_set5_flag = match profile_idc {
+            77 | 88 | 100 | 118 => bit_reader.read_bit()?,
+            _ => {
+                let _ = bit_reader.seek_bits(1);
+                false
+            }
+        };
         // reserved_zero_2bits
         bit_reader.seek_bits(2)?;
 
@@ -854,6 +896,7 @@ impl Sps {
             let offset_for_non_ref_pic = bit_reader.read_signed_exp_golomb()?;
             let offset_for_top_to_bottom_field = bit_reader.read_signed_exp_golomb()?;
             let num_ref_frames_in_pic_order_cnt_cycle = bit_reader.read_exp_golomb()?;
+
             let mut offset_for_ref_frame = vec![];
             for _ in 0..num_ref_frames_in_pic_order_cnt_cycle {
                 offset_for_ref_frame.push(bit_reader.read_signed_exp_golomb()?);
@@ -898,8 +941,10 @@ impl Sps {
         let height = ((2 - frame_mbs_only_flag as u64) * (pic_height_in_map_units_minus1 + 1) * 16)
             - frame_crop_bottom_offset * 2
             - frame_crop_top_offset * 2;
+
         let vui_parameters_present_flag = bit_reader.read_bit()?;
 
+        // setting default values for vui section
         let mut aspect_ratio_info_present_flag = false;
         let mut sample_aspect_ratio = SarDimensions {
             aspect_ratio_idc: AspectRatioIdc(0), // defaults to 0 ISO/IEC-14496-10-2022 - E.2.1 Table E-1
@@ -985,6 +1030,7 @@ impl Sps {
             if sps_ext
                 .clone()
                 .unwrap_or(SpsExtended {
+                    // default values defined in 7.4.2.1.1
                     chroma_format_idc: 1,
                     separate_color_plane_flag: false,
                     bit_depth_luma_minus8: 0,
@@ -1212,17 +1258,22 @@ impl SpsExtended {
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
-    use std::io::{self, Write};
+    use std::io;
 
-    use bytes::Bytes;
-    use scuffle_bytes_util::{BitReader, BitWriter};
+    use scuffle_bytes_util::BitWriter;
+    use scuffle_expgolomb::BitWriterExpGolombExt;
 
-    use crate::sps::{Sps, SpsExtended};
+    use crate::sps::Sps;
 
     #[test]
     fn test_parse_sps_insufficient_bytes_() {
-        let sps = Bytes::from(vec![0xFF]);
-        let result = Sps::parse(sps);
+        let mut sps = Vec::new();
+        let mut writer = BitWriter::new(&mut sps);
+
+        let _ = writer.write_bit(true); // only write 1 bit
+        let _ = writer.finish();
+
+        let result = Sps::parse(sps.into());
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -1233,12 +1284,16 @@ mod tests {
 
     #[test]
     fn test_parse_sps_set_forbidden_bit() {
-        let sps = Bytes::from(vec![
-            0xFF, // forbidden bit is set
-            0xFF, // dummy data
-            0xFF, 0xFF,
-        ]);
-        let result = Sps::parse(sps);
+        let mut sps = Vec::new();
+        let mut writer = BitWriter::new(&mut sps);
+
+        let _ = writer.write_bit(true); // sets the forbidden bit
+        let _ = writer.write_bits(0x00, 8); // ensure length > 3 bytes
+        let _ = writer.write_bits(0x00, 8); // ensure length > 3 bytes
+        let _ = writer.write_bits(0x00, 8); // ensure length > 3 bytes
+        let _ = writer.finish();
+
+        let result = Sps::parse(sps.into());
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -1249,13 +1304,19 @@ mod tests {
 
     #[test]
     fn test_parse_sps_invalid_nal() {
-        let data = Bytes::from(vec![
-            // NAL Header: forbidden_zero_bit (0) + nal_ref_idc (11) + nal_unit_type (5 = non-SPS)
-            0x65, // 01100101 -> nal_unit_type = 5 (not 7, so invalid)
-            0xFF, // dummy data
-            0xFF, 0xFF,
-        ]);
-        let result = Sps::parse(data);
+        let mut sps = Vec::new();
+        let mut writer = BitWriter::new(&mut sps);
+
+        let _ = writer.write_bit(false); // forbidden zero bit must be unset
+        let _ = writer.write_bits(0b00, 2); // nal_ref_idc is 00
+        let _ = writer.write_bits(0b000, 3); // set nal_unit_type to something that isn't 7
+
+        let _ = writer.write_bits(0x00, 8); // ensure length > 3 bytes
+        let _ = writer.write_bits(0x00, 8); // ensure length > 3 bytes
+        let _ = writer.write_bits(0x00, 8); // ensure length > 3 bytes
+        let _ = writer.finish();
+
+        let result = Sps::parse(sps.into());
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -1265,24 +1326,114 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_sps_4k_60fps() {
-        let sps = Bytes::from(vec![
-            // NAL Header: forbidden_zero_bit (0), nal_ref_idc (11), nal_unit_type (7 = SPS)
-            0x67, // Profile IDC (High Profile = 100)
-            0x64, // Constraint flags and reserved bits
-            0x00, // Level IDC (51)
-            0x33, // Sequence Parameter Set ID, log2_max_frame_num_minus4, pic_order_cnt_type
-            0xAC, 0xCA, 0x50, 0x0F, // Reserved bits and emulation prevention
-            0x00, 0x10, 0xFB, 0x01, 0x10, // Frame dimensions: width = 3840, height = 2160
-            0x00, 0x00, 0x03, 0x00, 0x10, 0x00, 0x00, 0x07, 0x88, 0xF1, 0x83, 0x19, 0x60,
-        ]);
+    fn test_parse_sps_4k_144fps() {
+        let mut sps = Vec::new();
+        let mut writer = BitWriter::new(&mut sps);
 
-        let sps = Sps::parse(sps).unwrap();
+        // forbidden zero bit must be unset
+        let _ = writer.write_bit(false);
+        // nal_ref_idc is 0
+        let _ = writer.write_bits(0, 2);
+        // nal_unit_type must be 7
+        let _ = writer.write_bits(7, 5);
 
-        insta::assert_debug_snapshot!(sps, @r"
+        // profile_idc = 100
+        let _ = writer.write_bits(100, 8);
+        // constraint_setn_flags all false
+        let _ = writer.write_bits(0, 8);
+        // level_idc = 0
+        let _ = writer.write_bits(0, 8);
+
+        // seq_parameter_set_id is expg
+        let _ = writer.write_exp_golomb(0);
+
+        // sps ext
+        // chroma_format_idc is expg
+        let _ = writer.write_exp_golomb(0);
+        // bit_depth_luma_minus8 is expg
+        let _ = writer.write_exp_golomb(0);
+        // bit_depth_chroma_minus8 is expg
+        let _ = writer.write_exp_golomb(0);
+        // qpprime
+        let _ = writer.write_bit(false);
+        // seq_scaling_matrix_present_flag
+        let _ = writer.write_bit(false);
+
+        // back to sps
+        // log2_max_frame_num_minus4 is expg
+        let _ = writer.write_exp_golomb(0);
+        // pic_order_cnt_type is expg
+        let _ = writer.write_exp_golomb(0);
+        // log2_max_pic_order_cnt_lsb_minus4 is expg
+        let _ = writer.write_exp_golomb(0);
+
+        // max_num_ref_frames is expg
+        let _ = writer.write_exp_golomb(0);
+        // gaps_in_frame_num_value_allowed_flag
+        let _ = writer.write_bit(false);
+        // 3840 width:
+        // 3840 = (p + 1) * 16 - 2 * offset1 - 2 * offset2
+        // we set offset1 and offset2 to both be 0 later
+        // 3840 = (p + 1) * 16
+        // p = 239
+        let _ = writer.write_exp_golomb(239);
+        // we want 2160 height:
+        // 2160 = ((2 - m) * (p + 1) * 16) - 2 * offset1 - 2 * offset2
+        // we set offset1 and offset2 to both be 0 later
+        // m is frame_mbs_only_flag which we set to 1 later
+        // 2160 = (2 - 1) * (p + 1) * 16
+        // 2160 = (p + 1) * 16
+        // p = 134
+        let _ = writer.write_exp_golomb(134);
+
+        // frame_mbs_only_flag
+        let _ = writer.write_bit(true);
+
+        // direct_8x8_inference_flag
+        let _ = writer.write_bit(false);
+        // frame_cropping_flag
+        let _ = writer.write_bit(false);
+
+        // vui_parameters_present_flag
+        let _ = writer.write_bit(true);
+
+        // enter vui to set the framerate
+        // aspect_ratio_info_present_flag
+        let _ = writer.write_bit(true);
+        // we want square (1:1) for 16:9 for 4k w/o overscan
+        // aspect_ratio_idc
+        let _ = writer.write_bits(1, 8);
+
+        // overscan_info_present_flag
+        let _ = writer.write_bit(true);
+        // we dont want overscan
+        // overscan_appropriate_flag
+        let _ = writer.write_bit(false);
+
+        // video_signal_type_present_flag
+        let _ = writer.write_bit(false);
+        // chroma_loc_info_present_flag
+        let _ = writer.write_bit(false);
+
+        // timing_info_present_flag
+        let _ = writer.write_bit(true);
+        // we can set this to 100 for example
+        // num_units_in_tick is a u32
+        let _ = writer.write_bits(100, 32);
+        // fps = time_scale / (2 * num_units_in_tick)
+        // since we want 144 fps:
+        // 144 = time_scale / (2 * 100)
+        // 28800 = time_scale
+        // time_scale is a u32
+        let _ = writer.write_bits(28800, 32);
+        let _ = writer.finish();
+
+        let result = Sps::parse(sps.into()).unwrap();
+
+        insta::assert_debug_snapshot!(result, @r"
         Sps {
             forbidden_zero_bit: false,
-            nal_ref_idc: 3,
+            nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 100,
             constraint_set0_flag: false,
@@ -1291,11 +1442,11 @@ mod tests {
             constraint_set3_flag: false,
             constraint_set4_flag: false,
             constraint_set5_flag: false,
-            level_idc: 51,
+            level_idc: 0,
             seq_parameter_set_id: 0,
             ext: Some(
                 SpsExtended {
-                    chroma_format_idc: 1,
+                    chroma_format_idc: 0,
                     separate_color_plane_flag: false,
                     bit_depth_luma_minus8: 0,
                     bit_depth_chroma_minus8: 0,
@@ -1306,16 +1457,16 @@ mod tests {
             log2_max_frame_num_minus4: 0,
             pic_order_cnt_type: 0,
             log2_max_pic_order_cnt_lsb_minus4: Some(
-                4,
+                0,
             ),
             pic_order_cnt_type1: None,
-            max_num_ref_frames: 4,
+            max_num_ref_frames: 0,
             gaps_in_frame_num_value_allowed_flag: false,
             pic_width_in_mbs_minus1: 239,
             pic_height_in_map_units_minus1: 134,
             frame_mbs_only_flag: true,
             mb_adaptive_frame_field_flag: false,
-            direct_8x8_inference_flag: true,
+            direct_8x8_inference_flag: false,
             frame_cropping_flag: false,
             frame_crop_left_offset: 0,
             frame_crop_right_offset: 0,
@@ -1330,8 +1481,10 @@ mod tests {
                 sar_width: 0,
                 sar_height: 0,
             },
-            overscan_info_present_flag: false,
-            overscan_appropriate_flag: None,
+            overscan_info_present_flag: true,
+            overscan_appropriate_flag: Some(
+                false,
+            ),
             video_signal_type_present_flag: false,
             chroma_loc_info_present_flag: false,
             chroma_sample_loc_type_top_field: 0,
@@ -1341,220 +1494,208 @@ mod tests {
             timing_info_present_flag: true,
             timing_info: TimingInfo {
                 num_units_in_tick: Some(
-                    1,
+                    100,
                 ),
                 time_scale: Some(
-                    120,
+                    28800,
                 ),
-                frame_rate: 60.0,
+                frame_rate: 144.0,
             },
         }
         ");
+        assert_eq!(144.0, result.frame_rate());
     }
 
     #[test]
-    fn test_parse_sps_480p_0fps() {
-        let sps = Bytes::from(vec![
-            // NAL Header: nal_unit_type (7 = SPS)
-            0x67, // Profile IDC (Baseline = 66)
-            0x42, // Constraint flags and reserved bits
-            0xC0, // Level IDC (31)
-            0x1F, // Sequence Parameter Set ID, log2_max_frame_num_minus4, pic_order_cnt_type
-            0x8C, 0x8D, 0x40, 0x50, // Frame dimensions: width = 640, height = 480
-            0x1E, 0x90, 0x0F, 0x08, 0x84, 0x6A,
-        ]);
+    fn test_parse_sps_1080_480fps_scaling_matrix() {
+        let mut sps = Vec::new();
+        let mut writer = BitWriter::new(&mut sps);
 
-        let sps = Sps::parse(sps).unwrap();
+        // forbidden zero bit must be unset
+        let _ = writer.write_bit(false);
+        // nal_ref_idc is 0
+        let _ = writer.write_bits(0, 2);
+        // nal_unit_type must be 7
+        let _ = writer.write_bits(7, 5);
 
-        insta::assert_debug_snapshot!(sps, @r"
+        // profile_idc = 44
+        let _ = writer.write_bits(44, 8);
+        // constraint_setn_flags all false
+        let _ = writer.write_bits(0, 8);
+        // level_idc = 0
+        let _ = writer.write_bits(0, 8);
+        // seq_parameter_set_id is expg
+        let _ = writer.write_exp_golomb(0);
+
+        // sps ext
+        // we want to try out chroma_format_idc = 3
+        // chroma_format_idc is expg
+        let _ = writer.write_exp_golomb(3);
+        // separate_color_plane_flag
+        let _ = writer.write_bit(false);
+        // bit_depth_luma_minus8 is expg
+        let _ = writer.write_exp_golomb(0);
+        // bit_depth_chroma_minus8 is expg
+        let _ = writer.write_exp_golomb(0);
+        // qpprime
+        let _ = writer.write_bit(false);
+        // we want to simulate a scaling matrix
+        // seq_scaling_matrix_present_flag
+        let _ = writer.write_bit(true);
+
+        // enter scaling matrix, we loop 12 times since
+        // chroma_format_idc = 3.
+        // loop 1 of 12
+        // true to enter if statement
+        let _ = writer.write_bit(true);
+        // i < 6, so size is 16, so we loop 16 times
+        // sub-loop 1 of 16
+        // delta_scale is a SIGNED expg so we can try out
+        // entering -4 so next_scale becomes 8 + 4 = 12
+        let _ = writer.write_signed_exp_golomb(4);
+        // sub-loop 2 of 16
+        // delta_scale is a SIGNED expg so we can try out
+        // entering -12 so next scale becomes 12 - 12 = 0
+        let _ = writer.write_signed_exp_golomb(-12);
+        // at this point next_scale is 0, which means we break
+        // loop 2 through 12
+        // we don't need to try anything else so we can just skip through them by writing `0` bit 11 times.
+        let _ = writer.write_bits(0, 11);
+
+        // back to sps
+        // log2_max_frame_num_minus4 is expg
+        let _ = writer.write_exp_golomb(0);
+        // we can try setting pic_order_cnt_type to 1
+        // pic_order_cnt_type is expg
+        let _ = writer.write_exp_golomb(1);
+
+        // delta_pic_order_always_zero_flag
+        let _ = writer.write_bit(false);
+        // offset_for_non_ref_pic
+        let _ = writer.write_bit(true);
+        // offset_for_top_to_bottom_field
+        let _ = writer.write_bit(true);
+        // num_ref_frames_in_pic_order_cnt_cycle is expg
+        let _ = writer.write_exp_golomb(1);
+        // loop num_ref_frames_in_pic_order_cnt_cycle times (1)
+        // offset_for_ref_frame is expg
+        let _ = writer.write_exp_golomb(0);
+
+        // max_num_ref_frames is expg
+        let _ = writer.write_exp_golomb(0);
+        // gaps_in_frame_num_value_allowed_flag
+        let _ = writer.write_bit(false);
+        // 1920 width:
+        // 1920 = (p + 1) * 16 - 2 * offset1 - 2 * offset2
+        // we set offset1 and offset2 to both be 4 later
+        // 1920 = (p + 1) * 16 - 2 * 4 - 2 * 4
+        // 1920 = (p + 1) * 16 - 16
+        // p = 120
+        // pic_width_in_mbs_minus1 is expg
+        let _ = writer.write_exp_golomb(120);
+        // we want 1080 height:
+        // 1080 = ((2 - m) * (p + 1) * 16) - 2 * offset1 - 2 * offset2
+        // we set offset1 and offset2 to both be 2 later
+        // m is frame_mbs_only_flag which we set to 0 later
+        // 1080 = (2 - 0) * (p + 1) * 16 - 2 * 2 - 2 * 2
+        // 1080 = 2 * (p + 1) * 16 - 8
+        // p = 33
+        // pic_height_in_map_units_minus1 is expg
+        let _ = writer.write_exp_golomb(33);
+
+        // frame_mbs_only_flag
+        let _ = writer.write_bit(false);
+        // mb_adaptive_frame_field_flag
+        let _ = writer.write_bit(false);
+
+        // direct_8x8_inference_flag
+        let _ = writer.write_bit(false);
+        // frame_cropping_flag
+        let _ = writer.write_bit(true);
+
+        // frame_crop_left_offset is expg
+        let _ = writer.write_exp_golomb(4);
+        // frame_crop_left_offset is expg
+        let _ = writer.write_exp_golomb(4);
+        // frame_crop_left_offset is expg
+        let _ = writer.write_exp_golomb(2);
+        // frame_crop_left_offset is expg
+        let _ = writer.write_exp_golomb(2);
+
+        // vui_parameters_present_flag
+        let _ = writer.write_bit(true);
+
+        // enter vui to set the framerate
+        // aspect_ratio_info_present_flag
+        let _ = writer.write_bit(true);
+        // we can try 255 to set the sar_width and sar_height
+        // aspect_ratio_idc
+        let _ = writer.write_bits(255, 8);
+        // sar_width
+        let _ = writer.write_bits(0, 16);
+        // sar_height
+        let _ = writer.write_bits(0, 16);
+
+        // overscan_info_present_flag
+        let _ = writer.write_bit(false);
+
+        // video_signal_type_present_flag
+        let _ = writer.write_bit(true);
+        // video_format
+        let _ = writer.write_bits(0, 3);
+        // video_full_range_flag
+        let _ = writer.write_bit(false);
+        // color_description_present_flag
+        let _ = writer.write_bit(true);
+        // color_primaries
+        let _ = writer.write_bits(1, 8);
+        // transfer_characteristics
+        let _ = writer.write_bits(1, 8);
+        // matrix_coefficients
+        let _ = writer.write_bits(1, 8);
+
+        // chroma_loc_info_present_flag
+        let _ = writer.write_bit(false);
+
+        // timing_info_present_flag
+        let _ = writer.write_bit(true);
+        // we can set this to 1000 for example
+        // num_units_in_tick is a u32
+        let _ = writer.write_bits(1000, 32);
+        // fps = time_scale / (2 * num_units_in_tick)
+        // since we want 480 fps:
+        // 480 = time_scale / (2 * 1000)
+        // 960 000 = time_scale
+        // time_scale is a u32
+        let _ = writer.write_bits(960000, 32);
+        let _ = writer.finish();
+
+        let result = Sps::parse(sps.into()).unwrap();
+
+        insta::assert_debug_snapshot!(result, @r"
         Sps {
             forbidden_zero_bit: false,
-            nal_ref_idc: 3,
+            nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
-            profile_idc: 66,
-            constraint_set0_flag: true,
-            constraint_set1_flag: true,
-            constraint_set2_flag: false,
-            constraint_set3_flag: false,
-            constraint_set4_flag: false,
-            constraint_set5_flag: false,
-            level_idc: 31,
-            seq_parameter_set_id: 0,
-            ext: None,
-            log2_max_frame_num_minus4: 11,
-            pic_order_cnt_type: 0,
-            log2_max_pic_order_cnt_lsb_minus4: Some(
-                12,
-            ),
-            pic_order_cnt_type1: None,
-            max_num_ref_frames: 1,
-            gaps_in_frame_num_value_allowed_flag: false,
-            pic_width_in_mbs_minus1: 39,
-            pic_height_in_map_units_minus1: 29,
-            frame_mbs_only_flag: true,
-            mb_adaptive_frame_field_flag: false,
-            direct_8x8_inference_flag: false,
-            frame_cropping_flag: false,
-            frame_crop_left_offset: 0,
-            frame_crop_right_offset: 0,
-            frame_crop_top_offset: 0,
-            frame_crop_bottom_offset: 0,
-            width: 640,
-            height: 480,
-            vui_parameters_present_flag: true,
-            aspect_ratio_info_present_flag: false,
-            sample_aspect_ratio: SarDimensions {
-                aspect_ratio_idc: AspectRatioIdc::Unspecified,
-                sar_width: 0,
-                sar_height: 0,
-            },
-            overscan_info_present_flag: false,
-            overscan_appropriate_flag: None,
-            video_signal_type_present_flag: false,
-            chroma_loc_info_present_flag: false,
-            chroma_sample_loc_type_top_field: 0,
-            chroma_sample_loc_type_bottom_field: 0,
-            color_description_present_flag: false,
-            color_config: None,
-            timing_info_present_flag: false,
-            timing_info: TimingInfo {
-                num_units_in_tick: None,
-                time_scale: None,
-                frame_rate: 0.0,
-            },
-        }
-        ");
-    }
-
-    #[test]
-    fn test_parse_sps_1080p_60fps_with_color_config() {
-        let sps = Bytes::from(vec![
-            // NAL Header: nal_unit_type (7 = SPS)
-            0x67, // Profile IDC (High Profile = 100)
-            0x64, // Constraint flags and reserved bits
-            0x00, // Level IDC (42)
-            0x2A, // Sequence Parameter Set ID, log2_max_frame_num_minus4, pic_order_cnt_type
-            0xAC, 0xB2, 0x00, 0xF0, // Color configuration present
-            0x04, 0x4F, 0xCB, 0x80, 0xB5, 0x01, 0x01, 0x01, 0x40,
-            // Emulation prevention bytes removal and frame rate
-            0x00, 0x00, 0x03, 0x00, 0x40, 0x00, 0x00, 0x1E, 0x23, 0xC6, 0x0C, 0x92,
-        ]);
-
-        let sps = Sps::parse(sps).unwrap();
-
-        insta::assert_debug_snapshot!(sps, @r"
-        Sps {
-            forbidden_zero_bit: false,
-            nal_ref_idc: 3,
-            nal_unit_type: NALUnitType::SPS,
-            profile_idc: 100,
+            profile_idc: 44,
             constraint_set0_flag: false,
             constraint_set1_flag: false,
             constraint_set2_flag: false,
             constraint_set3_flag: false,
             constraint_set4_flag: false,
             constraint_set5_flag: false,
-            level_idc: 42,
+            level_idc: 0,
             seq_parameter_set_id: 0,
             ext: Some(
                 SpsExtended {
-                    chroma_format_idc: 1,
+                    chroma_format_idc: 3,
                     separate_color_plane_flag: false,
                     bit_depth_luma_minus8: 0,
                     bit_depth_chroma_minus8: 0,
                     qpprime_y_zero_transform_bypass_flag: false,
-                    seq_scaling_matrix_present_flag: false,
+                    seq_scaling_matrix_present_flag: true,
                 },
             ),
-            log2_max_frame_num_minus4: 0,
-            pic_order_cnt_type: 2,
-            log2_max_pic_order_cnt_lsb_minus4: None,
-            pic_order_cnt_type1: None,
-            max_num_ref_frames: 3,
-            gaps_in_frame_num_value_allowed_flag: false,
-            pic_width_in_mbs_minus1: 119,
-            pic_height_in_map_units_minus1: 67,
-            frame_mbs_only_flag: true,
-            mb_adaptive_frame_field_flag: false,
-            direct_8x8_inference_flag: true,
-            frame_cropping_flag: true,
-            frame_crop_left_offset: 0,
-            frame_crop_right_offset: 0,
-            frame_crop_top_offset: 0,
-            frame_crop_bottom_offset: 4,
-            width: 1920,
-            height: 1080,
-            vui_parameters_present_flag: true,
-            aspect_ratio_info_present_flag: true,
-            sample_aspect_ratio: SarDimensions {
-                aspect_ratio_idc: AspectRatioIdc::Square,
-                sar_width: 0,
-                sar_height: 0,
-            },
-            overscan_info_present_flag: false,
-            overscan_appropriate_flag: None,
-            video_signal_type_present_flag: true,
-            chroma_loc_info_present_flag: false,
-            chroma_sample_loc_type_top_field: 0,
-            chroma_sample_loc_type_bottom_field: 0,
-            color_description_present_flag: true,
-            color_config: Some(
-                ColorConfig {
-                    video_format: VideoFormat::Unspecified,
-                    video_full_range_flag: false,
-                    color_primaries: 1,
-                    transfer_characteristics: 1,
-                    matrix_coefficients: 1,
-                },
-            ),
-            timing_info_present_flag: true,
-            timing_info: TimingInfo {
-                num_units_in_tick: Some(
-                    1,
-                ),
-                time_scale: Some(
-                    120,
-                ),
-                frame_rate: 60.0,
-            },
-        }
-        ");
-    }
-
-    #[test]
-    fn test_parse_sps_pic_order_cnt_type_set() {
-        let sps = bytes::Bytes::from(vec![
-            // NAL header, profile (66), constraint flags + reserved bits, level idc (31)
-            0x67, 0x42, 0xC0, 0x1F, 0xD3, 0x58, // sps_id (0), log2_max_frame_num_minus4 (0)
-            0x14, // pic_order_cnt_type (1)
-            0x07, // delta_pic_order_always_zero_flag (0) and offset_for_non_ref_pic (0)
-            // offset_for_top_to_bottom_field (0) and num_ref_frames... (1) and offset_for_ref_frame (0)
-            0xB0,
-            // max_num_ref_frames (0) and gaps_in_frame_num_value_allowed_flag (0) and begins pic_width_in_mbs_minus1 (39)
-            0x1E, 0x90, // pic_width_in_mbs_minus1 encoding (39, so width = 40 * 16 = 640)
-            0x0F, // pic_height_in_map_units_minus1 = 29 (so height = 30 * 16 = 480)
-            0x08, // frame_mbs_only_flag = 1
-            0x84, // direct_8x8_inference_flag = 1; frame_cropping_flag = 0
-            0x6A, // vui_parameters_present_flag = 0; end of SPS data
-        ]);
-
-        let sps = crate::sps::Sps::parse(sps).unwrap();
-
-        insta::assert_debug_snapshot!(sps, @r"
-        Sps {
-            forbidden_zero_bit: false,
-            nal_ref_idc: 3,
-            nal_unit_type: NALUnitType::SPS,
-            profile_idc: 66,
-            constraint_set0_flag: true,
-            constraint_set1_flag: true,
-            constraint_set2_flag: false,
-            constraint_set3_flag: false,
-            constraint_set4_flag: false,
-            constraint_set5_flag: false,
-            level_idc: 31,
-            seq_parameter_set_id: 0,
-            ext: None,
             log2_max_frame_num_minus4: 0,
             pic_order_cnt_type: 1,
             log2_max_pic_order_cnt_lsb_minus4: None,
@@ -1571,18 +1712,442 @@ mod tests {
             ),
             max_num_ref_frames: 0,
             gaps_in_frame_num_value_allowed_flag: false,
-            pic_width_in_mbs_minus1: 39,
-            pic_height_in_map_units_minus1: 29,
+            pic_width_in_mbs_minus1: 120,
+            pic_height_in_map_units_minus1: 33,
+            frame_mbs_only_flag: false,
+            mb_adaptive_frame_field_flag: false,
+            direct_8x8_inference_flag: false,
+            frame_cropping_flag: true,
+            frame_crop_left_offset: 4,
+            frame_crop_right_offset: 4,
+            frame_crop_top_offset: 2,
+            frame_crop_bottom_offset: 2,
+            width: 1920,
+            height: 1080,
+            vui_parameters_present_flag: true,
+            aspect_ratio_info_present_flag: true,
+            sample_aspect_ratio: SarDimensions {
+                aspect_ratio_idc: AspectRatioIdc::ExtendedSar,
+                sar_width: 0,
+                sar_height: 0,
+            },
+            overscan_info_present_flag: false,
+            overscan_appropriate_flag: None,
+            video_signal_type_present_flag: true,
+            chroma_loc_info_present_flag: false,
+            chroma_sample_loc_type_top_field: 0,
+            chroma_sample_loc_type_bottom_field: 0,
+            color_description_present_flag: true,
+            color_config: Some(
+                ColorConfig {
+                    video_format: VideoFormat::Component,
+                    video_full_range_flag: false,
+                    color_primaries: 1,
+                    transfer_characteristics: 1,
+                    matrix_coefficients: 1,
+                },
+            ),
+            timing_info_present_flag: true,
+            timing_info: TimingInfo {
+                num_units_in_tick: Some(
+                    1000,
+                ),
+                time_scale: Some(
+                    960000,
+                ),
+                frame_rate: 480.0,
+            },
+        }
+        ");
+
+        assert_eq!(480.0, result.frame_rate());
+
+
+    }
+
+    #[test]
+    fn test_parse_sps_1280x800_0fps() {
+        let mut sps = Vec::new();
+        let mut writer = BitWriter::new(&mut sps);
+
+        // forbidden zero bit must be unset
+        let _ = writer.write_bit(false);
+        // nal_ref_idc is 0
+        let _ = writer.write_bits(0, 2);
+        // nal_unit_type must be 7
+        let _ = writer.write_bits(7, 5);
+
+        // profile_idc = 77
+        let _ = writer.write_bits(77, 8);
+        // constraint_setn_flags all false
+        let _ = writer.write_bits(0, 8);
+        // level_idc = 0
+        let _ = writer.write_bits(0, 8);
+
+        // seq_parameter_set_id is expg
+        let _ = writer.write_exp_golomb(0);
+
+        // profile_idc = 77 means we skip the sps_ext
+        // log2_max_frame_num_minus4 is expg
+        let _ = writer.write_exp_golomb(0);
+        // pic_order_cnt_type is expg
+        let _ = writer.write_exp_golomb(0);
+        // log2_max_pic_order_cnt_lsb_minus4
+        let _ = writer.write_exp_golomb(0);
+
+        // max_num_ref_frames is expg
+        let _ = writer.write_exp_golomb(0);
+        // gaps_in_frame_num_value_allowed_flag
+        let _ = writer.write_bit(false);
+        // 1280 width:
+        // 1280 = (p + 1) * 16 - 2 * offset1 - 2 * offset2
+        // we set offset1 and offset2 to both be 0 later
+        // 1280 = (p + 1) * 16
+        // p = 79
+        let _ = writer.write_exp_golomb(79);
+        // we want 800 height:
+        // 800 = ((2 - m) * (p + 1) * 16) - 2 * offset1 - 2 * offset2
+        // we set offset1 and offset2 to both be 0 later
+        // m is frame_mbs_only_flag which we set to 1 later
+        // 800 = (2 - 1) * (p + 1) * 16 - 2 * 0 - 2 * 0
+        // 800 = (p + 1) * 16
+        // p = 49
+        let _ = writer.write_exp_golomb(49);
+
+        // frame_mbs_only_flag
+        let _ = writer.write_bit(true);
+
+        // direct_8x8_inference_flag
+        let _ = writer.write_bit(false);
+        // frame_cropping_flag
+        let _ = writer.write_bit(false);
+
+        // vui_parameters_present_flag
+        let _ = writer.write_bit(true);
+
+        // enter vui to set the framerate
+        // aspect_ratio_info_present_flag
+        let _ = writer.write_bit(false);
+
+        // overscan_info_present_flag
+        let _ = writer.write_bit(false);
+
+        // video_signal_type_present_flag
+        let _ = writer.write_bit(true);
+        // video_format
+        let _ = writer.write_bits(0, 3);
+        // video_full_range_flag
+        let _ = writer.write_bit(false);
+        // color_description_present_flag
+        let _ = writer.write_bit(false);
+
+        // chroma_loc_info_present_flag
+        let _ = writer.write_bit(true);
+        // chroma_sample_loc_type_top_field is expg
+        let _ = writer.write_exp_golomb(2);
+        // chroma_sample_loc_type_bottom_field is expg
+        let _ = writer.write_exp_golomb(2);
+        let _ = writer.finish();
+
+        let result = Sps::parse(sps.into()).unwrap();
+
+        insta::assert_debug_snapshot!(result, @r"
+        Sps {
+            forbidden_zero_bit: false,
+            nal_ref_idc: 0,
+            nal_unit_type: NALUnitType::SPS,
+            profile_idc: 77,
+            constraint_set0_flag: false,
+            constraint_set1_flag: false,
+            constraint_set2_flag: false,
+            constraint_set3_flag: false,
+            constraint_set4_flag: false,
+            constraint_set5_flag: false,
+            level_idc: 0,
+            seq_parameter_set_id: 0,
+            ext: None,
+            log2_max_frame_num_minus4: 0,
+            pic_order_cnt_type: 0,
+            log2_max_pic_order_cnt_lsb_minus4: Some(
+                0,
+            ),
+            pic_order_cnt_type1: None,
+            max_num_ref_frames: 0,
+            gaps_in_frame_num_value_allowed_flag: false,
+            pic_width_in_mbs_minus1: 79,
+            pic_height_in_map_units_minus1: 49,
             frame_mbs_only_flag: true,
             mb_adaptive_frame_field_flag: false,
-            direct_8x8_inference_flag: true,
+            direct_8x8_inference_flag: false,
             frame_cropping_flag: false,
             frame_crop_left_offset: 0,
             frame_crop_right_offset: 0,
             frame_crop_top_offset: 0,
             frame_crop_bottom_offset: 0,
-            width: 640,
-            height: 480,
+            width: 1280,
+            height: 800,
+            vui_parameters_present_flag: true,
+            aspect_ratio_info_present_flag: false,
+            sample_aspect_ratio: SarDimensions {
+                aspect_ratio_idc: AspectRatioIdc::Unspecified,
+                sar_width: 0,
+                sar_height: 0,
+            },
+            overscan_info_present_flag: false,
+            overscan_appropriate_flag: None,
+            video_signal_type_present_flag: true,
+            chroma_loc_info_present_flag: true,
+            chroma_sample_loc_type_top_field: 2,
+            chroma_sample_loc_type_bottom_field: 2,
+            color_description_present_flag: false,
+            color_config: Some(
+                ColorConfig {
+                    video_format: VideoFormat::Component,
+                    video_full_range_flag: false,
+                    color_primaries: 2,
+                    transfer_characteristics: 2,
+                    matrix_coefficients: 2,
+                },
+            ),
+            timing_info_present_flag: false,
+            timing_info: TimingInfo {
+                num_units_in_tick: None,
+                time_scale: None,
+                frame_rate: 0.0,
+            },
+        }
+        ");
+
+        assert_eq!(0.0, result.frame_rate());
+    }
+
+    #[test]
+    fn test_parse_sps_chroma_loc_info_error() {
+        let mut sps = Vec::new();
+        let mut writer = BitWriter::new(&mut sps);
+
+        // forbidden zero bit must be unset
+        let _ = writer.write_bit(false);
+        // nal_ref_idc is 0
+        let _ = writer.write_bits(0, 2);
+        // nal_unit_type must be 7
+        let _ = writer.write_bits(7, 5);
+
+        // profile_idc = 100
+        let _ = writer.write_bits(100, 8);
+        // constraint_setn_flags all false
+        let _ = writer.write_bits(0, 8);
+        // level_idc = 0
+        let _ = writer.write_bits(0, 8);
+
+        // seq_parameter_set_id is expg
+        let _ = writer.write_exp_golomb(0);
+
+        // ext
+        // chroma_format_idc is expg
+        let _ = writer.write_exp_golomb(0);
+        // bit_depth_luma_minus8 is expg
+        let _ = writer.write_exp_golomb(0);
+        // bit_depth_chroma_minus8 is expg
+        let _ = writer.write_exp_golomb(0);
+        // qpprime
+        let _ = writer.write_bit(false);
+        // seq_scaling_matrix_present_flag
+        let _ = writer.write_bit(false);
+
+        // return to sps
+        // log2_max_frame_num_minus4 is expg
+        let _ = writer.write_exp_golomb(0);
+        // pic_order_cnt_type is expg
+        let _ = writer.write_exp_golomb(0);
+        // log2_max_pic_order_cnt_lsb_minus4
+        let _ = writer.write_exp_golomb(0);
+
+        // max_num_ref_frames is expg
+        let _ = writer.write_exp_golomb(0);
+        // gaps_in_frame_num_value_allowed_flag
+        let _ = writer.write_bit(false);
+        // 1280 width:
+        // 1280 = (p + 1) * 16 - 2 * offset1 - 2 * offset2
+        // we set offset1 and offset2 to both be 0 later
+        // 1280 = (p + 1) * 16
+        // p = 79
+        let _ = writer.write_exp_golomb(79);
+        // we want 800 height:
+        // 800 = ((2 - m) * (p + 1) * 16) - 2 * offset1 - 2 * offset2
+        // we set offset1 and offset2 to both be 0 later
+        // m is frame_mbs_only_flag which we set to 1 later
+        // 800 = (2 - 1) * (p + 1) * 16 - 2 * 0 - 2 * 0
+        // 800 = 2 * (p + 1) * 16 - 8
+        // p = 33
+        let _ = writer.write_exp_golomb(33);
+
+        // frame_mbs_only_flag
+        let _ = writer.write_bit(false);
+        // mb_adaptive_frame_field_flag
+        let _ = writer.write_bit(false);
+
+        // direct_8x8_inference_flag
+        let _ = writer.write_bit(false);
+        // frame_cropping_flag
+        let _ = writer.write_bit(false);
+
+        // vui_parameters_present_flag
+        let _ = writer.write_bit(true);
+
+        // enter vui to set the framerate
+        // aspect_ratio_info_present_flag
+        let _ = writer.write_bit(false);
+
+        // overscan_info_present_flag
+        let _ = writer.write_bit(false);
+
+        // video_signal_type_present_flag
+        let _ = writer.write_bit(true);
+        // video_format
+        let _ = writer.write_bits(0, 3);
+        // video_full_range_flag
+        let _ = writer.write_bit(false);
+        // color_description_present_flag
+        let _ = writer.write_bit(false);
+
+        // chroma_loc_info_present_flag
+        let _ = writer.write_bit(true);
+        let _ = writer.finish();
+
+        let result = Sps::parse(sps.into());
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::InvalidData);
+        assert_eq!(
+            err.to_string(),
+            "chroma_loc_info_present_flag cannot be set to 1 when chroma_format_idc is not 1"
+        );
+    }
+
+    #[test]
+    fn test_parse_sps_no_vui() {
+        let mut sps = Vec::new();
+        let mut writer = BitWriter::new(&mut sps);
+
+        // forbidden zero bit must be unset
+        let _ = writer.write_bit(false);
+        // nal_ref_idc is 0
+        let _ = writer.write_bits(0, 2);
+        // nal_unit_type must be 7
+        let _ = writer.write_bits(7, 5);
+
+        // profile_idc = 77
+        let _ = writer.write_bits(77, 8);
+        // constraint_setn_flags all false
+        let _ = writer.write_bits(0, 8);
+        // level_idc = 0
+        let _ = writer.write_bits(0, 8);
+
+        // seq_parameter_set_id is expg so 0b1 (true) = false
+        let _ = writer.write_bit(true);
+
+        // skip sps ext since profile_idc = 77
+        // log2_max_frame_num_minus4 is expg so 0b1 (true) = false
+        let _ = writer.write_bit(true);
+        // we can try setting pic_order_cnt_type to 2
+        let _ = writer.write_exp_golomb(2);
+
+        // delta_pic_order_always_zero_flag
+        let _ = writer.write_bit(false);
+        // offset_for_non_ref_pic
+        let _ = writer.write_bit(true);
+        // offset_for_top_to_bottom_field
+        let _ = writer.write_bit(true);
+        // num_ref_frames_in_pic_order_cnt_cycle is expg so 0b010 = 1
+        let _ = writer.write_bits(0b010, 3);
+        // loop num_ref_frames_in_pic_order_cnt_cycle times (1)
+        // offset_for_ref_frame is expg so 0b1 (true) = false
+        let _ = writer.write_bit(true);
+
+        // max_num_ref_frames is expg so 0b1 (true) = false
+        let _ = writer.write_bit(true);
+        // gaps_in_frame_num_value_allowed_flag
+        let _ = writer.write_bit(false);
+        // 1920 width:
+        // 1920 = (p + 1) * 16 - 2 * offset1 - 2 * offset2
+        // we set offset1 and offset2 to both be 4 later
+        // 1920 = (p + 1) * 16 - 2 * 4 - 2 * 4
+        // 1920 = (p + 1) * 16 - 16
+        // p = 120
+        // pic_width_in_mbs_minus1 is expg so:
+        // 0 0000 0111 1001
+        let _ = writer.write_bits(0b0000001111001, 13);
+        // we want 1080 height:
+        // 1080 = ((2 - m) * (p + 1) * 16) - 2 * offset1 - 2 * offset2
+        // we set offset1 and offset2 to both be 2 later
+        // m is frame_mbs_only_flag which we set to 0 later
+        // 1080 = (2 - 0) * (p + 1) * 16 - 2 * 2 - 2 * 2
+        // 1080 = 2 * (p + 1) * 16 - 8
+        // p = 33
+        // pic_height_in_map_units_minus1 is expg so:
+        // 000 0010 0010
+        let _ = writer.write_bits(0b00000100010, 11);
+
+        // frame_mbs_only_flag
+        let _ = writer.write_bit(false);
+        // mb_adaptive_frame_field_flag
+        let _ = writer.write_bit(false);
+
+        // direct_8x8_inference_flag
+        let _ = writer.write_bit(false);
+        // frame_cropping_flag
+        let _ = writer.write_bit(true);
+
+        // frame_crop_left_offset is expg
+        let _ = writer.write_bits(0b00101, 5);
+        // frame_crop_left_offset is expg
+        let _ = writer.write_bits(0b00101, 5);
+        // frame_crop_left_offset is expg
+        let _ = writer.write_bits(0b011, 3);
+        // frame_crop_left_offset is expg
+        let _ = writer.write_bits(0b011, 3);
+
+        // vui_parameters_present_flag
+        let _ = writer.write_bit(false);
+        let _ = writer.finish();
+
+        let result = Sps::parse(sps.into()).unwrap();
+
+        insta::assert_debug_snapshot!(result, @r"
+        Sps {
+            forbidden_zero_bit: false,
+            nal_ref_idc: 0,
+            nal_unit_type: NALUnitType::SPS,
+            profile_idc: 77,
+            constraint_set0_flag: false,
+            constraint_set1_flag: false,
+            constraint_set2_flag: false,
+            constraint_set3_flag: false,
+            constraint_set4_flag: false,
+            constraint_set5_flag: false,
+            level_idc: 0,
+            seq_parameter_set_id: 0,
+            ext: None,
+            log2_max_frame_num_minus4: 0,
+            pic_order_cnt_type: 2,
+            log2_max_pic_order_cnt_lsb_minus4: None,
+            pic_order_cnt_type1: None,
+            max_num_ref_frames: 2,
+            gaps_in_frame_num_value_allowed_flag: false,
+            pic_width_in_mbs_minus1: 0,
+            pic_height_in_map_units_minus1: 2,
+            frame_mbs_only_flag: false,
+            mb_adaptive_frame_field_flag: false,
+            direct_8x8_inference_flag: false,
+            frame_cropping_flag: false,
+            frame_crop_left_offset: 0,
+            frame_crop_right_offset: 0,
+            frame_crop_top_offset: 0,
+            frame_crop_bottom_offset: 0,
+            width: 16,
+            height: 96,
             vui_parameters_present_flag: false,
             aspect_ratio_info_present_flag: false,
             sample_aspect_ratio: SarDimensions {
@@ -1604,200 +2169,6 @@ mod tests {
                 time_scale: None,
                 frame_rate: 0.0,
             },
-        }
-        ");
-    }
-
-    #[test]
-    fn test_parse_sps_vui_and_interlaced() {
-        let sps = bytes::Bytes::from(vec![
-            // NAL header, profile idc = 66, constraint flags and reserved bits, level idc = 31
-            0x67, 0x42, 0x00, 0x1F, 0xF8, // first bits of pic_width_in_mbs_minus1
-            0x14, // next 8 bits of pic_width_in_mbs_minus1
-            // remainder of pic_width_in_mbs_minus1 + first 7 bits of pic_height_in_map_units_minus1
-            0x07,
-            // last bits of pic_height_in_map_units_minus1 + flags (frame_mbs_only_flag, etc.) + VUI start bits
-            0x8B, 0xFF, // aspect_ratio_idc = 255
-            0x01, 0x23, // sar_width high byte (0x0123)
-            0x04, 0x56, // sar_height high byte (0x0456)
-            0xA0, // overscan and video signal type flags
-            0xE0, // chroma loc info and timing flag (plus padding)
-        ]);
-        let sps = Sps::parse(sps).unwrap();
-
-        insta::assert_debug_snapshot!(sps, @r"
-        Sps {
-            forbidden_zero_bit: false,
-            nal_ref_idc: 3,
-            nal_unit_type: NALUnitType::SPS,
-            profile_idc: 66,
-            constraint_set0_flag: false,
-            constraint_set1_flag: false,
-            constraint_set2_flag: false,
-            constraint_set3_flag: false,
-            constraint_set4_flag: false,
-            constraint_set5_flag: false,
-            level_idc: 31,
-            seq_parameter_set_id: 0,
-            ext: None,
-            log2_max_frame_num_minus4: 0,
-            pic_order_cnt_type: 0,
-            log2_max_pic_order_cnt_lsb_minus4: Some(
-                0,
-            ),
-            pic_order_cnt_type1: None,
-            max_num_ref_frames: 0,
-            gaps_in_frame_num_value_allowed_flag: false,
-            pic_width_in_mbs_minus1: 39,
-            pic_height_in_map_units_minus1: 29,
-            frame_mbs_only_flag: false,
-            mb_adaptive_frame_field_flag: false,
-            direct_8x8_inference_flag: true,
-            frame_cropping_flag: false,
-            frame_crop_left_offset: 0,
-            frame_crop_right_offset: 0,
-            frame_crop_top_offset: 0,
-            frame_crop_bottom_offset: 0,
-            width: 640,
-            height: 960,
-            vui_parameters_present_flag: true,
-            aspect_ratio_info_present_flag: true,
-            sample_aspect_ratio: SarDimensions {
-                aspect_ratio_idc: AspectRatioIdc::ExtendedSar,
-                sar_width: 291,
-                sar_height: 1110,
-            },
-            overscan_info_present_flag: true,
-            overscan_appropriate_flag: Some(
-                false,
-            ),
-            video_signal_type_present_flag: true,
-            chroma_loc_info_present_flag: true,
-            chroma_sample_loc_type_top_field: 0,
-            chroma_sample_loc_type_bottom_field: 0,
-            color_description_present_flag: false,
-            color_config: Some(
-                ColorConfig {
-                    video_format: VideoFormat::Component,
-                    video_full_range_flag: false,
-                    color_primaries: 2,
-                    transfer_characteristics: 2,
-                    matrix_coefficients: 2,
-                },
-            ),
-            timing_info_present_flag: false,
-            timing_info: TimingInfo {
-                num_units_in_tick: None,
-                time_scale: None,
-                frame_rate: 0.0,
-            },
-        }
-        ");
-    }
-
-    #[test]
-    fn test_chroma_loc_info_present_flag_error() {
-        let mut sps = Vec::new();
-        let mut writer = BitWriter::new(&mut sps);
-
-        let _ = writer.write_all(&[0x07, 0x64, 0x00, 0x00]);
-        let _ = writer.write_bit(true);
-
-        // ext
-        let _ = writer.write_bit(true);
-        let _ = writer.write_bit(true);
-        let _ = writer.write_bit(true);
-        let _ = writer.write_bit(true);
-        let _ = writer.write_bit(false);
-
-        // log2
-        let _ = writer.write_bit(true);
-        let _ = writer.write_bit(true);
-        let _ = writer.write_bit(true);
-
-        // max num ref frames
-        let _ = writer.write_bit(true);
-        let _ = writer.write_bit(false);
-        let _ = writer.write_bit(true);
-        let _ = writer.write_bit(true);
-
-        // frame mbs only flag
-        let _ = writer.write_bit(true);
-
-        // direct8x8 and frame cropping
-        let _ = writer.write_bit(false);
-        let _ = writer.write_bit(false);
-
-        // enter vui
-        let _ = writer.write_bit(true);
-
-        let _ = writer.write_bit(false);
-        let _ = writer.write_bit(false);
-        let _ = writer.write_bit(false);
-        let _ = writer.write_bit(true);
-
-        let _ = writer.align();
-
-        let result = Sps::parse(sps.into());
-
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert_eq!(err.kind(), io::ErrorKind::InvalidData);
-        assert_eq!(
-            err.to_string(),
-            "chroma_loc_info_present_flag cannot be set to 1 when chroma_format_idc is not 1"
-        );
-    }
-
-    #[test]
-    fn test_parse_sps_ext_chroma_format_3() {
-        let sps = Bytes::from_static(&[
-            0x67, 0x64, 0x00, 0x1F, // NAL/profile/constraints/level
-            0x91, 0x9E, 0xF0, // chroma_format_idc=3
-        ]);
-
-        let result = Sps::parse(sps).expect("Failed to parse SPS");
-        assert_eq!(result.profile_idc, 100);
-
-        let ext = result.ext.expect("Expected SpsExtended, got None");
-        assert_eq!(ext.chroma_format_idc, 3);
-
-        assert_eq!(ext.bit_depth_luma_minus8, 0);
-        assert_eq!(ext.bit_depth_chroma_minus8, 0);
-    }
-
-    #[test]
-    fn test_parse_sps_ext_scaling_matrix() {
-        let data = Bytes::from(vec![0x23, 0x7F, 0xFF, 0xE0, 0x00]);
-        let mut reader = BitReader::new_from_slice(data);
-        let ext = SpsExtended::parse(&mut reader).unwrap();
-
-        insta::assert_debug_snapshot!(ext, @r"
-        SpsExtended {
-            chroma_format_idc: 3,
-            separate_color_plane_flag: false,
-            bit_depth_luma_minus8: 0,
-            bit_depth_chroma_minus8: 0,
-            qpprime_y_zero_transform_bypass_flag: false,
-            seq_scaling_matrix_present_flag: true,
-        }
-        ");
-    }
-
-    #[test]
-    fn test_parse_sps_ext_break() {
-        let data = Bytes::from(vec![0x5B, 0x08, 0x80]);
-        let mut reader = BitReader::new_from_slice(data);
-        let ext = SpsExtended::parse(&mut reader).unwrap();
-
-        insta::assert_debug_snapshot!(ext, @r"
-        SpsExtended {
-            chroma_format_idc: 1,
-            separate_color_plane_flag: false,
-            bit_depth_luma_minus8: 0,
-            bit_depth_chroma_minus8: 0,
-            qpprime_y_zero_transform_bypass_flag: false,
-            seq_scaling_matrix_present_flag: true,
         }
         ");
     }
