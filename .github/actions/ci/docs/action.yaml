@@ -16,15 +16,18 @@ runs:
   using: "composite"
   steps:
     - name: Build docs
+      shell: bash
       run: |
         set -xeo pipefail
         cargo doc --no-deps --all-features
 
     - name: Insert custom html for PR
       if: ${{ inputs.pr_number }}
+      shell: bash
       run: .github/scripts/patch-docs.sh ${{ github.event.repository.html_url }} ${{ env.SHA }} ${{ inputs.pr_number }}
 
     - name: Insert custom html for merge
+      shell: bash
       run: .github/scripts/patch-docs.sh ${{ github.event.repository.html_url }} ${{ env.SHA }}
 
     - name: Upload docs

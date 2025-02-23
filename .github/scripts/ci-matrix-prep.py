@@ -158,7 +158,7 @@ def create_clippy_jobs() -> list[Job]:
             ),
             rust=RustSetup(
                 toolchain="nightly",
-                components="rust-clippy",
+                components="clippy",
                 shared_key="clippy-linux-x86_64",
                 tools="cargo-nextest,cargo-llvm-cov",
                 cache_backend="ubicloud",
@@ -178,7 +178,7 @@ def create_clippy_jobs() -> list[Job]:
                 ),
                 rust=RustSetup(
                     toolchain="nightly",
-                    components="rust-clippy",
+                    components="clippy",
                     shared_key="clippy-linux-arm64",
                     tools="cargo-nextest,cargo-llvm-cov",
                     cache_backend="ubicloud",
