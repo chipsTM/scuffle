@@ -17,6 +17,8 @@ runs:
   steps:
     - name: Build docs
       shell: bash
+      env:
+        RUSTDOCFLAGS: "-Dwarnings --cfg docsrs --enable-index-page -Zunstable-options"
       run: |
         set -xeo pipefail
         cargo doc --no-deps --all-features
