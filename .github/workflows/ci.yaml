@@ -52,12 +52,12 @@ jobs:
           ref: ${{ env.SHA }}
 
       - name: Setup FFmpeg
-        if: ${{ matrix.ffmpeg != false }}
+        if: ${{ matrix.ffmpeg != null }}
         uses: ./.github/actions/setup-ffmpeg
         with: ${{ matrix.ffmpeg }}
 
       - name: Setup Rust
-        if: ${{ matrix.rust != false }}
+        if: ${{ matrix.rust != null }}
         uses: ./.github/actions/setup-rust
         with: ${{ matrix.rust }}
 

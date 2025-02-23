@@ -49,6 +49,10 @@ class RustSetup:
     tools: str = ""
     cache_backend: str = "ubicloud"
 
+@dataclass
+class FfmpegSetup:
+    version: Optional[str] = None
+    arch: Optional[str] = None
 
 @dataclass
 class DocsMatrix:
@@ -56,39 +60,33 @@ class DocsMatrix:
     deploy_docs: bool
     pr_number: Optional[int]
 
-
 @dataclass
 class ClippyMatrix:
     powerset: bool
-
 
 @dataclass
 class TestMatrix:
     pr_number: Optional[int]
     commit_sha: str
 
-
 @dataclass
 class GrindMatrix:
     env: str
-
 
 @dataclass
 class FmtMatrix:
     pass
 
-
 @dataclass
 class HakariMatrix:
     pass
-
 
 @dataclass
 class Job:
     runner: str
     job_name: str
-    rust: RustSetup
-    ffmpeg: bool
+    rust: Optional[RustSetup]
+    ffmpeg: Optional[FfmpegSetup]
     inputs: (
         GrindMatrix | DocsMatrix | ClippyMatrix | TestMatrix | FmtMatrix | HakariMatrix
     )
@@ -103,7 +101,7 @@ def create_docs_jobs() -> list[Job]:
             runner=LINUX_X86_64,
             job_name="Docs (Linux x86_64)",
             job="docs",
-            ffmpeg=True,
+            ffmpeg=FfmpegSetup(),
             inputs=DocsMatrix(
                 artifact_name="docs",
                 # if its brawl merge, we don't want to deploy docs
