@@ -1,4 +1,5 @@
-use std::{io, num::NonZeroU32};
+use std::io;
+use std::num::NonZeroU32;
 
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::Bytes;
@@ -922,7 +923,7 @@ impl Sps {
         let mut timing_info = TimingInfo {
             num_units_in_tick: None,
             time_scale: None,
-            frame_rate: 0.0
+            frame_rate: 0.0,
         };
 
         if vui_parameters_present_flag {
@@ -1012,12 +1013,12 @@ impl Sps {
                 let time_scale = NonZeroU32::new(bit_reader.read_u32::<BigEndian>()?);
 
                 let frame_rate = time_scale.expect("`time_scale` is 0").get() as f64
-                / (2.0 * num_units_in_tick.expect("`num_units_in_tick` is 0").get() as f64);
+                    / (2.0 * num_units_in_tick.expect("`num_units_in_tick` is 0").get() as f64);
 
                 timing_info = TimingInfo {
                     num_units_in_tick,
                     time_scale,
-                    frame_rate
+                    frame_rate,
                 }
             }
         }
