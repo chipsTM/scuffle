@@ -38,12 +38,13 @@ jobs:
         id: compute
 
   clippy:
-    name: Clippy
+    name: ${{ matrix.job_name || 'Clippy' }}
     needs: matrix_prep
+    if: ${{ fromJson(needs.matrix_prep.outputs.matrix).clippy }}
     strategy:
       matrix:
         include: ${{ fromJson(needs.matrix_prep.outputs.matrix).clippy }}
-    runs-on: ${{ matrix.clippy.os }}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -54,17 +55,17 @@ jobs:
 
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
-        with: ${{ matrix.clippy.rust }}
+        with: ${{ matrix.rust }}
 
       - name: Disable Hakari
         run: cargo hakari disable
 
       - name: Run Clippy
-        if: ${{ !matrix.clippy.powerset }}
-        run: cargo +${{ matrix.clippy.rust.toolchain }} clippy -Z unstable-options --all-features --all-targets --no-deps -- -Dwarnings
+        if: ${{ !matrix.powerset }}
+        run: cargo +${{ matrix.rust.toolchain }} clippy -Z unstable-options --all-features --all-targets --no-deps -- -Dwarnings
 
       - name: Run Clippy on Powerset
-        if: ${{ matrix.clippy.powerset }}
+        if: ${{ matrix.powerset }}
         run: just powerset clippy -- --all-targets --no-deps -Z unstable-options -- -Dwarnings
 
   fmt:
@@ -113,8 +114,9 @@ jobs:
           cargo +${{ env.RUST_TOOLCHAIN }} hakari verify
 
   test:
-    name: Test
+    name: ${{ matrix.job_name || 'Test' }}
     needs: matrix_prep
+    if: ${{ fromJson(needs.matrix_prep.outputs.matrix).test }}
     strategy:
       matrix:
         include: ${{ fromJson(needs.matrix_prep.outputs.matrix).test }}
@@ -131,7 +133,7 @@ jobs:
 
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
-        with: ${{ matrix.test.rust }}
+        with: ${{ matrix.rust }}
 
       # Note; we don't run the powerset here because it's very slow on CI
       # Perhaps we should consider it at some point.
@@ -140,17 +142,17 @@ jobs:
       # Once it fully works we can add the `--doctests` flag to the test and report command again.
       - name: Run tests
         run: |
-          cargo +${{ matrix.test.rust.toolchain }} llvm-cov nextest --no-fail-fast --all-features --profile ci --no-report
-          cargo +${{ matrix.test.rust.toolchain }} llvm-cov test --all-features --doc --no-report
-          cargo +${{ matrix.test.rust.toolchain }} llvm-cov report --lcov --output-path ./lcov.info
+          cargo +${{ matrix.rust.toolchain }} llvm-cov nextest --no-fail-fast --all-features --profile ci --no-report
+          cargo +${{ matrix.rust.toolchain }} llvm-cov test --all-features --doc --no-report
+          cargo +${{ matrix.rust.toolchain }} llvm-cov report --lcov --output-path ./lcov.info
 
       - uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true
           files: ./lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
-          override_pr: ${{ matrix.test.pr_number }}
-          override_commit: ${{ matrix.test.commit_sha }}
+          override_pr: ${{ matrix.pr_number }}
+          override_commit: ${{ matrix.commit_sha }}
           verbose: true
 
       - name: Upload test results to Codecov
@@ -159,12 +161,13 @@ jobs:
         with:
           files: ./target/nextest/ci/junit.xml
           token: ${{ secrets.CODECOV_TOKEN }}
-          override_pr: ${{ matrix.test.pr_number }}
-          override_commit: ${{ matrix.test.commit_sha }}
+          override_pr: ${{ matrix.pr_number }}
+          override_commit: ${{ matrix.commit_sha }}
 
   grind:
-    name: Grind
+    name: ${{ matrix.job_name || 'Grind' }}
     needs: matrix_prep
+    if: ${{ fromJson(needs.matrix_prep.outputs.matrix).grind }}
     strategy:
       matrix:
         include: ${{ fromJson(needs.matrix_prep.outputs.matrix).grind }}
@@ -181,7 +184,7 @@ jobs:
 
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
-        with: ${{ matrix.grind.rust }}
+        with: ${{ matrix.rust }}
 
       - name: Install Valgrind
         run: |
@@ -192,11 +195,11 @@ jobs:
       - name: Run valgrind
         run: |
           set -xeo pipefail
-          export CARGO_TARGET_${{ matrix.grind.target }}_RUNNER="${{ matrix.grind.valgrind }} --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind-supressions/${{ matrix.grind.target }}.log"
-          cargo +${{ matrix.grind.rust.toolchain }} nextest run --all-features --no-fail-fast --profile ci
+          export CARGO_TARGET_${{ matrix.target }}_RUNNER="${{ matrix.valgrind }} --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind-supressions/${{ matrix.target }}.log"
+          cargo +${{ matrix.rust.toolchain }} nextest run --all-features --no-fail-fast --profile ci
 
   docs:
-    name: ${{ matrix.full_name }}
+    name: ${{ matrix.job_name || 'Docs' }}
     needs: matrix_prep
     strategy:
       matrix:
