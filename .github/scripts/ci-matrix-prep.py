@@ -70,7 +70,7 @@ class TestMatrix:
 
 @dataclass
 class GrindMatrix:
-    env: dict[str, str]
+    env: str
 
 @dataclass
 class FmtMatrix:
@@ -257,9 +257,9 @@ def create_grind_jobs() -> list[Job]:
                 job="grind",
                 ffmpeg=FfmpegSetup(),
                 inputs=GrindMatrix(
-                    env={
+                    env=json.dumps({
                         "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER": "valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log",
-                    },
+                    }),
                 ),
                 rust=RustSetup(
                     toolchain="nightly",
@@ -277,9 +277,9 @@ def create_grind_jobs() -> list[Job]:
                 job="grind",
                 ffmpeg=FfmpegSetup(),
                 inputs=GrindMatrix(
-                    env={
+                    env=json.dumps({
                         "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUNNER": "valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log",
-                    },
+                    }),
                 ),
                 rust=RustSetup(
                     toolchain="nightly",

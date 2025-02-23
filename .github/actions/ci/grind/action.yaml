@@ -21,7 +21,7 @@ runs:
       shell: bash
       run: |
         set -eo pipefail
-        env_json='${{ toJson(inputs.env) }}'
+        env_json='${{ inputs.env }}'
         for key in $(echo "$env_json" | jq -r 'keys[]'); do
             value=$(echo "$env_json" | jq -r --arg key "$key" '.[$key]')
             echo "$key=$value" >> $GITHUB_ENV
