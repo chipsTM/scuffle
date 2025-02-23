@@ -20,6 +20,7 @@ runs:
 
     - name: Determine File
       id: file
+      shell: bash
       run: |
         set -xeo pipefail
 

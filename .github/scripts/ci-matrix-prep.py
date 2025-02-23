@@ -295,7 +295,7 @@ def create_fmt_jobs() -> list[Job]:
             runner=GITHUB_DEFAULT_RUNNER,
             job_name=f"Fmt",
             job="fmt",
-            ffmpeg=FfmpegSetup(),
+            ffmpeg=None,
             inputs=FmtMatrix(),
             rust=RustSetup(
                 toolchain="nightly",
@@ -317,7 +317,7 @@ def create_hakari_jobs() -> list[Job]:
             runner=GITHUB_DEFAULT_RUNNER,
             job_name=f"Hakari",
             job="hakari",
-            ffmpeg=FfmpegSetup(),
+            ffmpeg=None,
             inputs=HakariMatrix(),
             rust=RustSetup(
                 toolchain="nightly",
