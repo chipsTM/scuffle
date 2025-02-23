@@ -27,7 +27,7 @@ jobs:
     name: Matrix Prep
     runs-on: ubuntu-24.04
     outputs:
-      matrix: ${{ steps.compute.outputs.matrix }}
+      matrix: ${{ fromJson(steps.compute.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,7 +42,7 @@ jobs:
     needs: matrix_prep
     strategy:
       matrix:
-        include: ${{ fromJson(needs.matrix_prep.outputs.matrix.clippy) }}
+        include: ${{ needs.matrix_prep.outputs.matrix.clippy }}
     runs-on: ${{ matrix.clippy.os }}
     steps:
       - uses: actions/checkout@v4
@@ -117,7 +117,7 @@ jobs:
     needs: matrix_prep
     strategy:
       matrix:
-        include: ${{ fromJson(needs.matrix_prep.outputs.matrix.test) }}
+        include: ${{ needs.matrix_prep.outputs.matrix.test }}
     runs-on: ${{ matrix.os }}
     env:
       RUSTFLAGS: "--cfg reqwest_unstable"
@@ -200,7 +200,7 @@ jobs:
     needs: matrix_prep
     strategy:
       matrix:
-        include: ${{ fromJson(needs.matrix_prep.outputs.matrix.docs) }}
+        include: ${{ needs.matrix_prep.outputs.matrix.docs }}
     runs-on: ${{ matrix.docs.os }}
     permissions:
       pull-requests: write
