@@ -36,7 +36,7 @@ jobs:
       - name: Run matrix prep
         run: |
           set -xeo pipefail
-          python3 .github/scripts/ci-matrix-prep.py '${{ toJson(github) }}' | tee -a $GITHUB_OUTPUT
+          python3 .github/scripts/ci-matrix-prep.py '${{ toJson(github) }}' '${{ toJson(secrets) }}' | tee -a $GITHUB_OUTPUT
         id: compute
 
   jobs:

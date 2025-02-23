@@ -7,11 +7,11 @@ from dataclasses import dataclass, asdict
 
 # The first argument is the github context
 GITHUB_CONTEXT = json.loads(sys.argv[1])
+SECRETS = json.loads(sys.argv[2])
 
 GITHUB_DEFAULT_RUNNER = "ubuntu-24.04"
 LINUX_X86_64 = "ubicloud-standard-8"
 LINUX_ARM64 = "ubicloud-standard-8-arm"
-
 
 def is_brawl(mode: Optional[str] = None) -> bool:
     if mode is None:
@@ -57,8 +57,10 @@ class FfmpegSetup:
 @dataclass
 class DocsMatrix:
     artifact_name: Optional[str]
-    deploy_docs: bool
     pr_number: Optional[int]
+    deploy_docs: bool
+    cf_docs_api_key: Optional[str]
+    cf_docs_account_id: Optional[str]
 
 @dataclass
 class ClippyMatrix:
@@ -108,6 +110,8 @@ def create_docs_jobs() -> list[Job]:
                 # since that will be deployed after the merge is successful
                 deploy_docs=not is_brawl("merge"),
                 pr_number=pr_number(),
+                cf_docs_api_key=SECRETS["CF_DOCS_API_KEY"],
+                cf_docs_account_id=SECRETS["CF_DOCS_ACCOUNT_ID"],
             ),
             rust=RustSetup(
                 toolchain="nightly",
@@ -130,6 +134,8 @@ def create_docs_jobs() -> list[Job]:
                     artifact_name=None,
                     deploy_docs=False,
                     pr_number=pr_number(),
+                    cf_docs_api_key=None,
+                    cf_docs_account_id=None,
                 ),
                 rust=RustSetup(
                     toolchain="nightly",
@@ -160,7 +166,7 @@ def create_clippy_jobs() -> list[Job]:
                 toolchain="nightly",
                 components="clippy",
                 shared_key="clippy-linux-x86_64",
-                tools="cargo-nextest,cargo-llvm-cov",
+                tools="cargo-nextest,cargo-llvm-cov,cargo-hakari",
                 cache_backend="ubicloud",
             ),
         )
@@ -180,7 +186,7 @@ def create_clippy_jobs() -> list[Job]:
                     toolchain="nightly",
                     components="clippy",
                     shared_key="clippy-linux-arm64",
-                    tools="cargo-nextest,cargo-llvm-cov",
+                    tools="cargo-nextest,cargo-llvm-cov,cargo-hakari",
                     cache_backend="ubicloud",
                 ),
             )

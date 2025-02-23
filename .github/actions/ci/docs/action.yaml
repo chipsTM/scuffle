@@ -12,6 +12,12 @@ inputs:
   deploy_docs:
     description: "Whether to deploy the docs"
     required: false
+  cf_docs_api_key:
+    description: "The Cloudflare API key"
+    required: false
+  cf_docs_account_id:
+    description: "The Cloudflare account ID"
+    required: false
 runs:
   using: "composite"
   steps:
@@ -41,6 +47,6 @@ runs:
       if: ${{ inputs.deploy_docs }}
       uses: cloudflare/wrangler-action@v3
       with:
-        apiToken: ${{ secrets.CF_DOCS_API_KEY }}
-        accountId: ${{ secrets.CF_DOCS_ACCOUNT_ID }}
+        apiToken: ${{ inputs.cf_docs_api_key }}
+        accountId: ${{ inputs.cf_docs_account_id }}
         command: pages deploy --project-name=scuffle-docrs --branch=pr/${{ inputs.pr_number }} --commit-hash=${{ env.SHA }} --commit-dirty=true ./target/doc
