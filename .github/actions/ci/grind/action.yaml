@@ -22,7 +22,7 @@ runs:
       run: |
         set -eo pipefail
         env_json=$(cat <<ENV_END_OF_FILE
-        ${inputs.env}
+        ${{ inputs.env}}
         ENV_END_OF_FILE
         )
         for key in $(echo "$env_json" | jq -r 'keys[]'); do
