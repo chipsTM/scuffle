@@ -6,7 +6,16 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Fail if not Linux
+      shell: bash
+      if: ${{ runner.os != 'Linux' }}
+      run: |
+        echo "::error::This action only supports Linux runners for now."
+        exit 1
+
     - name: Install Valgrind
+      shell: bash
+      if: ${{ runner.os == 'Linux' }}
       env:
         VALGRIND_VERSION: master
         INSTALL_PATH: /usr/local
