@@ -4,6 +4,11 @@ inputs:
   arch:
     description: "The architecture the runner is running on"
     required: false
+    default: ${{ runner.arch }}
+  os:
+    description: "The operating system the runner is running on"
+    required: false
+    default: ${{ runner.os }}
   version:
     description: "The version of FFmpeg to install"
     required: false
@@ -24,32 +29,58 @@ runs:
       run: |
         set -xeo pipefail
 
-        ARCH='${{ inputs.arch }}'
-        if [[ -z "$ARCH" ]]; then
-          ARCH=$(uname -m)
-        fi
+        ARCH='${{ inputs.arch || runner.arch }}'
+        OS='${{ inputs.os || runner.os }}'
 
         case "$ARCH" in
-          x86_64) FF_ARCH="linux64" ;;
-          aarch64) FF_ARCH="linuxarm64" ;;
+          x86_64|amd64|X64) FF_ARCH="64" ;;
+          aarch64|arm64|ARM64) FF_ARCH="arm64" ;;
           *) echo "Unsupported architecture: $ARCH" && exit 1 ;;
         esac
 
+        case "$OS" in
+          linux|Linux|LINUX) FF_OS="linux" && FF_EXT="tar.xz" ;;
+          windows|Windows|WINDOWS) FF_OS="win" && FF_EXT="zip" ;;
+          *) echo "Unsupported operating system: $OS" && exit 1 ;;
+        esac
+
         case "${{ inputs.version || '7.1' }}" in
-          "7.1") FILE="ffmpeg-n7.1-latest-${FF_ARCH}-gpl-shared-7.1.tar.xz" ;;
-          "6.1") FILE="ffmpeg-n6.1-latest-${FF_ARCH}-gpl-shared-6.1.tar.xz" ;;
-          "master") FILE="ffmpeg-master-latest-${FF_ARCH}-gpl-shared.tar.xz" ;;
+          "7.1") FILE="ffmpeg-n7.1-latest-${FF_OS}${FF_ARCH}-gpl-shared-7.1.${FF_EXT}" ;;
+          "6.1") FILE="ffmpeg-n6.1-latest-${FF_OS}${FF_ARCH}-gpl-shared-6.1.${FF_EXT}" ;;
+          "master") FILE="ffmpeg-master-latest-${FF_OS}${FF_ARCH}-gpl-shared.${FF_EXT}" ;;
           *) echo "Unsupported version: ${{ inputs.version }}" && exit 1 ;;
         esac
 
         FF_URL="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/${FILE}"
 
         echo "Downloading FFmpeg from $FF_URL"
-        curl -L "$FF_URL" -o ffmpeg.tar.xz
-        tar -xvf ffmpeg.tar.xz
 
-        sudo mv ffmpeg-*/include/* /usr/local/include
-        sudo mv ffmpeg-*/lib/* /usr/local/lib
-        sudo mv ffmpeg-*/bin/* /usr/local/bin
-        sudo rm -rf ffmpeg-* ffmpeg.tar.xz
-        sudo ldconfig
+        case "${{ runner.os }}" in
+          Linux)
+            curl -L "$FF_URL" -o ffmpeg.${FF_EXT}
+            tar -xvf ffmpeg.${FF_EXT}
+            sudo mv ffmpeg-*/include/* /usr/local/include
+            sudo mv ffmpeg-*/lib/* /usr/local/lib
+            sudo mv ffmpeg-*/bin/* /usr/local/bin
+            sudo rm -rf ffmpeg-* ffmpeg.${FF_EXT}
+            sudo ldconfig
+            export FFMPEG_ROOT="/usr/local"
+          Windows)
+            curl -L "$FF_URL" -o ffmpeg.zip
+            unzip ffmpeg.zip
+            mkdir -p C:/ffmpeg/{include,lib,bin}
+            mv ffmpeg-*/include/* C:/ffmpeg/include
+            mv ffmpeg-*/lib/* C:/ffmpeg/lib
+            mv ffmpeg-*/bin/* C:/ffmpeg/bin
+            rm -rf ffmpeg-* ffmpeg.zip
+            export FFMPEG_ROOT="C:/ffmpeg"
+        esac
+
+        echo "FFMPEG_ROOT=${FFMPEG_ROOT}" >> $GITHUB_ENV
+        echo "FFMPEG_INCLUDE_DIR=${FFMPEG_ROOT}/include" >> $GITHUB_ENV
+        echo "FFMPEG_LIBRARY_DIR=${FFMPEG_ROOT}/lib" >> $GITHUB_ENV
+        echo "FFMPEG_LIBS_DIR=${FFMPEG_ROOT}/lib" >> $GITHUB_ENV
+        echo "FFMPEG_BIN_DIR=${FFMPEG_ROOT}/bin" >> $GITHUB_ENV
+        echo "FFMPEG_DLL_PATH=${FFMPEG_ROOT}/lib" >> $GITHUB_ENV
+
+        echo "FFmpeg installed successfully"

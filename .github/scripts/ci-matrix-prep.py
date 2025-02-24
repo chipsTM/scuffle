@@ -11,6 +11,7 @@ GITHUB_CONTEXT: dict = json.loads(sys.argv[1])
 GITHUB_DEFAULT_RUNNER = "ubuntu-24.04"
 LINUX_X86_64 = "ubicloud-standard-8"
 LINUX_ARM64 = "ubicloud-standard-8-arm"
+WINDOWS_X86_64 = "windows-2025"
 
 def is_brawl(mode: Optional[str] = None) -> bool:
     if mode is None:
@@ -141,6 +142,27 @@ def create_docs_jobs() -> list[Job]:
             )
         )
 
+        jobs.append(
+            Job(
+                runner=WINDOWS_X86_64,
+                job_name=f"Docs (Windows x86_64)",
+                job="docs",
+                ffmpeg=FfmpegSetup(),
+                inputs=DocsMatrix(
+                    artifact_name="docs",
+                    deploy_docs=False,
+                    pr_number=pr_number(),
+                ),
+                rust=RustSetup(
+                    toolchain="nightly",
+                    components="rust-docs",
+                    shared_key="docs-windows-x86_64",
+                    tools="",
+                    cache_backend="github",
+                ),
+            )
+        )
+
     return jobs
 
 
@@ -182,6 +204,25 @@ def create_clippy_jobs() -> list[Job]:
                     shared_key="clippy-linux-arm64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
                     cache_backend="ubicloud",
+                ),
+            )
+        )
+
+        jobs.append(
+            Job(
+                runner=WINDOWS_X86_64,
+                job_name=f"Clippy (Windows x86_64)",
+                job="clippy",
+                ffmpeg=FfmpegSetup(),
+                inputs=ClippyMatrix(
+                    powerset=True,
+                ),
+                rust=RustSetup(
+                    toolchain="nightly",
+                    components="clippy",
+                    shared_key="clippy-windows-x86_64",
+                    tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
+                    cache_backend="github",
                 ),
             )
         )
@@ -238,6 +279,27 @@ def create_test_jobs() -> list[Job]:
                     shared_key="test-linux-arm64",
                     tools="cargo-nextest,cargo-llvm-cov",
                     cache_backend="ubicloud",
+                ),
+                secrets=["CODECOV_TOKEN"],
+            )
+        )
+
+        jobs.append(
+            Job(
+                runner=WINDOWS_X86_64,
+                job_name=f"Test (Windows x86_64)",
+                job="test",
+                ffmpeg=FfmpegSetup(),
+                inputs=TestMatrix(
+                    pr_number=pr_number(),
+                    commit_sha=commit_sha,
+                ),
+                rust=RustSetup(
+                    toolchain="nightly",
+                    components="llvm-tools-preview",
+                    shared_key="test-windows-x86_64",
+                    tools="cargo-nextest,cargo-llvm-cov",
+                    cache_backend="github",
                 ),
                 secrets=["CODECOV_TOKEN"],
             )
