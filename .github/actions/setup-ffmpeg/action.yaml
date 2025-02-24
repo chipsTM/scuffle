@@ -61,9 +61,13 @@ runs:
           Linux)
             tar -xvf ffmpeg.${FF_EXT}
             FFMPEG_ROOT="/usr/local"
+            ;;
           Windows)
             unzip ffmpeg.${FF_EXT}
             FFMPEG_ROOT="C:/ffmpeg"
+            ;;
+          *)
+            echo "Unsupported operating system: ${{ runner.os }}" && exit 1
         esac
 
         sudo mkdir -p ${FFMPEG_ROOT}/{include,lib,bin}
