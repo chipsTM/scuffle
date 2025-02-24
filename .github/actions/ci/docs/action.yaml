@@ -3,15 +3,13 @@ inputs:
   pr_number:
     description: "The PR number"
     required: true
-  codecov_token:
-    description: "The Codecov token"
-    required: true
   artifact_name:
     description: "The name of the artifact to upload"
     required: false
   deploy_docs:
     description: "Whether to deploy the docs"
-    required: false
+    required: true
+    default: false
 runs:
   using: "composite"
   steps:
@@ -40,7 +38,7 @@ runs:
         path: target/doc
 
     - name: Deploy
-      if: ${{ inputs.deploy_docs }}
+      if: ${{ inputs.deploy_docs == 'true' }}
       uses: cloudflare/wrangler-action@v3
       with:
         apiToken: ${{ env.CF_DOCS_API_KEY }}
