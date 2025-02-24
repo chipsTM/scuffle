@@ -10,24 +10,50 @@ use scuffle_bytes_util::{BitWriter, BytesCursorExt};
 /// The AVC (H.264) Decoder Configuration Record.
 /// ISO/IEC 14496-15:2022(E) - 5.3.2.1.2
 pub struct AVCDecoderConfigurationRecord {
-    /// The `configuration_version` is set to 1 as defined by h264 until future notice.
+    /// The `configuration_version` is set to 1 (as a u8) defined by the h264 spec until further notice.
+    ///
+    /// ISO/IEC 14496-15:2022(E) - 5.3.2.1.2
     pub configuration_version: u8,
+
     /// The `profile_indication` (aka AVCProfileIndication) contains the `profile_idc` u8 from SPS.
+    ///
+    /// ISO/IEC 14496-15:2022(E) - 5.3.2.1.2
     pub profile_indication: u8,
+
     /// The `profile_compatibility` is a u8, similar to the `profile_idc` and `level_idc` bytes from SPS.
+    ///
+    /// ISO/IEC 14496-15:2022(E) - 5.3.2.1.2
     pub profile_compatibility: u8,
+
     /// The `level_indication` (aka AVCLevelIndication) contains the `level_idc` u8 from SPS.
+    ///
+    /// ISO/IEC 14496-15:2022(E) - 5.3.2.1.2
     pub level_indication: u8,
+
     /// The `length_size_minus_one` is the u8 length of the NALUnitLength minus one.
+    ///
+    /// ISO/IEC 14496-15:2022(E) - 5.3.2.1.2
     pub length_size_minus_one: u8,
+
     /// The `sps` is a vec of SPS.
+    ///
+    /// Note that these should be ordered by ascending SPS ID.
+    ///
     /// Refer to the SPS struct in the SPS docs for more info.
     pub sps: Vec<Bytes>,
+
     /// The `pps` is a vec of PPS.
+    ///
     /// These contain syntax elements that can apply layer repesentation(s).
-    /// Note that they are supposed to be ordered by ascending PPS ID.
+    ///
+    /// Note that these should be ordered by ascending PPS ID.
+    ///
+    /// ISO/IEC 14496-15:2022(E) - 5.3.2.1.2
     pub pps: Vec<Bytes>,
-    /// An optional `AvccExtendedConfig`. Refer to the AvccExtendedConfig for more info.
+
+    /// An optional `AvccExtendedConfig`.
+    ///
+    /// Refer to the AvccExtendedConfig for more info.
     pub extended_config: Option<AvccExtendedConfig>,
 }
 
@@ -36,12 +62,29 @@ pub struct AVCDecoderConfigurationRecord {
 /// ISO/IEC 14496-15:2022(E) - 5.3.2.1.2
 pub struct AvccExtendedConfig {
     /// The `chroma_format_idc` as a u8.
+    ///
+    /// Also labelled as `chroma_format`, this contains the `chroma_format_idc` from
+    /// ISO/IEC 14496-10.
+    ///
+    /// ISO/IEC 14496-15:2022(E) - 5.3.2.1.2
     pub chroma_format_idc: u8,
-    /// The `bit_depth_luma_minus8` as a u8.
+
+    /// The `bit_depth_luma_minus8` is the bit depth of samples in the Luma arrays as a u8.
+    ///
+    /// The value of this ranges from \[0, 4\].
+    ///
+    /// ISO/IEC 14496-15:2022(E) - 5.3.2.1.2
     pub bit_depth_luma_minus8: u8,
-    /// The `bit_depth_chroma_minus8` as a u8.
+
+    /// The `bit_depth_chroma_minus8` is the bit depth of the samples in the Chroma arrays as a u8.
+    ///
+    /// The value of this ranges from \[0, 4\].
+    ///
+    /// ISO/IEC 14496-15:2022(E) - 5.3.2.1.2
     pub bit_depth_chroma_minus8: u8,
+
     /// The `sequence_parameter_set_ext` is a vec of SpsExtended, each of which is a u64.
+    ///
     /// Refer to the SpsExtended struct in the SPS docs for more info.
     pub sequence_parameter_set_ext: Vec<Bytes>,
 }
@@ -198,44 +241,58 @@ impl AVCDecoderConfigurationRecord {
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
-    use std::io;
+    use std::io::{self, Write};
 
     use bytes::Bytes;
+    use scuffle_bytes_util::BitWriter;
 
     use crate::config::{AVCDecoderConfigurationRecord, AvccExtendedConfig};
     use crate::sps::Sps;
 
     #[test]
     fn test_config_demux() {
-        let data = Bytes::from(b"\x01d\0\x1f\xff\xe1\0\x1dgd\0\x1f\xac\xd9A\xe0m\xf9\xe6\xa0  (\0\0\x03\0\x08\0\0\x03\x01\xe0x\xc1\x8c\xb0\x01\0\x06h\xeb\xe3\xcb\"\xc0\xfd\xf8\xf8\0".to_vec());
+        let mut data = Vec::new();
+        let mut writer = BitWriter::new(&mut data);
 
-        let config = AVCDecoderConfigurationRecord::demux(&mut io::Cursor::new(data)).unwrap();
+        // configuration_version
+        let _ = writer.write_bits(1, 8);
+        // profile_indication
+        let _ = writer.write_bits(100, 8);
+        // profile_compatibility
+        let _ = writer.write_bits(0, 8);
+        // level_indication
+        let _ = writer.write_bits(31, 8);
+        // length_size_minus_one
+        let _ = writer.write_bits(3, 8);
 
-        insta::assert_debug_snapshot!(config, @r#"
-        AVCDecoderConfigurationRecord {
-            configuration_version: 1,
-            profile_indication: 100,
-            profile_compatibility: 0,
-            level_indication: 31,
-            length_size_minus_one: 3,
-            sps: [
-                b"gd\0\x1f\xac\xd9A\xe0m\xf9\xe6\xa0  (\0\0\x03\0\x08\0\0\x03\x01\xe0x\xc1\x8c\xb0",
-            ],
-            pps: [
-                b"h\xeb\xe3\xcb\"\xc0",
-            ],
-            extended_config: Some(
-                AvccExtendedConfig {
-                    chroma_format_idc: 1,
-                    bit_depth_luma_minus8: 0,
-                    bit_depth_chroma_minus8: 0,
-                    sequence_parameter_set_ext: [],
-                },
-            ),
-        }
-        "#);
+        // num_of_sequence_parameter_sets
+        let _ = writer.write_bits(1, 8);
+        // sps_length
+        let _ = writer.write_bits(29, 16);
+        // sps
+        // this was from the old test
+        let _ = writer.write_all(b"gd\0\x1f\xac\xd9A\xe0m\xf9\xe6\xa0  (\0\0\x03\0\x08\0\0\x03\x01\xe0x\xc1\x8c\xb0");
 
-        let sps = &config.sps[0];
+        // num_of_picture_parameter_sets
+        let _ = writer.write_bits(1, 8);
+        // pps_length
+        let _ = writer.write_bits(6, 16);
+        // pps
+        let _ = writer.write_all(b"h\xeb\xe3\xcb\"\xc0\x00\x00");
+
+        // chroma_format_idc
+        let _ = writer.write_bits(1, 8);
+        // bit_depth_luma_minus8
+        let _ = writer.write_bits(0, 8);
+        // bit_depth_chroma_minus8
+        let _ = writer.write_bits(0, 8);
+        // number_of_sequence_parameter_set_ext
+        let _ = writer.write_bits(0, 8);
+        let _ = writer.finish();
+
+        let result = AVCDecoderConfigurationRecord::demux(&mut io::Cursor::new(data.into())).unwrap();
+
+        let sps = &result.sps[0];
         let sps = Sps::parse(sps.clone()).unwrap();
 
         insta::assert_debug_snapshot!(sps, @r"
