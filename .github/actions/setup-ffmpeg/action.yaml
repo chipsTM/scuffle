@@ -18,6 +18,7 @@ runs:
   steps:
     - name: Install System Dependencies
       shell: bash
+      if: ${{ runner.os == 'Linux' }}
       run: |
         set -xeo pipefail
         sudo apt-get update
@@ -54,27 +55,26 @@ runs:
         FF_URL="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/${FILE}"
 
         echo "Downloading FFmpeg from $FF_URL"
+        curl -L "$FF_URL" -o ffmpeg.${FF_EXT}
 
         case "${{ runner.os }}" in
           Linux)
-            curl -L "$FF_URL" -o ffmpeg.${FF_EXT}
             tar -xvf ffmpeg.${FF_EXT}
-            sudo mv ffmpeg-*/include/* /usr/local/include
-            sudo mv ffmpeg-*/lib/* /usr/local/lib
-            sudo mv ffmpeg-*/bin/* /usr/local/bin
-            sudo rm -rf ffmpeg-* ffmpeg.${FF_EXT}
-            sudo ldconfig
-            export FFMPEG_ROOT="/usr/local"
+            FFMPEG_ROOT="/usr/local"
           Windows)
-            curl -L "$FF_URL" -o ffmpeg.zip
-            unzip ffmpeg.zip
-            mkdir -p C:/ffmpeg/{include,lib,bin}
-            mv ffmpeg-*/include/* C:/ffmpeg/include
-            mv ffmpeg-*/lib/* C:/ffmpeg/lib
-            mv ffmpeg-*/bin/* C:/ffmpeg/bin
-            rm -rf ffmpeg-* ffmpeg.zip
-            export FFMPEG_ROOT="C:/ffmpeg"
+            unzip ffmpeg.${FF_EXT}
+            FFMPEG_ROOT="C:/ffmpeg"
         esac
+
+        sudo mkdir -p ${FFMPEG_ROOT}/{include,lib,bin}
+        sudo mv ffmpeg-*/include/* ${FFMPEG_ROOT}/include
+        sudo mv ffmpeg-*/lib/* ${FFMPEG_ROOT}/lib
+        sudo mv ffmpeg-*/bin/* ${FFMPEG_ROOT}/bin
+
+        if [ "${{ runner.os }}" = "Linux" ]; then
+          # Update the dynamic linker cache
+          sudo ldconfig
+        fi
 
         echo "FFMPEG_ROOT=${FFMPEG_ROOT}" >> $GITHUB_ENV
         echo "FFMPEG_INCLUDE_DIR=${FFMPEG_ROOT}/include" >> $GITHUB_ENV
@@ -82,5 +82,8 @@ runs:
         echo "FFMPEG_LIBS_DIR=${FFMPEG_ROOT}/lib" >> $GITHUB_ENV
         echo "FFMPEG_BIN_DIR=${FFMPEG_ROOT}/bin" >> $GITHUB_ENV
         echo "FFMPEG_DLL_PATH=${FFMPEG_ROOT}/lib" >> $GITHUB_ENV
+        echo "${FFMPEG_ROOT}/bin" >> $GITHUB_PATH
+        echo "${FFMPEG_ROOT}/lib" >> $GITHUB_PATH
+        echo "${FFMPEG_ROOT}/include" >> $GITHUB_PATH
 
         echo "FFmpeg installed successfully"
