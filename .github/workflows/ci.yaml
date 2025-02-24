@@ -34,10 +34,10 @@ jobs:
           ref: ${{ env.SHA }}
 
       - name: Run matrix prep
+        id: compute
         run: |
           set -xeo pipefail
           python3 .github/scripts/ci-matrix-prep.py '${{ toJson(github) }}' | tee -a $GITHUB_OUTPUT
-        id: compute
 
   jobs:
     name: ${{ matrix.job_name }}

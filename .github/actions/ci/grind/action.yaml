@@ -1,8 +1,5 @@
 name: Grind
 inputs:
-  target:
-    description: "The target to run Valgrind on"
-    required: true
   env:
     description: "The environment variables to set"
     required: false
@@ -10,11 +7,13 @@ runs:
   using: "composite"
   steps:
     - name: Install Valgrind
-      shell: bash
+      env:
+        VALGRIND_VERSION: master
+        INSTALL_PATH: /usr/local
       run: |
-        set -xeo pipefail
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends valgrind
+        set -eo pipefail
+        curl -L "https://github.com/scufflecloud/valgrind-builds/releases/download/latest/valgrind-${VALGRIND_VERSION}-$(uname -s)-$(uname -m).tar.gz" | sudo tar -xzf - --strip-components=1 -C $INSTALL_PATH
+        echo "VALGRIND_LIB=$INSTALL_PATH/libexec/valgrind" >> $GITHUB_ENV
 
     - name: Setup env
       if: ${{ inputs.env }}
@@ -32,7 +31,6 @@ runs:
             echo "$expanded_key=$expanded_value" >> $GITHUB_ENV
             echo "Setting $expanded_key to $expanded_value"
         done
-
 
     - name: Run valgrind
       shell: bash
