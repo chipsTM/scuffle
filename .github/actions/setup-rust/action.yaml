@@ -8,13 +8,13 @@ inputs:
   components:
     description: "The components to install"
     required: false
-  shared-key:
+  shared_key:
     description: "The key to use for the shared cache"
     required: false
   tools:
     description: "The tools to install"
     required: false
-  cache-backend:
+  cache_backend:
     description: "The backend to use for the cache"
     required: false
     default: github
@@ -28,16 +28,16 @@ runs:
         components: ${{ inputs.components }}
 
     - uses: Swatinem/rust-cache@v2
-      if: ${{ inputs.shared-key && inputs.cache-backend == 'github' }}
+      if: ${{ inputs.shared_key && inputs.cache_backend == 'github' }}
       with:
         prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
-        shared-key: ${{ inputs.shared-key }}
+        shared-key: ${{ inputs.shared_key }}
 
     - uses: ubicloud/rust-cache@v2
-      if: ${{ inputs.shared-key && inputs.cache-backend == 'ubicloud' }}
+      if: ${{ inputs.shared_key && inputs.cache_backend == 'ubicloud' }}
       with:
         prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
-        shared-key: ${{ inputs.shared-key }}
+        shared-key: ${{ inputs.shared_key }}
 
     - uses: taiki-e/install-action@v2
       if: ${{ inputs.tools }}

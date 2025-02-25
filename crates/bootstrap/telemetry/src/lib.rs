@@ -7,7 +7,7 @@
 //! ## Feature Flags
 //!
 //! - `prometheus`: Enable Prometheus support.
-//! - `pprof`: Enable pprof support.
+//! - `pprof`: Enable pprof support. (Unix only)
 //! - `opentelemetry-metrics`: Enable OpenTelemetry metrics support.
 //! - `opentelemetry-traces`: Enable OpenTelemetry traces support.
 //! - `opentelemetry-logs`: Enable OpenTelemetry logs support.
@@ -158,7 +158,7 @@ pub mod opentelemetry;
 /// This endpoint is only enabled if the `prometheus` feature flag is enabled
 /// and a metrics registry is provided through the config.
 ///
-/// ### `/pprof/cpu`
+/// ### `/pprof/cpu` (Unix only)
 ///
 /// pprof cpu endpoint to capture a cpu profile.
 ///
@@ -243,7 +243,7 @@ impl<Global: TelemetryConfig> Service<Global> for TelemetrySvc {
                         "/health" => health_check(&global, req).await,
                         #[cfg(feature = "prometheus")]
                         "/metrics" => metrics(&global, req).await,
-                        #[cfg(feature = "pprof")]
+                        #[cfg(all(feature = "pprof", unix))]
                         "/pprof/cpu" => pprof(&global, req).await,
                         #[cfg(feature = "opentelemetry")]
                         "/opentelemetry/flush" => opentelemetry_flush(&global).await,
@@ -320,6 +320,7 @@ async fn metrics<G: TelemetryConfig>(
     }
 }
 
+#[cfg(unix)]
 #[cfg(feature = "pprof")]
 async fn pprof<G: TelemetryConfig>(
     _: &std::sync::Arc<G>,
@@ -423,6 +424,7 @@ mod tests {
     use std::net::SocketAddr;
     use std::sync::Arc;
 
+    #[cfg(unix)]
     use bytes::Bytes;
     #[cfg(feature = "opentelemetry-logs")]
     use opentelemetry_sdk::logs::SdkLoggerProvider;
@@ -454,6 +456,7 @@ mod tests {
             .expect("health check text")
     }
 
+    #[cfg(unix)]
     async fn request_pprof(addr: SocketAddr, freq: &str, duration: &str) -> reqwest::Result<Bytes> {
         reqwest::get(format!("http://{addr}/pprof/cpu?freq={freq}&duration={duration}"))
             .await
@@ -586,17 +589,20 @@ mod tests {
         assert!(metrics.contains("} 2\n"));
         assert!(metrics.ends_with("# EOF\n"));
 
-        let timer = std::time::Instant::now();
-        assert!(!request_pprof(bind_addr, "100", "2").await.expect("pprof failed").is_empty());
-        assert!(timer.elapsed() > std::time::Duration::from_secs(2));
+        #[cfg(unix)]
+        {
+            let timer = std::time::Instant::now();
+            assert!(!request_pprof(bind_addr, "100", "2").await.expect("pprof failed").is_empty());
+            assert!(timer.elapsed() > std::time::Duration::from_secs(2));
 
-        let res = request_pprof(bind_addr, "invalid", "2").await.expect_err("error expected");
-        assert!(res.is_status());
-        assert_eq!(res.status(), Some(reqwest::StatusCode::BAD_REQUEST));
+            let res = request_pprof(bind_addr, "invalid", "2").await.expect_err("error expected");
+            assert!(res.is_status());
+            assert_eq!(res.status(), Some(reqwest::StatusCode::BAD_REQUEST));
 
-        let res = request_pprof(bind_addr, "100", "invalid").await.expect_err("error expected");
-        assert!(res.is_status());
-        assert_eq!(res.status(), Some(reqwest::StatusCode::BAD_REQUEST));
+            let res = request_pprof(bind_addr, "100", "invalid").await.expect_err("error expected");
+            assert!(res.is_status());
+            assert_eq!(res.status(), Some(reqwest::StatusCode::BAD_REQUEST));
+        }
 
         assert!(flush_opentelemetry(bind_addr).await.is_ok());
 
@@ -647,9 +653,12 @@ mod tests {
         assert!(res.is_status());
         assert_eq!(res.status(), Some(reqwest::StatusCode::NOT_FOUND));
 
-        let timer = std::time::Instant::now();
-        assert!(!request_pprof(bind_addr, "100", "2").await.expect("pprof failed").is_empty());
-        assert!(timer.elapsed() > std::time::Duration::from_secs(2));
+        #[cfg(unix)]
+        {
+            let timer = std::time::Instant::now();
+            assert!(!request_pprof(bind_addr, "100", "2").await.expect("pprof failed").is_empty());
+            assert!(timer.elapsed() > std::time::Duration::from_secs(2));
+        }
 
         let err = flush_opentelemetry(bind_addr).await.expect_err("error expected");
         assert!(err.is_status());

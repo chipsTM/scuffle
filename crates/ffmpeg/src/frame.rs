@@ -337,7 +337,7 @@ impl VideoFrame {
         let mut generic = GenericFrame::new()?;
         let inner = generic.0.as_deref_mut_except();
 
-        inner.pict_type = AVPictureType::None.0 as u32;
+        inner.pict_type = AVPictureType::None.0 as _;
         inner.width = width;
         inner.height = height;
         inner.format = pix_fmt.0;
@@ -381,12 +381,12 @@ impl VideoFrame {
 
     /// Returns the picture type of the frame.
     pub const fn pict_type(&self) -> AVPictureType {
-        AVPictureType(self.0.0.as_deref_except().pict_type as i32)
+        AVPictureType(self.0.0.as_deref_except().pict_type as _)
     }
 
     /// Sets the picture type of the frame.
     pub const fn set_pict_type(&mut self, pict_type: AVPictureType) {
-        self.0.0.as_deref_mut_except().pict_type = pict_type.0 as u32;
+        self.0.0.as_deref_mut_except().pict_type = pict_type.0 as _;
     }
 
     /// Returns a reference to the data of the frame. By specifying the index of the plane.
@@ -846,7 +846,7 @@ mod tests {
                 let data_slice = data.get_row_mut(row as usize).unwrap();
                 randomized_data.push(
                     (0..data_slice.len())
-                        .map(|_| rng().random()) // generate random data
+                        .map(|_| rng().random::<u8>()) // generate random data
                         .collect(),
                 );
                 data_slice.copy_from_slice(&randomized_data[row as usize]); // copy random data to the frame
@@ -965,7 +965,7 @@ mod tests {
             "Expected channel mask to match AV_CH_LAYOUT_STEREO."
         );
         assert_eq!(
-            AVChannelOrder(layout.order),
+            AVChannelOrder(layout.order as _),
             AVChannelOrder::Native,
             "Expected channel order to be AV_CHANNEL_ORDER_NATIVE."
         );

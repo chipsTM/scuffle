@@ -406,15 +406,18 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "cli")]
+    #[cfg(all(feature = "cli", feature = "toml"))]
     fn parse_file() {
+        use std::path::Path;
+
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets").join("test.toml");
         let options = Options {
             cli: Some(Cli {
                 name: "test",
                 version: "0.1.0",
                 about: "test",
                 author: "test",
-                argv: vec!["test".to_string(), "-c".to_string(), "assets/test.toml".to_string()],
+                argv: vec!["test".to_string(), "-c".to_string(), path.display().to_string()],
             }),
             ..Default::default()
         };
@@ -426,26 +429,29 @@ mod tests {
     #[test]
     #[cfg(feature = "cli")]
     fn file_error() {
+        use std::path::Path;
+
+        let path = Path::new("assets").join("invalid.txt");
         let options = Options {
             cli: Some(Cli {
                 name: "test",
                 version: "0.1.0",
                 about: "test",
                 author: "test",
-                argv: vec!["test".to_string(), "-c".to_string(), "assets/invalid.txt".to_string()],
+                argv: vec!["test".to_string(), "-c".to_string(), path.display().to_string()],
             }),
             ..Default::default()
         };
         let err = parse_settings::<TestSettings>(options).expect_err("expected error");
 
         if let crate::SettingsError::Config(config::ConfigError::FileParse { uri: Some(uri), cause }) = err {
-            assert_eq!(uri, "assets/invalid.txt");
+            assert_eq!(uri, path.display().to_string());
             assert_eq!(
                 cause.to_string(),
-                "No supported format found for file: Some(\"assets/invalid.txt\")"
+                format!("No supported format found for file: {:?}", path.to_str())
             );
         } else {
-            panic!("unexpected error: {}", err);
+            panic!("unexpected error: {:?}", err);
         }
     }
 

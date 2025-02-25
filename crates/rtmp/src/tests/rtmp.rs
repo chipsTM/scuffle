@@ -11,7 +11,7 @@ use crate::channels::{ChannelData, UniqueID};
 #[tokio::test]
 #[cfg(not(valgrind))] // test is time-sensitive, consider refactoring?
 async fn test_basic_rtmp_clean() {
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:0").await.expect("failed to bind");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("failed to bind");
     let addr = listener.local_addr().unwrap();
 
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../assets");
@@ -105,9 +105,11 @@ async fn test_basic_rtmp_clean() {
 }
 
 #[tokio::test]
-#[cfg(not(valgrind))] // test is time-sensitive, consider refactoring?
+// test is time-sensitive, consider refactoring?
+// windows seems to not let us kill ffmpeg without it cleaning up the stream.
+#[cfg(all(not(valgrind), not(windows)))]
 async fn test_basic_rtmp_unclean() {
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:0").await.expect("failed to bind");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("failed to bind");
     let addr = listener.local_addr().unwrap();
 
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../assets");

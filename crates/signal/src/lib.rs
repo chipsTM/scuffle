@@ -1,6 +1,8 @@
 //! A crate designed to provide a more user friendly interface to
 //! `tokio::signal`.
 //!
+//! Currently only supported on Unix systems. (Windows is planned but not yet implemented)
+//!
 //! ## Why do we need this?
 //!
 //! The `tokio::signal` module provides a way for us to wait for a signal to be
@@ -10,6 +12,8 @@
 //! ## Example
 //!
 //! ```rust
+//! # #[cfg(unix)]
+//! # {
 //! use scuffle_signal::SignalHandler;
 //! use tokio::signal::unix::SignalKind;
 //!
@@ -39,6 +43,7 @@
 //!     },
 //! }
 //! # });
+//! # }
 //! ```
 //!
 //! ## Status
@@ -55,6 +60,7 @@
 //!
 //! `SPDX-License-Identifier: MIT OR Apache-2.0`
 #![cfg_attr(all(coverage_nightly, test), feature(coverage_attribute))]
+#![cfg(unix)]
 
 use std::pin::Pin;
 use std::task::{Context, Poll};

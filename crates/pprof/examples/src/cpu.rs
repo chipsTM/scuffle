@@ -1,8 +1,9 @@
-use std::io::Write;
-
-use rand::Rng;
-
+#[cfg(unix)]
 fn work() {
+    use std::io::Write;
+
+    use rand::Rng;
+
     let mut rng = rand::rng();
 
     let mut buf = vec![0u8; 1024 * 1024];
@@ -15,6 +16,7 @@ fn work() {
     }
 }
 
+#[cfg(unix)]
 fn main() {
     let cpu = scuffle_pprof::Cpu::new::<String>(1000, &[]);
 
@@ -23,4 +25,9 @@ fn main() {
     let capture = cpu.capture(std::time::Duration::from_secs(10)).unwrap();
 
     std::fs::write("capture.pprof", capture).unwrap();
+}
+
+#[cfg(windows)]
+fn main() {
+    panic!("This example is not supported on Windows");
 }

@@ -87,8 +87,7 @@
 #![cfg_attr(all(coverage_nightly, test), feature(coverage_attribute))]
 
 use std::borrow::Cow;
-use std::ffi::{OsStr, OsString};
-use std::os::unix::ffi::OsStrExt;
+use std::ffi::OsStr;
 use std::path::Path;
 use std::process::Command;
 
@@ -151,7 +150,8 @@ fn rustc(config: &Config, tmp_file: &Path) -> Command {
             rust_flags
                 .as_encoded_bytes()
                 .split(|&b| b == b' ')
-                .map(|flag| OsString::from(OsStr::from_bytes(flag))),
+                // Safety: The bytes are already encoded (we call OsString::as_encoded_bytes above)
+                .map(|flag| unsafe { OsStr::from_encoded_bytes_unchecked(flag) }),
         );
     }
 
@@ -167,6 +167,8 @@ fn rustc(config: &Config, tmp_file: &Path) -> Command {
 }
 
 fn write_tmp_file(tokens: &str, tmp_file: &Path) {
+    std::fs::create_dir_all(tmp_file.parent().unwrap()).unwrap();
+
     #[cfg(feature = "prettyplease")]
     {
         if let Ok(syn_file) = syn::parse_file(tokens) {
@@ -181,11 +183,10 @@ fn write_tmp_file(tokens: &str, tmp_file: &Path) {
 
 /// Compiles the given tokens and returns the output.
 pub fn compile_custom(tokens: &str, config: &Config) -> Result<CompileOutput, Errored> {
-    let tmp_file = Path::new(config.tmp_dir.as_ref()).join(format!("{}.rs", config.function_name));
-
-    write_tmp_file(tokens, &tmp_file);
-
     let dependencies = Dependencies::new(config)?;
+
+    let tmp_file = Path::new(config.tmp_dir.as_ref()).join(format!("{}.rs", config.function_name.replace("::", "____")));
+    write_tmp_file(tokens, &tmp_file);
 
     let mut program = rustc(config, &tmp_file);
 
@@ -258,6 +259,10 @@ pub struct Config {
     pub tmp_dir: Cow<'static, Path>,
     /// The name of the function to compile.
     pub function_name: Cow<'static, str>,
+    /// The path to the file being compiled.
+    pub file_path: Cow<'static, Path>,
+    /// The name of the package being compiled.
+    pub package_name: Cow<'static, str>,
 }
 
 #[macro_export]
@@ -303,6 +308,8 @@ macro_rules! _config {
             tmp_dir: ::std::borrow::Cow::Borrowed($crate::build_dir()),
             target_dir: ::std::borrow::Cow::Borrowed($crate::target_dir()),
             function_name: ::std::borrow::Cow::Borrowed($crate::_function_name!()),
+            file_path: ::std::borrow::Cow::Borrowed(::std::path::Path::new(file!())),
+            package_name: ::std::borrow::Cow::Borrowed(env!("CARGO_PKG_NAME")),
         }
     }};
 }
@@ -401,6 +408,8 @@ mod tests {
             }
         };
 
+        dbg!(&out);
+
         assert_eq!(out.status, ExitStatus::Success);
         assert!(out.stderr.is_empty());
         assert_snapshot!(out);
@@ -420,6 +429,7 @@ mod tests {
 
         assert!(out.is_ok());
         let out = out.unwrap();
+        dbg!(&out);
         assert_eq!(out.status, ExitStatus::Success);
         assert!(out.stderr.is_empty());
         assert!(!out.stdout.is_empty());

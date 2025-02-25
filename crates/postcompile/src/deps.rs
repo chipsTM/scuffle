@@ -35,6 +35,24 @@ impl Dependencies {
             config.target_dir.as_ref()
         };
 
+        // Ideally we should find a way to not need to do this on windows.
+        // The issue is related to the way windows locks executables when they are run.
+        // We delete the fingerprint directory to cause cargo to recompile the binary.
+        #[cfg(windows)]
+        {
+            let exe = std::env::current_exe().unwrap();
+            let file_name = exe.file_name().unwrap();
+            let file_name_without_ext = file_name.to_str().unwrap().split(".").next().unwrap();
+            let tmp_dir = exe
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .join(".fingerprint")
+                .join(file_name_without_ext);
+            std::fs::remove_dir_all(tmp_dir).ok();
+        }
+
         build.arg("test");
         build.arg("--no-run");
         build.arg("--message-format=json");

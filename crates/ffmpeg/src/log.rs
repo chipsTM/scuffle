@@ -69,9 +69,13 @@ pub fn log_callback_set(callback: impl Fn(LogLevel, Option<String>, String) + Se
 pub fn log_callback_set_boxed(callback: Function) {
     LOG_CALLBACK.store(Some(Arc::new(callback)));
 
+    // Safety: the `log_cb` function has the same structure as the required `AVLogCallback` function.
+    // The reason we do this transmute is because of the way `VaList` is defined on different architectures.
+    #[allow(clippy::missing_transmute_annotations)]
+    let log_cb_transmuted = unsafe { std::mem::transmute(log_cb as *const ()) };
     // Safety: `av_log_set_callback` is safe to call.
     unsafe {
-        av_log_set_callback(Some(log_cb));
+        av_log_set_callback(Some(log_cb_transmuted));
     }
 }
 
@@ -85,18 +89,16 @@ pub fn log_callback_unset() {
     }
 }
 
-#[cfg(unix)]
-type VaList = *mut __va_list_tag;
-
-#[cfg(windows)]
-type VaList = va_list;
-
-#[cfg(windows)]
-extern "C" {
-    fn vsnprintf(buffer: *mut libc::c_char, count: libc::size_t, format: *const libc::c_char, ap: VaList) -> i32;
+unsafe extern "C" {
+    fn vsnprintf(
+        str: *mut libc::c_char,
+        size: libc::size_t,
+        format: *const libc::c_char,
+        ap: ::va_list::VaList,
+    ) -> libc::c_int;
 }
 
-unsafe extern "C" fn log_cb(ptr: *mut libc::c_void, level: libc::c_int, fmt: *const libc::c_char, va: VaList) {
+unsafe extern "C" fn log_cb(ptr: *mut libc::c_void, level: libc::c_int, fmt: *const libc::c_char, va: ::va_list::VaList) {
     let guard = LOG_CALLBACK.load();
     let Some(cb) = guard.as_ref() else {
         return;
@@ -115,20 +117,20 @@ unsafe extern "C" fn log_cb(ptr: *mut libc::c_void, level: libc::c_int, fmt: *co
             // Safety: The pointer is valid
             let c_str = unsafe { im(ptr) };
             // Safety: The returned pointer is a valid CString
-            let c_str = unsafe { CStr::from_ptr(c_str) };
+            let c_str = unsafe { CStr::from_ptr(c_str as *const _) };
 
             Some(c_str.to_string_lossy().trim().to_owned())
         });
 
-    let mut buf = [0i8; 1024];
+    let mut buf: [std::os::raw::c_char; 1024] = [0; 1024];
 
     // Safety: The pointer is valid and the buffer has enough bytes with the max length set.
     unsafe {
-        vsnprintf(buf.as_mut_ptr(), buf.len() as _, fmt, va);
+        vsnprintf(buf.as_mut_ptr() as *mut _, buf.len() as _, fmt, va);
     }
 
     // Safety: The pointer is valid and the buffer has enough bytes with the max length set.
-    let c_str = unsafe { CStr::from_ptr(buf.as_ptr()) };
+    let c_str = unsafe { CStr::from_ptr(buf.as_ptr() as *const _) };
     let msg = c_str.to_string_lossy().trim().to_owned();
 
     cb(level, class, msg);

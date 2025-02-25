@@ -5,6 +5,8 @@
 //! ## Usage
 //!
 //! ```rust,no_run
+//! # #[cfg(not(windows))]
+//! # {
 //! use std::sync::Arc;
 //!
 //! /// Our global state
@@ -42,6 +44,7 @@
 //!         MySvc,
 //!     }
 //! }
+//! # }
 //! ```
 //!
 //! ## License
@@ -75,6 +78,8 @@ pub mod prelude {
 /// # Example
 ///
 /// ```rust
+/// # #[cfg(not(windows))]
+/// # {
 /// # use std::sync::Arc;
 /// # struct MyGlobal;
 /// # struct MyService;
@@ -98,6 +103,7 @@ pub mod prelude {
 ///         MyService,
 ///     }
 /// }
+/// # }
 /// ```
 ///
 /// # See Also

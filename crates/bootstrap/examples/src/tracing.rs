@@ -1,16 +1,19 @@
 use std::sync::Arc;
 
 use anyhow::Context;
+#[cfg(unix)]
 use scuffle_signal::{SignalConfig, SignalSvc};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 scuffle_bootstrap::main! {
     Global {
+        #[cfg(unix)]
         SignalSvc,
     }
 }
 
+#[cfg(unix)]
 impl SignalConfig for Global {
     async fn on_shutdown(self: &Arc<Self>) -> anyhow::Result<()> {
         tracing::info!("on_shutdown");

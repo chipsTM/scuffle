@@ -201,7 +201,10 @@ impl<'a> FilterGraphParser<'a> {
 
         let name = CString::new(name).map_err(|_| FfmpegError::Arguments("name must be non-empty"))?;
 
-        inout.as_deref_mut_except().name = name.into_raw();
+        // Safety: `av_strdup` is safe to call and `name` is a valid c-string.
+        // Note: This was previously incorrect because we need the string to be allocated by ffmpeg otherwise
+        // ffmpeg will not be able to free the struct.
+        inout.as_deref_mut_except().name = unsafe { av_strdup(name.as_ptr()) };
         inout.as_deref_mut_except().filter_ctx = context.0;
         inout.as_deref_mut_except().pad_idx = pad;
 

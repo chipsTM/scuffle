@@ -2,6 +2,10 @@ use nutype_enum::{bitwise_enum, nutype_enum};
 
 use crate::ffi::*;
 
+const _: () = {
+    assert!(std::mem::size_of::<AVSeekFlag>() == std::mem::size_of_val(&AVSEEK_FLAG_BACKWARD));
+};
+
 nutype_enum! {
     /// Seek flags used in FFmpeg's `av_seek_frame` function.
     ///
@@ -14,25 +18,25 @@ nutype_enum! {
         /// - **Used for**: Ensuring accurate decoding by seeking to a valid keyframe.
         /// - **Binary representation**: `0b0000000000000001`
         /// - **Equivalent to**: `AVSEEK_FLAG_BACKWARD`
-        Backward = AVSEEK_FLAG_BACKWARD as i32,
+        Backward = AVSEEK_FLAG_BACKWARD as _,
 
         /// Seek by byte position instead of timestamp.
         /// - **Used for**: Formats where byte offsets are more reliable than timestamps.
         /// - **Binary representation**: `0b0000000000000010`
         /// - **Equivalent to**: `AVSEEK_FLAG_BYTE`
-        Byte = AVSEEK_FLAG_BYTE as i32,
+        Byte = AVSEEK_FLAG_BYTE as _,
 
         /// Seek to any frame, not just keyframes.
         /// - **Used for**: Allowing finer seeking granularity at the cost of possible decoding artifacts.
         /// - **Binary representation**: `0b0000000000000100`
         /// - **Equivalent to**: `AVSEEK_FLAG_ANY`
-        Any = AVSEEK_FLAG_ANY as i32,
+        Any = AVSEEK_FLAG_ANY as _,
 
         /// Seek based on frame numbers rather than timestamps.
         /// - **Used for**: Direct frame-based seeking in formats that support it.
         /// - **Binary representation**: `0b0000000000001000`
         /// - **Equivalent to**: `AVSEEK_FLAG_FRAME`
-        Frame = AVSEEK_FLAG_FRAME as i32,
+        Frame = AVSEEK_FLAG_FRAME as _,
     }
 }
 
@@ -46,7 +50,7 @@ impl PartialEq<i32> for AVSeekFlag {
 
 impl From<u32> for AVSeekFlag {
     fn from(value: u32) -> Self {
-        AVSeekFlag(value as i32)
+        AVSeekFlag(value as _)
     }
 }
 
@@ -55,6 +59,10 @@ impl From<AVSeekFlag> for u32 {
         value.0 as u32
     }
 }
+
+const _: () = {
+    assert!(std::mem::size_of::<AVSeekWhence>() == std::mem::size_of_val(&SEEK_SET));
+};
 
 nutype_enum! {
     /// Seek flags used in FFmpeg's `av_seek_frame` function.
@@ -68,31 +76,31 @@ nutype_enum! {
         /// - **Used for**: Seeking from the start of the file.
         /// - **Binary representation**: `0b0000000000000001`
         /// - **Equivalent to**: `SEEK_SET`
-        Start = SEEK_SET as i32,
+        Start = SEEK_SET as _,
 
         /// Seek from the current position.
         /// - **Used for**: Seeking from the current position.
         /// - **Binary representation**: `0b0000000000000010`
         /// - **Equivalent to**: `SEEK_CUR`
-        Current = SEEK_CUR as i32,
+        Current = SEEK_CUR as _,
 
         /// Seek from the end of the file.
         /// - **Used for**: Seeking from the end of the file.
         /// - **Binary representation**: `0b0000000000000100`
         /// - **Equivalent to**: `SEEK_END`
-        End = SEEK_END as i32,
+        End = SEEK_END as _,
 
         /// Return the file size instead of performing a seek.
         /// - **Used for**: Querying the total file size.
         /// - **Binary representation**: `0b00000000000000010000000000000000`
         /// - **Equivalent to**: `AVSEEK_SIZE`
-        Size = AVSEEK_SIZE as i32,
+        Size = AVSEEK_SIZE as _,
 
         /// Force seeking, even if the demuxer does not indicate it supports it.
         /// - **Used for**: Forcing a seek operation when the demuxer might otherwise refuse.
         /// - **Binary representation**: `0b00000000000000100000000000000000`
         /// - **Equivalent to**: `AVSEEK_FORCE`
-        Force = AVSEEK_FORCE as i32,
+        Force = AVSEEK_FORCE as _,
     }
 }
 
@@ -106,7 +114,7 @@ impl PartialEq<i32> for AVSeekWhence {
 
 impl From<u32> for AVSeekWhence {
     fn from(value: u32) -> Self {
-        AVSeekWhence(value as i32)
+        AVSeekWhence(value as _)
     }
 }
 

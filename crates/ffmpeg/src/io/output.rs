@@ -474,7 +474,6 @@ mod tests {
         let output = Output::open(temp_path.to_str().unwrap());
 
         assert!(output.is_ok(), "Expected Output::open to succeed");
-        std::fs::remove_file(temp_path).expect("Failed to remove temporary file");
     }
 
     macro_rules! get_boxes {

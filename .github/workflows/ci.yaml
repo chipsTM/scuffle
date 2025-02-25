@@ -13,242 +13,76 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RUST_TOOLCHAIN: nightly
   # By default, when a action is run against a PR it will use a merge commit from the target branch & the PR branch. We want to use just the PR branch.
   # So this changes the SHA to the PR branch SHA or falls back to the current SHA (if its not a PR)
   # https://github.com/actions/checkout/issues/426
   SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  clippy:
-    name: Clippy
-    runs-on: ubicloud-standard-8
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.SHA }}
-
-      - name: Setup FFmpeg
-        uses: ./.github/actions/setup-ffmpeg
-
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: clippy
-          shared-key: clippy
-          tools: just,cargo-hakari
-          cache-backend: ubicloud
-
-      - name: Disable Hakari
-        if: ${{ github.event_name == 'push' }}
-        run: cargo hakari disable
-
-      - name: Run Clippy
-        if: ${{ github.event_name == 'pull_request' }}
-        run: cargo +${{ env.RUST_TOOLCHAIN }} clippy -Z unstable-options --all-features --all-targets --no-deps -- -Dwarnings
-
-      - name: Run Clippy on Powerset
-        if: ${{ github.event_name == 'push' }}
-        run: just powerset clippy -- --all-targets --no-deps -Z unstable-options -- -Dwarnings
-
-  fmt:
-    name: Fmt
+  matrix_prep:
+    name: Matrix Prep
     runs-on: ubuntu-24.04
-    permissions:
-      checks: write
+    outputs:
+      matrix: ${{ steps.compute.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.SHA }}
 
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: rustfmt
-
-      - name: Make sure code is formatted
-        run: cargo +${{ env.RUST_TOOLCHAIN }} fmt --check
-
-  hakari:
-    name: Hakari
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.SHA }}
-
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          tools: cargo-hakari
-
-      - name: Make sure Hakari is up-to-date
+      - name: Run matrix prep
+        id: compute
         run: |
           set -xeo pipefail
+          python3 .github/scripts/ci-matrix-prep.py '${{ toJson(github) }}' | tee -a $GITHUB_OUTPUT
 
-          cargo +${{ env.RUST_TOOLCHAIN }} hakari manage-deps --dry-run
-          cargo +${{ env.RUST_TOOLCHAIN }} hakari generate --diff
-          cargo +${{ env.RUST_TOOLCHAIN }} hakari verify
-
-  test:
-    name: Test
-    runs-on: ubicloud-standard-8
-    env:
-      RUSTFLAGS: "--cfg reqwest_unstable"
+  jobs:
+    name: ${{ matrix.job_name }}
+    needs: matrix_prep
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.matrix_prep.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.SHA }}
 
       - name: Setup FFmpeg
+        if: ${{ matrix.ffmpeg != null }}
         uses: ./.github/actions/setup-ffmpeg
+        with: ${{ matrix.ffmpeg }}
 
       - name: Setup Rust
+        if: ${{ matrix.rust != null }}
         uses: ./.github/actions/setup-rust
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          tools: cargo-nextest,cargo-llvm-cov
-          components: llvm-tools-preview
-          shared-key: test
-          cache-backend: ubicloud
+        with: ${{ matrix.rust }}
 
-      # Note; we don't run the powerset here because it's very slow on CI
-      # Perhaps we should consider it at some point.
-      #
-      # Coverage for doctests is currently broken in llvm-cov.
-      # Once it fully works we can add the `--doctests` flag to the test and report command again.
-      - name: Run tests
+      - name: Setup Secrets
+        if: ${{ matrix.secrets != null }}
         run: |
-          cargo +${{ env.RUST_TOOLCHAIN }} llvm-cov nextest --no-fail-fast --all-features --profile ci --no-report
-          cargo +${{ env.RUST_TOOLCHAIN }} llvm-cov test --all-features --doc --no-report
-          cargo +${{ env.RUST_TOOLCHAIN }} llvm-cov report --lcov --output-path ./lcov.info
+          set -eo pipefail
+          secrets='${{ toJson(secrets) }}'
 
-      - name: Brawl Override
-        if: ${{ startsWith(github.ref, 'refs/heads/automation/brawl/try/') }}
-        id: brawl-override
-        run: |
-          PR_NUMBER=$(echo ${{ github.ref }} | sed -n 's/^refs\/heads\/automation\/brawl\/try\/\([0-9]*\)$/\1/p')
-          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-          RUN_COMMIT_SHA=$(git log -1 --pretty=format:%H)
-          echo "run_commit_sha=$RUN_COMMIT_SHA" >> $GITHUB_OUTPUT
+          for secret in $(echo '${{ toJson(matrix.secrets) }}' | jq -r '.[]'); do
+            value=$(echo "$secrets" | jq -r --arg key "$secret" '.[$key]')
+            echo "$secret=$value" >> $GITHUB_ENV
+            echo "Setting $secret to $value"
+          done
 
-      - uses: codecov/codecov-action@v5
+      - name: Run ./.github/actions/ci/${{ matrix.job }}
+        uses: ./.github/actions/ci/dynamic
         with:
-          fail_ci_if_error: true
-          files: ./lcov.info
-          token: ${{ secrets.CODECOV_TOKEN }}
-          override_pr: ${{ steps.brawl-override.outputs.pr_number || github.event.pull_request.number || '' }}
-          override_commit: ${{ steps.brawl-override.outputs.run_commit_sha || env.SHA }}
-          verbose: true
-
-      - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
-        with:
-          files: ./target/nextest/ci/junit.xml
-          override_pr: ${{ steps.brawl-override.outputs.pr_number || github.event.pull_request.number || '' }}
-          override_commit: ${{ steps.brawl-override.outputs.run_commit_sha || env.SHA }}
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-  grind:
-    name: Grind
-    if: ${{ github.event_name == 'push' }}
-    runs-on: ubicloud-standard-8
-    env:
-      RUSTFLAGS: "--cfg reqwest_unstable --cfg valgrind"
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.SHA }}
-
-      - name: Setup FFmpeg
-        uses: ./.github/actions/setup-ffmpeg
-
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          tools: cargo-nextest,cargo-llvm-cov
-          components: llvm-tools-preview
-          shared-key: grind
-          cache-backend: ubicloud
-
-      - name: Install Valgrind
-        run: |
-          set -xeo pipefail
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends valgrind
-
-      - name: Run valgrind
-        run: |
-          set -xeo pipefail
-          export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER="valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log"
-          cargo +${{ env.RUST_TOOLCHAIN }} nextest run --all-features --no-fail-fast --profile ci
-
-  docs:
-    name: Docs
-    runs-on: ubicloud-standard-8
-    permissions:
-      pull-requests: write
-    env:
-      RUSTDOCFLAGS: "-D warnings --cfg docsrs --enable-index-page -Zunstable-options"
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.SHA }}
-
-      - name: Setup FFmpeg
-        uses: ./.github/actions/setup-ffmpeg
-
-      - name: Setup Rust
-        uses: ./.github/actions/setup-rust
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: rust-docs
-          shared-key: docs
-          cache-backend: ubicloud
-
-      - name: Build docs
-        run: |
-          set -xeo pipefail
-          cargo +${{ env.RUST_TOOLCHAIN }} doc --no-deps --all-features
-
-      - name: Brawl Override
-        if: ${{ startsWith(github.ref, 'refs/heads/automation/brawl/try/') }}
-        id: brawl-override
-        run: |
-          PR_NUMBER=$(echo ${{ github.ref }} | sed -n 's/^refs\/heads\/automation\/brawl\/try\/\([0-9]*\)$/\1/p')
-          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-
-      - name: Insert custom html for PR
-        if: ${{ startsWith(github.ref, 'refs/heads/automation/brawl/try/') || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: .github/scripts/patch-docs.sh ${{ github.event.repository.html_url }} ${{ env.SHA }} ${{ steps.brawl-override.outputs.pr_number || github.event.pull_request.number }}
-
-      - name: Insert custom html for merge
-        if: ${{ startsWith(github.ref, 'refs/heads/automation/brawl/merge/') }}
-        run: .github/scripts/patch-docs.sh ${{ github.event.repository.html_url }} ${{ env.SHA }}
-
-      - name: Upload docs
-        uses: actions/upload-artifact@v4
-        with:
-          name: docs
-          path: target/doc
-
-      - name: Deploy
-        if: ${{ startsWith(github.ref, 'refs/heads/automation/brawl/try/') || github.event.pull_request.head.repo.full_name == github.repository }}
-        id: deploy
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CF_DOCS_API_KEY }}
-          accountId: ${{ secrets.CF_DOCS_ACCOUNT_ID }}
-          command: pages deploy --project-name=scuffle-docrs --branch=pr/${{ steps.brawl-override.outputs.pr_number || github.event.pull_request.number }} --commit-hash=${{ env.SHA }} --commit-dirty=true ./target/doc
+          uses: ./.github/actions/ci/${{ matrix.job }}
+          with: |
+            ${{ toJson(matrix.inputs) }}
 
   brawl-done:
     runs-on: ubuntu-24.04
-    needs: [hakari, test, clippy, fmt, grind, docs]
+    needs: [jobs]
     if: ${{ !cancelled() && github.event_name == 'push' }}
     steps:
       - name: calculate the correct exit status

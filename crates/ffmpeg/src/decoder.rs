@@ -98,7 +98,7 @@ impl Decoder {
 
         let codec = options
             .codec
-            .or_else(|| DecoderCodec::new(AVCodecID(codec_params.codec_id as i32)))
+            .or_else(|| DecoderCodec::new(AVCodecID(codec_params.codec_id as _)))
             .ok_or(FfmpegError::NoDecoder)?;
 
         if codec.is_empty() {
