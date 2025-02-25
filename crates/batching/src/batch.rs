@@ -286,6 +286,7 @@ where
 /// TODO: Windows is disabled because i suspect windows doesnt measure time precisely
 /// enough to test the time-sensitive tests.
 /// We should fix this and re-enable the tests.
+/// CLOUD-74
 #[cfg_attr(all(coverage_nightly, test), coverage(off))]
 #[cfg(all(test, not(windows)))]
 mod tests {

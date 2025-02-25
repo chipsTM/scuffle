@@ -166,6 +166,8 @@ fn rustc(config: &Config, tmp_file: &Path) -> Command {
 }
 
 fn write_tmp_file(tokens: &str, tmp_file: &Path) {
+    std::fs::create_dir_all(tmp_file.parent().unwrap()).unwrap();
+
     #[cfg(feature = "prettyplease")]
     {
         if let Ok(syn_file) = syn::parse_file(tokens) {
@@ -180,11 +182,10 @@ fn write_tmp_file(tokens: &str, tmp_file: &Path) {
 
 /// Compiles the given tokens and returns the output.
 pub fn compile_custom(tokens: &str, config: &Config) -> Result<CompileOutput, Errored> {
-    let tmp_file = Path::new(config.tmp_dir.as_ref()).join(format!("{}.rs", config.function_name.replace("::", "____")));
-
-    write_tmp_file(tokens, &tmp_file);
-
     let dependencies = Dependencies::new(config)?;
+
+    let tmp_file = Path::new(config.tmp_dir.as_ref()).join(format!("{}.rs", config.function_name.replace("::", "____")));
+    write_tmp_file(tokens, &tmp_file);
 
     let mut program = rustc(config, &tmp_file);
 
@@ -406,6 +407,8 @@ mod tests {
             }
         };
 
+        dbg!(&out);
+
         assert_eq!(out.status, ExitStatus::Success);
         assert!(out.stderr.is_empty());
         assert_snapshot!(out);
@@ -425,6 +428,7 @@ mod tests {
 
         assert!(out.is_ok());
         let out = out.unwrap();
+        dbg!(&out);
         assert_eq!(out.status, ExitStatus::Success);
         assert!(out.stderr.is_empty());
         assert!(!out.stdout.is_empty());
