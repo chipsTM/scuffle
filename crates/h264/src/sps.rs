@@ -2,7 +2,6 @@ use std::io;
 use std::num::NonZeroU32;
 
 use byteorder::{BigEndian, ReadBytesExt};
-use bytes::Bytes;
 use scuffle_bytes_util::BitReader;
 use scuffle_expgolomb::BitReaderExpGolombExt;
 
@@ -613,9 +612,9 @@ pub struct TimingInfo {
 }
 
 impl Sps {
-    /// Parses an SPS from the input bytes.
+    /// Demuxes an SPS from the input bytes.
     /// Returns an `Sps` struct.
-    pub fn parse(data: Bytes) -> io::Result<Self> {
+    pub fn demux(data: &[u8]) -> io::Result<Self> {
         // Returns an error if there aren't enough bytes.
         if data.len() < 4 {
             return Err(io::Error::new(
@@ -708,7 +707,7 @@ impl Sps {
 
         let sps_ext = match profile_idc {
             100 | 110 | 122 | 244 | 44 | 83 | 86 | 118 | 128 | 138 | 139 | 134 | 135 => {
-                Some(SpsExtended::parse(&mut bit_reader)?)
+                Some(SpsExtended::demux(&mut bit_reader)?)
             }
             _ => None,
         };
@@ -835,21 +834,7 @@ impl Sps {
             }
 
             let chroma_loc_info_present_flag = bit_reader.read_bit()?;
-            if sps_ext
-                .clone()
-                .unwrap_or(SpsExtended {
-                    // default values defined in 7.4.2.1.1
-                    chroma_format_idc: 1,
-                    separate_color_plane_flag: false,
-                    bit_depth_luma_minus8: 0,
-                    bit_depth_chroma_minus8: 0,
-                    qpprime_y_zero_transform_bypass_flag: false,
-                    seq_scaling_matrix_present_flag: false,
-                })
-                .chroma_format_idc
-                != 1
-                && chroma_loc_info_present_flag
-            {
+            if sps_ext.as_ref().unwrap_or(&SpsExtended::DEFAULT).chroma_format_idc != 1 && chroma_loc_info_present_flag {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
                     "chroma_loc_info_present_flag cannot be set to 1 when chroma_format_idc is not 1",
@@ -1035,10 +1020,26 @@ pub struct SpsExtended {
     pub seq_scaling_matrix_present_flag: bool,
 }
 
+impl Default for SpsExtended {
+    fn default() -> Self {
+        Self::DEFAULT
+    }
+}
+
 impl SpsExtended {
+    // default values defined in 7.4.2.1.1
+    const DEFAULT: SpsExtended = SpsExtended {
+        chroma_format_idc: 1,
+        separate_color_plane_flag: false,
+        bit_depth_luma_minus8: 0,
+        bit_depth_chroma_minus8: 0,
+        qpprime_y_zero_transform_bypass_flag: false,
+        seq_scaling_matrix_present_flag: false,
+    };
+
     /// Parses an extended SPS from a bitstream.
     /// Returns an `SpsExtended` struct.
-    pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
+    pub fn demux<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
         let chroma_format_idc = reader.read_exp_golomb()? as u8;
         // Defaults to false: ISO/IEC-14496-10-2022 - 7.4.2.1.1
         let mut separate_color_plane_flag = false;
@@ -1099,7 +1100,7 @@ mod tests {
         let _ = writer.write_bit(true); // only write 1 bit
         let _ = writer.finish();
 
-        let result = Sps::parse(sps.into());
+        let result = Sps::demux(&sps);
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -1119,7 +1120,7 @@ mod tests {
         let _ = writer.write_bits(0x00, 8); // ensure length > 3 bytes
         let _ = writer.finish();
 
-        let result = Sps::parse(sps.into());
+        let result = Sps::demux(&sps);
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -1142,7 +1143,7 @@ mod tests {
         let _ = writer.write_bits(0x00, 8); // ensure length > 3 bytes
         let _ = writer.finish();
 
-        let result = Sps::parse(sps.into());
+        let result = Sps::demux(&sps);
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -1254,7 +1255,7 @@ mod tests {
         let _ = writer.write_bits(28800, 32);
         let _ = writer.finish();
 
-        let result = Sps::parse(sps.into()).unwrap();
+        let result = Sps::demux(&sps).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
@@ -1481,7 +1482,7 @@ mod tests {
         let _ = writer.write_bits(960000, 32);
         let _ = writer.finish();
 
-        let result = Sps::parse(sps.into()).unwrap();
+        let result = Sps::demux(&sps).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
@@ -1651,7 +1652,7 @@ mod tests {
         let _ = writer.write_exp_golomb(2);
         let _ = writer.finish();
 
-        let result = Sps::parse(sps.into()).unwrap();
+        let result = Sps::demux(&sps).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
@@ -1799,7 +1800,7 @@ mod tests {
         let _ = writer.write_bit(true);
         let _ = writer.finish();
 
-        let result = Sps::parse(sps.into());
+        let result = Sps::demux(&sps);
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -1909,7 +1910,7 @@ mod tests {
         let _ = writer.write_bits(0, 32);
         let _ = writer.finish();
 
-        let result = Sps::parse(sps.into());
+        let result = Sps::demux(&sps);
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -2016,7 +2017,7 @@ mod tests {
         let _ = writer.write_bits(0, 32);
         let _ = writer.finish();
 
-        let result = Sps::parse(sps.into());
+        let result = Sps::demux(&sps);
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -2111,7 +2112,7 @@ mod tests {
         let _ = writer.write_bit(false);
         let _ = writer.finish();
 
-        let result = Sps::parse(sps.into()).unwrap();
+        let result = Sps::demux(&sps).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {

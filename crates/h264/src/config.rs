@@ -35,14 +35,14 @@ pub struct AVCDecoderConfigurationRecord {
     /// ISO/IEC 14496-15:2022(E) - 5.3.2.1.2
     pub length_size_minus_one: u8,
 
-    /// The `sps` is a vec of SPS.
+    /// The `sps` is a vec of SPS Bytes.
     ///
     /// Note that these should be ordered by ascending SPS ID.
     ///
-    /// Refer to the SPS struct in the SPS docs for more info.
+    /// Refer to the [`crate::Sps`] struct in the SPS docs for more info.
     pub sps: Vec<Bytes>,
 
-    /// The `pps` is a vec of PPS.
+    /// The `pps` is a vec of PPS Bytes.
     ///
     /// These contain syntax elements that can apply layer repesentation(s).
     ///
@@ -83,9 +83,9 @@ pub struct AvccExtendedConfig {
     /// ISO/IEC 14496-15:2022(E) - 5.3.2.1.2
     pub bit_depth_chroma_minus8: u8,
 
-    /// The `sequence_parameter_set_ext` is a vec of SpsExtended, each of which is a u64.
+    /// The `sequence_parameter_set_ext` is a vec of SpsExtended Bytes.
     ///
-    /// Refer to the SpsExtended struct in the SPS docs for more info.
+    /// Refer to the [`crate::SpsExtended`] struct in the SPS docs for more info.
     pub sequence_parameter_set_ext: Vec<Bytes>,
 }
 
@@ -292,8 +292,7 @@ mod tests {
 
         let result = AVCDecoderConfigurationRecord::demux(&mut io::Cursor::new(data.into())).unwrap();
 
-        let sps = &result.sps[0];
-        let sps = Sps::parse(sps.clone()).unwrap();
+        let sps = Sps::demux(&result.sps[0]).unwrap();
 
         insta::assert_debug_snapshot!(sps, @r"
         Sps {
