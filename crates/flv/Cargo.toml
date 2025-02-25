@@ -19,7 +19,6 @@ bytes = "1.5"
 num-traits = "0.2"
 num-derive = "0.4"
 thiserror = "2.0"
-
 scuffle-h264.workspace = true
 scuffle-h265.workspace = true
 scuffle-aac.workspace = true
@@ -28,3 +27,6 @@ scuffle-av1.workspace = true
 scuffle-amf0.workspace = true
 nutype-enum.workspace = true
 scuffle-workspace-hack.workspace = true
+
+[dev-dependencies]
+insta = "1.42"

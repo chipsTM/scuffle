@@ -431,12 +431,14 @@ impl Transmuxer {
                 };
 
                 let (entry, sps) = codecs::avc::stsd_entry(config)?;
-                if sps.frame_rate != 0.0 {
-                    video_fps = sps.frame_rate;
-                }
 
-                video_width = sps.width as u32;
-                video_height = sps.height as u32;
+                video_width = sps.width() as u32;
+                video_height = sps.height() as u32;
+
+                let frame_rate = sps.frame_rate();
+                if frame_rate != 0.0 {
+                    video_fps = frame_rate;
+                }
 
                 entry
             }

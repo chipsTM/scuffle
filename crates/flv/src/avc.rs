@@ -29,7 +29,7 @@ impl AvcPacket {
         let composition_time = reader.read_u24::<BigEndian>()?;
 
         match avc_packet_type {
-            AvcPacketType::SeqHdr => Ok(Self::SequenceHeader(AVCDecoderConfigurationRecord::demux(reader)?)),
+            AvcPacketType::SeqHdr => Ok(Self::SequenceHeader(AVCDecoderConfigurationRecord::parse(reader)?)),
             AvcPacketType::Nalu => Ok(Self::Nalu {
                 composition_time,
                 data: reader.extract_remaining(),
