@@ -55,6 +55,7 @@
 //!
 //! `SPDX-License-Identifier: MIT OR Apache-2.0`
 #![cfg_attr(all(coverage_nightly, test), feature(coverage_attribute))]
+#![cfg(unix)]
 
 use std::pin::Pin;
 use std::task::{Context, Poll};

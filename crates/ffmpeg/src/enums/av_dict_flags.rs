@@ -2,6 +2,10 @@ use nutype_enum::{bitwise_enum, nutype_enum};
 
 use crate::ffi::*;
 
+const _: () = {
+    assert!(std::mem::size_of::<AVDictionaryFlags>() == std::mem::size_of_val(&AV_DICT_MATCH_CASE));
+};
+
 nutype_enum! {
     /// Dictionary flags used in FFmpeg's AVDictionary API.
     ///
@@ -10,31 +14,31 @@ nutype_enum! {
     pub enum AVDictionaryFlags(i32) {
         /// Match keys case-sensitively.
         /// Corresponds to `AV_DICT_MATCH_CASE`.
-        MatchCase = AV_DICT_MATCH_CASE as i32,
+        MatchCase = AV_DICT_MATCH_CASE as _,
 
         /// Do not differentiate keys with different suffixes.
         /// Corresponds to `AV_DICT_IGNORE_SUFFIX`.
-        IgnoreSuffix = AV_DICT_IGNORE_SUFFIX as i32,
+        IgnoreSuffix = AV_DICT_IGNORE_SUFFIX as _,
 
         /// Do not duplicate the key string.
         /// Corresponds to `AV_DICT_DONT_STRDUP_KEY`.
-        DontStrDupKey = AV_DICT_DONT_STRDUP_KEY as i32,
+        DontStrDupKey = AV_DICT_DONT_STRDUP_KEY as _,
 
         /// Do not duplicate the value string.
         /// Corresponds to `AV_DICT_DONT_STRDUP_VAL`.
-        DontStrDupVal = AV_DICT_DONT_STRDUP_VAL as i32,
+        DontStrDupVal = AV_DICT_DONT_STRDUP_VAL as _,
 
         /// Do not overwrite existing entries.
         /// Corresponds to `AV_DICT_DONT_OVERWRITE`.
-        DontOverwrite = AV_DICT_DONT_OVERWRITE as i32,
+        DontOverwrite = AV_DICT_DONT_OVERWRITE as _,
 
         /// Append the new value to an existing key instead of replacing it.
         /// Corresponds to `AV_DICT_APPEND`.
-        Append = AV_DICT_APPEND as i32,
+        Append = AV_DICT_APPEND as _,
 
         /// Allow multiple entries with the same key.
         /// Corresponds to `AV_DICT_MULTIKEY`.
-        MultiKey = AV_DICT_MULTIKEY as i32,
+        MultiKey = AV_DICT_MULTIKEY as _,
     }
 }
 
@@ -48,7 +52,7 @@ impl PartialEq<i32> for AVDictionaryFlags {
 
 impl From<u32> for AVDictionaryFlags {
     fn from(value: u32) -> Self {
-        AVDictionaryFlags(value as i32)
+        AVDictionaryFlags(value as _)
     }
 }
 

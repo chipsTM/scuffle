@@ -2,6 +2,10 @@ use nutype_enum::{bitwise_enum, nutype_enum};
 
 use crate::ffi::*;
 
+const _: () = {
+    assert!(std::mem::size_of::<AVPktFlags>() == std::mem::size_of_val(&AV_PKT_FLAG_KEY));
+};
+
 nutype_enum! {
     /// Packet flags used in FFmpeg's `AVPacket`.
     ///
@@ -14,31 +18,31 @@ nutype_enum! {
         /// - **Used for**: Identifying keyframes in video streams.
         /// - **Binary representation**: `0b00001`
         /// - **Equivalent to**: `AV_PKT_FLAG_KEY`
-        Key = AV_PKT_FLAG_KEY as i32,
+        Key = AV_PKT_FLAG_KEY as _,
 
         /// This packet is **corrupt**.
         /// - **Used for**: Marking damaged or incomplete data.
         /// - **Binary representation**: `0b00010`
         /// - **Equivalent to**: `AV_PKT_FLAG_CORRUPT`
-        Corrupt = AV_PKT_FLAG_CORRUPT as i32,
+        Corrupt = AV_PKT_FLAG_CORRUPT as _,
 
         /// This packet should be **discarded**.
         /// - **Used for**: Frames that should be ignored by decoders.
         /// - **Binary representation**: `0b00100`
         /// - **Equivalent to**: `AV_PKT_FLAG_DISCARD`
-        Discard = AV_PKT_FLAG_DISCARD as i32,
+        Discard = AV_PKT_FLAG_DISCARD as _,
 
         /// This packet comes from a **trusted source**.
         /// - **Used for**: Security and validation checks.
         /// - **Binary representation**: `0b01000`
         /// - **Equivalent to**: `AV_PKT_FLAG_TRUSTED`
-        Trusted = AV_PKT_FLAG_TRUSTED as i32,
+        Trusted = AV_PKT_FLAG_TRUSTED as _,
 
         /// This packet is **disposable** (e.g., non-reference frames).
         /// - **Used for**: Frames that can be dropped without affecting playback.
         /// - **Binary representation**: `0b10000`
         /// - **Equivalent to**: `AV_PKT_FLAG_DISPOSABLE`
-        Disposable = AV_PKT_FLAG_DISPOSABLE as i32,
+        Disposable = AV_PKT_FLAG_DISPOSABLE as _,
     }
 }
 
@@ -52,7 +56,7 @@ impl PartialEq<i32> for AVPktFlags {
 
 impl From<u32> for AVPktFlags {
     fn from(value: u32) -> Self {
-        AVPktFlags(value as i32)
+        AVPktFlags(value as _)
     }
 }
 

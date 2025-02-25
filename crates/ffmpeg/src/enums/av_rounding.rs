@@ -2,6 +2,10 @@ use nutype_enum::nutype_enum;
 
 use crate::ffi::*;
 
+const _: () = {
+    assert!(std::mem::size_of::<AVRounding>() == std::mem::size_of_val(&AV_ROUND_ZERO));
+};
+
 nutype_enum! {
     /// Rounding methods used in FFmpeg's `av_rescale_rnd` function.
     ///
@@ -13,27 +17,27 @@ nutype_enum! {
         /// Round **toward zero** (truncate fractional part).
         /// - **Example**: `2.9 -> 2`, `-2.9 -> -2`
         /// - **Equivalent to**: `AV_ROUND_ZERO`
-        Zero = AV_ROUND_ZERO as i32,
+        Zero = AV_ROUND_ZERO as _,
 
         /// Round **away from zero**.
         /// - **Example**: `2.1 -> 3`, `-2.1 -> -3`
         /// - **Equivalent to**: `AV_ROUND_INF`
-        AwayFromZero = AV_ROUND_INF as i32,
+        AwayFromZero = AV_ROUND_INF as _,
 
         /// Round **toward negative infinity**.
         /// - **Example**: `2.9 -> 2`, `-2.1 -> -3`
         /// - **Equivalent to**: `AV_ROUND_DOWN`
-        Down = AV_ROUND_DOWN as i32,
+        Down = AV_ROUND_DOWN as _,
 
         /// Round **toward positive infinity**.
         /// - **Example**: `2.1 -> 3`, `-2.9 -> -2`
         /// - **Equivalent to**: `AV_ROUND_UP`
-        Up = AV_ROUND_UP as i32,
+        Up = AV_ROUND_UP as _,
 
         /// Round to the **nearest integer**, with halfway cases rounded **away from zero**.
         /// - **Example**: `2.5 -> 3`, `-2.5 -> -3`
         /// - **Equivalent to**: `AV_ROUND_NEAR_INF`
-        NearestAwayFromZero = AV_ROUND_NEAR_INF as i32,
+        NearestAwayFromZero = AV_ROUND_NEAR_INF as _,
 
         /// Pass `INT64_MIN` / `INT64_MAX` **unchanged** during rescaling.
         ///
@@ -44,7 +48,7 @@ nutype_enum! {
         ///   av_rescale_rnd(3, 1, 2, AV_ROUND_UP | AV_ROUND_PASS_MINMAX);
         ///   ```
         /// - **Equivalent to**: `AV_ROUND_PASS_MINMAX`
-        PassMinMax = AV_ROUND_PASS_MINMAX as i32,
+        PassMinMax = AV_ROUND_PASS_MINMAX as _,
     }
 }
 
@@ -56,7 +60,7 @@ impl PartialEq<i32> for AVRounding {
 
 impl From<u32> for AVRounding {
     fn from(value: u32) -> Self {
-        AVRounding(value as i32)
+        AVRounding(value as _)
     }
 }
 

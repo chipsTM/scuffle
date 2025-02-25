@@ -173,13 +173,13 @@ impl Packet {
         // Safety: av_rescale_q_rnd is safe to call
         self.set_pts(self.pts().map(|pts| {
             // Safety: av_rescale_q_rnd is safe to call
-            unsafe { av_rescale_q_rnd(pts, from.into(), to.into(), AVRounding::NearestAwayFromZero.0 as u32) }
+            unsafe { av_rescale_q_rnd(pts, from.into(), to.into(), AVRounding::NearestAwayFromZero.0 as _) }
         }));
 
         // Safety: av_rescale_q_rnd is safe to call
         self.set_dts(self.dts().map(|dts| {
             // Safety: av_rescale_q_rnd is safe to call
-            unsafe { av_rescale_q_rnd(dts, from.into(), to.into(), AVRounding::NearestAwayFromZero.0 as u32) }
+            unsafe { av_rescale_q_rnd(dts, from.into(), to.into(), AVRounding::NearestAwayFromZero.0 as _) }
         }));
 
         self.set_duration(

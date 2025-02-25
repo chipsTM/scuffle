@@ -2,10 +2,6 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll, ready};
 
-#[cfg(any(test, doctest))]
-#[doc(hidden)]
-pub use scuffle_signal::SignalSvc;
-
 /// A service that can be run.
 ///
 /// This trait is used to define a service that can be run in parallel to other

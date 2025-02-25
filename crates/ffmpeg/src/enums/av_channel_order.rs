@@ -2,6 +2,10 @@ use nutype_enum::nutype_enum;
 
 use crate::ffi::*;
 
+const _: () = {
+    assert!(std::mem::size_of::<AVChannelOrder>() == std::mem::size_of_val(&AV_CHANNEL_ORDER_UNSPEC));
+};
+
 nutype_enum! {
     /// Audio channel ordering schemes used in FFmpeg's `AVChannelOrder`.
     ///
@@ -15,12 +19,12 @@ nutype_enum! {
         /// about the **channel order**.
         /// - **Used for**: Unspecified channel layouts.
         /// - **Equivalent to**: `AV_CHANNEL_ORDER_UNSPEC`
-        Unspecified = AV_CHANNEL_ORDER_UNSPEC,
+        Unspecified = AV_CHANNEL_ORDER_UNSPEC as _,
 
         /// Channels are in the **native order** defined in `AVChannel` (up to 63 channels).
         /// - **Used for**: Standard layouts where channels are ordered as per the `AVChannel` enum.
         /// - **Equivalent to**: `AV_CHANNEL_ORDER_NATIVE`
-        Native = AV_CHANNEL_ORDER_NATIVE,
+        Native = AV_CHANNEL_ORDER_NATIVE as _,
 
         /// The channel order does not correspond to any predefined order and is stored
         /// as an **explicit map**.
@@ -29,7 +33,7 @@ nutype_enum! {
         ///   - Layouts with **empty/skipped** (`AV_CHAN_UNUSED`) channels at arbitrary positions.
         /// - **Example**: Custom surround sound layouts.
         /// - **Equivalent to**: `AV_CHANNEL_ORDER_CUSTOM`
-        Custom = AV_CHANNEL_ORDER_CUSTOM,
+        Custom = AV_CHANNEL_ORDER_CUSTOM as _,
 
         /// **Ambisonic channel order**, where each channel represents a **spherical harmonic**
         /// expansion component.
@@ -45,12 +49,12 @@ nutype_enum! {
         ///
         /// - **Used for**: **Ambisonic (3D spatial audio)** representations.
         /// - **Equivalent to**: `AV_CHANNEL_ORDER_AMBISONIC`
-        Ambisonic = AV_CHANNEL_ORDER_AMBISONIC,
+        Ambisonic = AV_CHANNEL_ORDER_AMBISONIC as _,
 
         /// **Number of channel orders** (internal use only).
         /// - **DO NOT USE** in applications.
         /// - **Equivalent to**: `FF_CHANNEL_ORDER_NB`
-        Nb = FF_CHANNEL_ORDER_NB,
+        Nb = FF_CHANNEL_ORDER_NB as _,
     }
 }
 

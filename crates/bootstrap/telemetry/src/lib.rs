@@ -424,6 +424,7 @@ mod tests {
     use std::net::SocketAddr;
     use std::sync::Arc;
 
+    #[cfg(unix)]
     use bytes::Bytes;
     #[cfg(feature = "opentelemetry-logs")]
     use opentelemetry_sdk::logs::SdkLoggerProvider;
@@ -652,9 +653,12 @@ mod tests {
         assert!(res.is_status());
         assert_eq!(res.status(), Some(reqwest::StatusCode::NOT_FOUND));
 
-        let timer = std::time::Instant::now();
-        assert!(!request_pprof(bind_addr, "100", "2").await.expect("pprof failed").is_empty());
-        assert!(timer.elapsed() > std::time::Duration::from_secs(2));
+        #[cfg(unix)]
+        {
+            let timer = std::time::Instant::now();
+            assert!(!request_pprof(bind_addr, "100", "2").await.expect("pprof failed").is_empty());
+            assert!(timer.elapsed() > std::time::Duration::from_secs(2));
+        }
 
         let err = flush_opentelemetry(bind_addr).await.expect_err("error expected");
         assert!(err.is_status());
