@@ -6,14 +6,20 @@ authors = ["@philipch07"]
 
 [[scuffle-h264]]
 category = "refactor"
-description = "Refactored how tests work so they work like the tests in our other crates"
+description = "Refactored sps output and input to use nutype enums"
 breaking = true
 authors = ["@philipch07"]
 
 [[scuffle-h264]]
 category = "refactor"
-description = "Refactored sps output and input to use nutype enums"
+description = "Renamed sps/config `demux` and `mux` to `parse` and `build` respectively"
 breaking = true
+authors = ["@philipch07"]
+
+[[scuffle-h264]]
+category = "refactor"
+description = "Refactored how tests work so they work like the tests in our other crates"
+breaking = false
 authors = ["@philipch07"]
 
 [[scuffle-h264]]
