@@ -70,14 +70,22 @@ runs:
             echo "Unsupported operating system: ${{ runner.os }}" && exit 1
         esac
 
-        sudo mkdir -p ${FFMPEG_ROOT}/{include,lib,bin}
-        sudo mv ffmpeg-*/include/* ${FFMPEG_ROOT}/include
-        sudo mv ffmpeg-*/lib/* ${FFMPEG_ROOT}/lib
-        sudo mv ffmpeg-*/bin/* ${FFMPEG_ROOT}/bin
+        # Sometimes sudo isnt available, so we need to use the current user
+        if ! sudo -v; then
+          echo "Sudo is not available, using current user"
+          SUDO=""
+        else
+          SUDO="sudo"
+        fi
+
+        ${SUDO} mkdir -p ${FFMPEG_ROOT}/{include,lib,bin}
+        ${SUDO} mv ffmpeg-*/include/* ${FFMPEG_ROOT}/include
+        ${SUDO} mv ffmpeg-*/lib/* ${FFMPEG_ROOT}/lib
+        ${SUDO} mv ffmpeg-*/bin/* ${FFMPEG_ROOT}/bin
 
         if [ "${{ runner.os }}" = "Linux" ]; then
           # Update the dynamic linker cache
-          sudo ldconfig
+          ${SUDO} ldconfig
         fi
 
         echo "FFMPEG_PKG_CONFIG_PATH=${FFMPEG_ROOT}/lib/pkgconfig" >> $GITHUB_ENV
