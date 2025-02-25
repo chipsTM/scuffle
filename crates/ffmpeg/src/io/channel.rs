@@ -306,7 +306,7 @@ mod tests {
 
             // generate 1000 bytes of random data
             let mut rng = rand::rng();
-            let data: Vec<u8> = (0..1000).map(|_| rng.sample(StandardUniform)).collect();
+            let data: Vec<u8> = (0..1000).map(|_| rng.sample::<u8, _>(StandardUniform)).collect();
 
             let mut tx = tx;
             let write_result = tx.channel_send(data.clone());
@@ -358,7 +358,7 @@ mod tests {
 
         // generate 1000 bytes of random data
         let mut rng = rand::rng();
-        let data: Vec<u8> = (0..1000).map(|_| rng.sample(StandardUniform)).collect();
+        let data: Vec<u8> = (0..1000).map(|_| rng.sample::<u8, _>(StandardUniform)).collect();
 
         let write_result = writer.write(&data);
         assert!(write_result.is_ok(), "Failed to write data to the channel");
