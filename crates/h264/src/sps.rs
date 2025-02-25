@@ -391,7 +391,7 @@ impl Sps {
             // 7.4.2.1.1
             44 | 100 | 110 | 122 | 244 => {
                 // constraint_set0 thru 2 must be false in this case
-                let _ = bit_reader.seek_bits(3);
+                bit_reader.seek_bits(3)?;
                 constraint_set0_flag = false;
                 constraint_set1_flag = false;
                 constraint_set2_flag = false;
@@ -405,7 +405,7 @@ impl Sps {
         }
 
         let constraint_set3_flag = if profile_idc == 44 {
-            let _ = bit_reader.seek_bits(1);
+            bit_reader.seek_bits(1)?;
             false
         } else {
             bit_reader.read_bit()?
@@ -415,7 +415,7 @@ impl Sps {
             // 7.4.2.1.1
             77 | 88 | 100 | 118 | 128 | 134 => bit_reader.read_bit()?,
             _ => {
-                let _ = bit_reader.seek_bits(1);
+                bit_reader.seek_bits(1)?;
                 false
             }
         };
@@ -423,7 +423,7 @@ impl Sps {
         let constraint_set5_flag = match profile_idc {
             77 | 88 | 100 | 118 => bit_reader.read_bit()?,
             _ => {
-                let _ = bit_reader.seek_bits(1);
+                bit_reader.seek_bits(1)?;
                 false
             }
         };
@@ -1145,8 +1145,8 @@ mod tests {
         let mut sps = Vec::new();
         let mut writer = BitWriter::new(&mut sps);
 
-        let _ = writer.write_bit(true); // only write 1 bit
-        let _ = writer.finish();
+        writer.write_bit(true).unwrap(); // only write 1 bit
+        writer.finish().unwrap();
 
         let result = Sps::parse(&sps);
 
@@ -1162,11 +1162,11 @@ mod tests {
         let mut sps = Vec::new();
         let mut writer = BitWriter::new(&mut sps);
 
-        let _ = writer.write_bit(true); // sets the forbidden bit
-        let _ = writer.write_bits(0x00, 8); // ensure length > 3 bytes
-        let _ = writer.write_bits(0x00, 8); // ensure length > 3 bytes
-        let _ = writer.write_bits(0x00, 8); // ensure length > 3 bytes
-        let _ = writer.finish();
+        writer.write_bit(true).unwrap(); // sets the forbidden bit
+        writer.write_bits(0x00, 8).unwrap(); // ensure length > 3 bytes
+        writer.write_bits(0x00, 8).unwrap(); // ensure length > 3 bytes
+        writer.write_bits(0x00, 8).unwrap(); // ensure length > 3 bytes
+        writer.finish().unwrap();
 
         let result = Sps::parse(&sps);
 
@@ -1182,14 +1182,14 @@ mod tests {
         let mut sps = Vec::new();
         let mut writer = BitWriter::new(&mut sps);
 
-        let _ = writer.write_bit(false); // forbidden zero bit must be unset
-        let _ = writer.write_bits(0b00, 2); // nal_ref_idc is 00
-        let _ = writer.write_bits(0b000, 3); // set nal_unit_type to something that isn't 7
+        writer.write_bit(false).unwrap(); // forbidden zero bit must be unset
+        writer.write_bits(0b00, 2).unwrap(); // nal_ref_idc is 00
+        writer.write_bits(0b000, 3).unwrap(); // set nal_unit_type to something that isn't 7
 
-        let _ = writer.write_bits(0x00, 8); // ensure length > 3 bytes
-        let _ = writer.write_bits(0x00, 8); // ensure length > 3 bytes
-        let _ = writer.write_bits(0x00, 8); // ensure length > 3 bytes
-        let _ = writer.finish();
+        writer.write_bits(0x00, 8).unwrap(); // ensure length > 3 bytes
+        writer.write_bits(0x00, 8).unwrap(); // ensure length > 3 bytes
+        writer.write_bits(0x00, 8).unwrap(); // ensure length > 3 bytes
+        writer.finish().unwrap();
 
         let result = Sps::parse(&sps);
 
@@ -1206,52 +1206,52 @@ mod tests {
         let mut writer = BitWriter::new(&mut sps);
 
         // forbidden zero bit must be unset
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // nal_ref_idc is 0
-        let _ = writer.write_bits(0, 2);
+        writer.write_bits(0, 2).unwrap();
         // nal_unit_type must be 7
-        let _ = writer.write_bits(7, 5);
+        writer.write_bits(7, 5).unwrap();
 
         // profile_idc = 100
-        let _ = writer.write_bits(100, 8);
+        writer.write_bits(100, 8).unwrap();
         // constraint_setn_flags all false
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
         // level_idc = 0
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
 
         // seq_parameter_set_id is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
 
         // sps ext
         // chroma_format_idc is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // bit_depth_luma_minus8 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // bit_depth_chroma_minus8 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // qpprime
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // seq_scaling_matrix_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // back to sps
         // log2_max_frame_num_minus4 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // pic_order_cnt_type is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // log2_max_pic_order_cnt_lsb_minus4 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
 
         // max_num_ref_frames is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // gaps_in_frame_num_value_allowed_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // 3840 width:
         // 3840 = (p + 1) * 16 - 2 * offset1 - 2 * offset2
         // we set offset1 and offset2 to both be 0 later
         // 3840 = (p + 1) * 16
         // p = 239
-        let _ = writer.write_exp_golomb(239);
+        writer.write_exp_golomb(239).unwrap();
         // we want 2160 height:
         // 2160 = ((2 - m) * (p + 1) * 16) - 2 * offset1 - 2 * offset2
         // we set offset1 and offset2 to both be 0 later
@@ -1259,49 +1259,49 @@ mod tests {
         // 2160 = (2 - 1) * (p + 1) * 16
         // 2160 = (p + 1) * 16
         // p = 134
-        let _ = writer.write_exp_golomb(134);
+        writer.write_exp_golomb(134).unwrap();
 
         // frame_mbs_only_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
 
         // direct_8x8_inference_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // frame_cropping_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // vui_parameters_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
 
         // enter vui to set the framerate
         // aspect_ratio_info_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // we want square (1:1) for 16:9 for 4k w/o overscan
         // aspect_ratio_idc
-        let _ = writer.write_bits(1, 8);
+        writer.write_bits(1, 8).unwrap();
 
         // overscan_info_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // we dont want overscan
         // overscan_appropriate_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // video_signal_type_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // chroma_loc_info_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // timing_info_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // we can set this to 100 for example
         // num_units_in_tick is a u32
-        let _ = writer.write_bits(100, 32);
+        writer.write_bits(100, 32).unwrap();
         // fps = time_scale / (2 * num_units_in_tick)
         // since we want 144 fps:
         // 144 = time_scale / (2 * 100)
         // 28800 = time_scale
         // time_scale is a u32
-        let _ = writer.write_bits(28800, 32);
-        let _ = writer.finish();
+        writer.write_bits(28800, 32).unwrap();
+        writer.finish().unwrap();
 
         let result = Sps::parse(&sps).unwrap();
 
@@ -1374,79 +1374,79 @@ mod tests {
         let mut writer = BitWriter::new(&mut sps);
 
         // forbidden zero bit must be unset
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // nal_ref_idc is 0
-        let _ = writer.write_bits(0, 2);
+        writer.write_bits(0, 2).unwrap();
         // nal_unit_type must be 7
-        let _ = writer.write_bits(7, 5);
+        writer.write_bits(7, 5).unwrap();
 
         // profile_idc = 44
-        let _ = writer.write_bits(44, 8);
+        writer.write_bits(44, 8).unwrap();
         // constraint_setn_flags all false
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
         // level_idc = 0
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
         // seq_parameter_set_id is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
 
         // sps ext
         // we want to try out chroma_format_idc = 3
         // chroma_format_idc is expg
-        let _ = writer.write_exp_golomb(3);
+        writer.write_exp_golomb(3).unwrap();
         // separate_color_plane_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // bit_depth_luma_minus8 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // bit_depth_chroma_minus8 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // qpprime
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // we want to simulate a scaling matrix
         // seq_scaling_matrix_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
 
         // enter scaling matrix, we loop 12 times since
         // chroma_format_idc = 3.
         // loop 1 of 12
         // true to enter if statement
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // i < 6, so size is 16, so we loop 16 times
         // sub-loop 1 of 16
         // delta_scale is a SIGNED expg so we can try out
         // entering -4 so next_scale becomes 8 + 4 = 12
-        let _ = writer.write_signed_exp_golomb(4);
+        writer.write_signed_exp_golomb(4).unwrap();
         // sub-loop 2 of 16
         // delta_scale is a SIGNED expg so we can try out
         // entering -12 so next scale becomes 12 - 12 = 0
-        let _ = writer.write_signed_exp_golomb(-12);
+        writer.write_signed_exp_golomb(-12).unwrap();
         // at this point next_scale is 0, which means we break
         // loop 2 through 12
         // we don't need to try anything else so we can just skip through them by writing `0` bit 11 times.
-        let _ = writer.write_bits(0, 11);
+        writer.write_bits(0, 11).unwrap();
 
         // back to sps
         // log2_max_frame_num_minus4 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // we can try setting pic_order_cnt_type to 1
         // pic_order_cnt_type is expg
-        let _ = writer.write_exp_golomb(1);
+        writer.write_exp_golomb(1).unwrap();
 
         // delta_pic_order_always_zero_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // offset_for_non_ref_pic
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // offset_for_top_to_bottom_field
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // num_ref_frames_in_pic_order_cnt_cycle is expg
-        let _ = writer.write_exp_golomb(1);
+        writer.write_exp_golomb(1).unwrap();
         // loop num_ref_frames_in_pic_order_cnt_cycle times (1)
         // offset_for_ref_frame is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
 
         // max_num_ref_frames is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // gaps_in_frame_num_value_allowed_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // 1920 width:
         // 1920 = (p + 1) * 16 - 2 * offset1 - 2 * offset2
         // we set offset1 and offset2 to both be 4 later
@@ -1454,7 +1454,7 @@ mod tests {
         // 1920 = (p + 1) * 16 - 16
         // p = 120
         // pic_width_in_mbs_minus1 is expg
-        let _ = writer.write_exp_golomb(120);
+        writer.write_exp_golomb(120).unwrap();
         // we want 1080 height:
         // 1080 = ((2 - m) * (p + 1) * 16) - 2 * offset1 - 2 * offset2
         // we set offset1 and offset2 to both be 2 later
@@ -1463,74 +1463,74 @@ mod tests {
         // 1080 = 2 * (p + 1) * 16 - 8
         // p = 33
         // pic_height_in_map_units_minus1 is expg
-        let _ = writer.write_exp_golomb(33);
+        writer.write_exp_golomb(33).unwrap();
 
         // frame_mbs_only_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // mb_adaptive_frame_field_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // direct_8x8_inference_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // frame_cropping_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
 
         // frame_crop_left_offset is expg
-        let _ = writer.write_exp_golomb(4);
+        writer.write_exp_golomb(4).unwrap();
         // frame_crop_left_offset is expg
-        let _ = writer.write_exp_golomb(4);
+        writer.write_exp_golomb(4).unwrap();
         // frame_crop_left_offset is expg
-        let _ = writer.write_exp_golomb(2);
+        writer.write_exp_golomb(2).unwrap();
         // frame_crop_left_offset is expg
-        let _ = writer.write_exp_golomb(2);
+        writer.write_exp_golomb(2).unwrap();
 
         // vui_parameters_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
 
         // enter vui to set the framerate
         // aspect_ratio_info_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // we can try 255 to set the sar_width and sar_height
         // aspect_ratio_idc
-        let _ = writer.write_bits(255, 8);
+        writer.write_bits(255, 8).unwrap();
         // sar_width
-        let _ = writer.write_bits(0, 16);
+        writer.write_bits(0, 16).unwrap();
         // sar_height
-        let _ = writer.write_bits(0, 16);
+        writer.write_bits(0, 16).unwrap();
 
         // overscan_info_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // video_signal_type_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // video_format
-        let _ = writer.write_bits(0, 3);
+        writer.write_bits(0, 3).unwrap();
         // video_full_range_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // color_description_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // color_primaries
-        let _ = writer.write_bits(1, 8);
+        writer.write_bits(1, 8).unwrap();
         // transfer_characteristics
-        let _ = writer.write_bits(1, 8);
+        writer.write_bits(1, 8).unwrap();
         // matrix_coefficients
-        let _ = writer.write_bits(1, 8);
+        writer.write_bits(1, 8).unwrap();
 
         // chroma_loc_info_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // timing_info_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // we can set this to 1000 for example
         // num_units_in_tick is a u32
-        let _ = writer.write_bits(1000, 32);
+        writer.write_bits(1000, 32).unwrap();
         // fps = time_scale / (2 * num_units_in_tick)
         // since we want 480 fps:
         // 480 = time_scale / (2 * 1000)
         // 960 000 = time_scale
         // time_scale is a u32
-        let _ = writer.write_bits(960000, 32);
-        let _ = writer.finish();
+        writer.write_bits(960000, 32).unwrap();
+        writer.finish().unwrap();
 
         let result = Sps::parse(&sps).unwrap();
 
@@ -1626,40 +1626,40 @@ mod tests {
         let mut writer = BitWriter::new(&mut sps);
 
         // forbidden zero bit must be unset
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // nal_ref_idc is 0
-        let _ = writer.write_bits(0, 2);
+        writer.write_bits(0, 2).unwrap();
         // nal_unit_type must be 7
-        let _ = writer.write_bits(7, 5);
+        writer.write_bits(7, 5).unwrap();
 
         // profile_idc = 77
-        let _ = writer.write_bits(77, 8);
+        writer.write_bits(77, 8).unwrap();
         // constraint_setn_flags all false
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
         // level_idc = 0
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
 
         // seq_parameter_set_id is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
 
         // profile_idc = 77 means we skip the sps_ext
         // log2_max_frame_num_minus4 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // pic_order_cnt_type is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // log2_max_pic_order_cnt_lsb_minus4
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
 
         // max_num_ref_frames is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // gaps_in_frame_num_value_allowed_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // 1280 width:
         // 1280 = (p + 1) * 16 - 2 * offset1 - 2 * offset2
         // we set offset1 and offset2 to both be 0 later
         // 1280 = (p + 1) * 16
         // p = 79
-        let _ = writer.write_exp_golomb(79);
+        writer.write_exp_golomb(79).unwrap();
         // we want 800 height:
         // 800 = ((2 - m) * (p + 1) * 16) - 2 * offset1 - 2 * offset2
         // we set offset1 and offset2 to both be 0 later
@@ -1667,42 +1667,42 @@ mod tests {
         // 800 = (2 - 1) * (p + 1) * 16 - 2 * 0 - 2 * 0
         // 800 = (p + 1) * 16
         // p = 49
-        let _ = writer.write_exp_golomb(49);
+        writer.write_exp_golomb(49).unwrap();
 
         // frame_mbs_only_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
 
         // direct_8x8_inference_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // frame_cropping_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // vui_parameters_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
 
         // enter vui to set the framerate
         // aspect_ratio_info_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // overscan_info_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // video_signal_type_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // video_format
-        let _ = writer.write_bits(0, 3);
+        writer.write_bits(0, 3).unwrap();
         // video_full_range_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // color_description_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // chroma_loc_info_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // chroma_sample_loc_type_top_field is expg
-        let _ = writer.write_exp_golomb(2);
+        writer.write_exp_golomb(2).unwrap();
         // chroma_sample_loc_type_bottom_field is expg
-        let _ = writer.write_exp_golomb(2);
-        let _ = writer.finish();
+        writer.write_exp_golomb(2).unwrap();
+        writer.finish().unwrap();
 
         let result = Sps::parse(&sps).unwrap();
 
@@ -1766,52 +1766,52 @@ mod tests {
         let mut writer = BitWriter::new(&mut sps);
 
         // forbidden zero bit must be unset
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // nal_ref_idc is 0
-        let _ = writer.write_bits(0, 2);
+        writer.write_bits(0, 2).unwrap();
         // nal_unit_type must be 7
-        let _ = writer.write_bits(7, 5);
+        writer.write_bits(7, 5).unwrap();
 
         // profile_idc = 100
-        let _ = writer.write_bits(100, 8);
+        writer.write_bits(100, 8).unwrap();
         // constraint_setn_flags all false
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
         // level_idc = 0
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
 
         // seq_parameter_set_id is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
 
         // ext
         // chroma_format_idc is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // bit_depth_luma_minus8 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // bit_depth_chroma_minus8 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // qpprime
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // seq_scaling_matrix_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // return to sps
         // log2_max_frame_num_minus4 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // pic_order_cnt_type is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // log2_max_pic_order_cnt_lsb_minus4
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
 
         // max_num_ref_frames is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // gaps_in_frame_num_value_allowed_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // 1280 width:
         // 1280 = (p + 1) * 16 - 2 * offset1 - 2 * offset2
         // we set offset1 and offset2 to both be 0 later
         // 1280 = (p + 1) * 16
         // p = 79
-        let _ = writer.write_exp_golomb(79);
+        writer.write_exp_golomb(79).unwrap();
         // we want 800 height:
         // 800 = ((2 - m) * (p + 1) * 16) - 2 * offset1 - 2 * offset2
         // we set offset1 and offset2 to both be 0 later
@@ -1819,40 +1819,40 @@ mod tests {
         // 800 = (2 - 1) * (p + 1) * 16 - 2 * 0 - 2 * 0
         // 800 = 2 * (p + 1) * 16 - 8
         // p = 33
-        let _ = writer.write_exp_golomb(33);
+        writer.write_exp_golomb(33).unwrap();
 
         // frame_mbs_only_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // mb_adaptive_frame_field_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // direct_8x8_inference_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // frame_cropping_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // vui_parameters_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
 
         // enter vui to set the framerate
         // aspect_ratio_info_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // overscan_info_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // video_signal_type_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // video_format
-        let _ = writer.write_bits(0, 3);
+        writer.write_bits(0, 3).unwrap();
         // video_full_range_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // color_description_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // chroma_loc_info_present_flag
-        let _ = writer.write_bit(true);
-        let _ = writer.finish();
+        writer.write_bit(true).unwrap();
+        writer.finish().unwrap();
 
         let result = Sps::parse(&sps);
 
@@ -1871,52 +1871,52 @@ mod tests {
         let mut writer = BitWriter::new(&mut sps);
 
         // forbidden zero bit must be unset
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // nal_ref_idc is 0
-        let _ = writer.write_bits(0, 2);
+        writer.write_bits(0, 2).unwrap();
         // nal_unit_type must be 7
-        let _ = writer.write_bits(7, 5);
+        writer.write_bits(7, 5).unwrap();
 
         // profile_idc = 100
-        let _ = writer.write_bits(100, 8);
+        writer.write_bits(100, 8).unwrap();
         // constraint_setn_flags all false
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
         // level_idc = 0
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
 
         // seq_parameter_set_id is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
 
         // ext
         // chroma_format_idc is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // bit_depth_luma_minus8 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // bit_depth_chroma_minus8 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // qpprime
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // seq_scaling_matrix_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // return to sps
         // log2_max_frame_num_minus4 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // pic_order_cnt_type is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // log2_max_pic_order_cnt_lsb_minus4
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
 
         // max_num_ref_frames is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // gaps_in_frame_num_value_allowed_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // 1280 width:
         // 1280 = (p + 1) * 16 - 2 * offset1 - 2 * offset2
         // we set offset1 and offset2 to both be 0 later
         // 1280 = (p + 1) * 16
         // p = 79
-        let _ = writer.write_exp_golomb(79);
+        writer.write_exp_golomb(79).unwrap();
         // we want 800 height:
         // 800 = ((2 - m) * (p + 1) * 16) - 2 * offset1 - 2 * offset2
         // we set offset1 and offset2 to both be 0 later
@@ -1924,45 +1924,45 @@ mod tests {
         // 800 = (2 - 1) * (p + 1) * 16 - 2 * 0 - 2 * 0
         // 800 = 2 * (p + 1) * 16 - 8
         // p = 33
-        let _ = writer.write_exp_golomb(33);
+        writer.write_exp_golomb(33).unwrap();
 
         // frame_mbs_only_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // mb_adaptive_frame_field_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // direct_8x8_inference_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // frame_cropping_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // vui_parameters_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
 
         // enter vui to set the framerate
         // aspect_ratio_info_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // overscan_info_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // video_signal_type_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // video_format
-        let _ = writer.write_bits(0, 3);
+        writer.write_bits(0, 3).unwrap();
         // video_full_range_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // color_description_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // chroma_loc_info_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // timing_info_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // num_units_in_tick to 0 (invalid)
-        let _ = writer.write_bits(0, 32);
-        let _ = writer.finish();
+        writer.write_bits(0, 32).unwrap();
+        writer.finish().unwrap();
 
         let result = Sps::parse(&sps);
 
@@ -1978,52 +1978,52 @@ mod tests {
         let mut writer = BitWriter::new(&mut sps);
 
         // forbidden zero bit must be unset
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // nal_ref_idc is 0
-        let _ = writer.write_bits(0, 2);
+        writer.write_bits(0, 2).unwrap();
         // nal_unit_type must be 7
-        let _ = writer.write_bits(7, 5);
+        writer.write_bits(7, 5).unwrap();
 
         // profile_idc = 100
-        let _ = writer.write_bits(100, 8);
+        writer.write_bits(100, 8).unwrap();
         // constraint_setn_flags all false
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
         // level_idc = 0
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
 
         // seq_parameter_set_id is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
 
         // ext
         // chroma_format_idc is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // bit_depth_luma_minus8 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // bit_depth_chroma_minus8 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // qpprime
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // seq_scaling_matrix_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // return to sps
         // log2_max_frame_num_minus4 is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // pic_order_cnt_type is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // log2_max_pic_order_cnt_lsb_minus4
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
 
         // max_num_ref_frames is expg
-        let _ = writer.write_exp_golomb(0);
+        writer.write_exp_golomb(0).unwrap();
         // gaps_in_frame_num_value_allowed_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // 1280 width:
         // 1280 = (p + 1) * 16 - 2 * offset1 - 2 * offset2
         // we set offset1 and offset2 to both be 0 later
         // 1280 = (p + 1) * 16
         // p = 79
-        let _ = writer.write_exp_golomb(79);
+        writer.write_exp_golomb(79).unwrap();
         // we want 800 height:
         // 800 = ((2 - m) * (p + 1) * 16) - 2 * offset1 - 2 * offset2
         // we set offset1 and offset2 to both be 0 later
@@ -2031,45 +2031,45 @@ mod tests {
         // 800 = (2 - 1) * (p + 1) * 16 - 2 * 0 - 2 * 0
         // 800 = 2 * (p + 1) * 16 - 8
         // p = 33
-        let _ = writer.write_exp_golomb(33);
+        writer.write_exp_golomb(33).unwrap();
 
         // frame_mbs_only_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // mb_adaptive_frame_field_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // direct_8x8_inference_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // frame_cropping_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // vui_parameters_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
 
         // enter vui to set the framerate
         // aspect_ratio_info_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // overscan_info_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // video_signal_type_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // video_format
-        let _ = writer.write_bits(0, 3);
+        writer.write_bits(0, 3).unwrap();
         // video_full_range_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // color_description_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // chroma_loc_info_present_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // timing_info_present_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // num_units_in_tick to 0 (invalid)
-        let _ = writer.write_bits(0, 32);
-        let _ = writer.finish();
+        writer.write_bits(0, 32).unwrap();
+        writer.finish().unwrap();
 
         let result = Sps::parse(&sps);
 
@@ -2085,44 +2085,44 @@ mod tests {
         let mut writer = BitWriter::new(&mut sps);
 
         // forbidden zero bit must be unset
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // nal_ref_idc is 0
-        let _ = writer.write_bits(0, 2);
+        writer.write_bits(0, 2).unwrap();
         // nal_unit_type must be 7
-        let _ = writer.write_bits(7, 5);
+        writer.write_bits(7, 5).unwrap();
 
         // profile_idc = 77
-        let _ = writer.write_bits(77, 8);
+        writer.write_bits(77, 8).unwrap();
         // constraint_setn_flags all false
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
         // level_idc = 0
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
 
         // seq_parameter_set_id is expg so 0b1 (true) = false
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
 
         // skip sps ext since profile_idc = 77
         // log2_max_frame_num_minus4 is expg so 0b1 (true) = false
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // we can try setting pic_order_cnt_type to 2
-        let _ = writer.write_exp_golomb(2);
+        writer.write_exp_golomb(2).unwrap();
 
         // delta_pic_order_always_zero_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // offset_for_non_ref_pic
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // offset_for_top_to_bottom_field
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // num_ref_frames_in_pic_order_cnt_cycle is expg so 0b010 = 1
-        let _ = writer.write_bits(0b010, 3);
+        writer.write_bits(0b010, 3).unwrap();
         // loop num_ref_frames_in_pic_order_cnt_cycle times (1)
         // offset_for_ref_frame is expg so 0b1 (true) = false
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
 
         // max_num_ref_frames is expg so 0b1 (true) = false
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
         // gaps_in_frame_num_value_allowed_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // 1920 width:
         // 1920 = (p + 1) * 16 - 2 * offset1 - 2 * offset2
         // we set offset1 and offset2 to both be 4 later
@@ -2131,7 +2131,7 @@ mod tests {
         // p = 120
         // pic_width_in_mbs_minus1 is expg so:
         // 0 0000 0111 1001
-        let _ = writer.write_bits(0b0000001111001, 13);
+        writer.write_bits(0b0000001111001, 13).unwrap();
         // we want 1080 height:
         // 1080 = ((2 - m) * (p + 1) * 16) - 2 * offset1 - 2 * offset2
         // we set offset1 and offset2 to both be 2 later
@@ -2141,30 +2141,30 @@ mod tests {
         // p = 33
         // pic_height_in_map_units_minus1 is expg so:
         // 000 0010 0010
-        let _ = writer.write_bits(0b00000100010, 11);
+        writer.write_bits(0b00000100010, 11).unwrap();
 
         // frame_mbs_only_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // mb_adaptive_frame_field_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
 
         // direct_8x8_inference_flag
-        let _ = writer.write_bit(false);
+        writer.write_bit(false).unwrap();
         // frame_cropping_flag
-        let _ = writer.write_bit(true);
+        writer.write_bit(true).unwrap();
 
         // frame_crop_left_offset is expg
-        let _ = writer.write_bits(0b00101, 5);
-        // frame_crop_left_offset is expg
-        let _ = writer.write_bits(0b00101, 5);
-        // frame_crop_left_offset is expg
-        let _ = writer.write_bits(0b011, 3);
-        // frame_crop_left_offset is expg
-        let _ = writer.write_bits(0b011, 3);
+        writer.write_bits(0b00101, 5).unwrap();
+        // frame_crop_right_offset is expg
+        writer.write_bits(0b00101, 5).unwrap();
+        // frame_crop_top_offset is expg
+        writer.write_bits(0b011, 3).unwrap();
+        // frame_crop_bottom_offset is expg
+        writer.write_bits(0b011, 3).unwrap();
 
         // vui_parameters_present_flag
-        let _ = writer.write_bit(false);
-        let _ = writer.finish();
+        writer.write_bit(false).unwrap();
+        writer.finish().unwrap();
 
         let result = Sps::parse(&sps).unwrap();
 

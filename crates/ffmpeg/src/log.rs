@@ -348,6 +348,7 @@ mod tests {
         use crate::log::log_callback_tracing;
 
         let subscriber = FmtSubscriber::builder().with_max_level(Level::TRACE).finish();
+        // Intentional improper error handling to cause an error that we handle later in the test.
         let _ = set_default(subscriber);
         log_callback_tracing();
 
@@ -401,6 +402,7 @@ mod tests {
         use crate::log::log_callback_tracing;
 
         let subscriber = FmtSubscriber::builder().with_max_level(Level::TRACE).finish();
+        // Intentional improper error handling to cause an error that we handle later in the test.
         let _ = set_default(subscriber);
         log_callback_tracing();
 
