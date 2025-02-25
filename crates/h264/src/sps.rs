@@ -339,278 +339,6 @@ pub struct Sps {
     pub timing_info: Option<TimingInfo>,
 }
 
-/// `FrameCropInfo` contains the frame cropping info.
-///
-/// This includes `frame_crop_left_offset`, `frame_crop_right_offset`, `frame_crop_top_offset`,
-/// and `frame_crop_bottom_offset`.
-#[derive(Debug, Clone, PartialEq)]
-pub struct FrameCropInfo {
-    /// The `frame_crop_left_offset` is the the left crop offset which is used to compute the width:
-    ///
-    /// `width = ((pic_width_in_mbs_minus1 + 1) * 16) - frame_crop_right_offset * 2 - frame_crop_left_offset * 2`
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub frame_crop_left_offset: u64,
-
-    /// The `frame_crop_right_offset` is the the right crop offset which is used to compute the width:
-    ///
-    /// `width = ((pic_width_in_mbs_minus1 + 1) * 16) - frame_crop_right_offset * 2 - frame_crop_left_offset * 2`
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub frame_crop_right_offset: u64,
-
-    /// The `frame_crop_top_offset` is the the top crop offset which is used to compute the height:
-    ///
-    /// `height = ((2 - frame_mbs_only_flag as u64) * (pic_height_in_map_units_minus1 + 1) * 16)
-    /// - frame_crop_bottom_offset * 2 - frame_crop_top_offset * 2`
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub frame_crop_top_offset: u64,
-
-    /// The `frame_crop_bottom_offset` is the the bottom crop offset which is used to compute the height:
-    ///
-    /// `height = ((2 - frame_mbs_only_flag as u64) * (pic_height_in_map_units_minus1 + 1) * 16)
-    /// - frame_crop_bottom_offset * 2 - frame_crop_top_offset * 2`
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub frame_crop_bottom_offset: u64,
-}
-
-/// `PicOrderCountType1` contains the fields that are set when `pic_order_cnt_type == 1`.
-///
-/// This contains the following fields: `delta_pic_order_always_zero_flag`,
-/// `offset_for_non_ref_pic`, `offset_for_top_to_bottom_field`, and
-/// `offset_for_ref_frame`.
-#[derive(Debug, Clone, PartialEq)]
-pub struct PicOrderCountType1 {
-    /// The `delta_pic_order_always_zero_flag` is a single bit.
-    ///
-    /// 0 means the `delta_pic_order_cnt[0]` is in the slice headers and `delta_pic_order_cnt[1]`
-    /// might not be in the slice headers.
-    ///
-    /// 1 means the `delta_pic_order_cnt[0]` and `delta_pic_order_cnt[1]` are NOT in the slice headers
-    /// and will be set to 0 by default.
-    ///
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    pub delta_pic_order_always_zero_flag: bool,
-
-    /// The `offset_for_non_ref_pic` is used to calculate the pic order count for a non-reference picture
-    /// from subclause 8.2.1.
-    ///
-    /// The value of this ranges from \[-2^(31), 2^(31) - 1\].
-    ///
-    /// This is a variable number of bits as it is encoded by a SIGNED exp golomb.
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub offset_for_non_ref_pic: i64,
-
-    /// The `offset_for_top_to_bottom_field` is used to calculate the pic order count of a bottom field from
-    /// subclause 8.2.1.
-    ///
-    /// The value of this ranges from \[-2^(31), 2^(31) - 1\].
-    ///
-    /// This is a variable number of bits as it is encoded by a SIGNED exp golomb.
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub offset_for_top_to_bottom_field: i64,
-
-    /// The `num_ref_frames_in_pic_order_cnt_cycle` is used in the decoding process for the picture order
-    /// count in 8.2.1.
-    ///
-    /// The value of this ranges from \[0, 255\].
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// The smallest encoding would be for `0` which is encoded as `1`, which is a single bit.
-    /// The largest encoding would be for `255` which is encoded as `0 0000 0001 0000 0000`, which is 17 bits.
-    ///
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    pub num_ref_frames_in_pic_order_cnt_cycle: u64,
-
-    /// The `offset_for_ref_frame` is a vec where each value used in decoding the picture order count
-    /// from subclause 8.2.1.
-    ///
-    /// When `pic_order_cnt_type == 1`, `ExpectedDeltaPerPicOrderCntCycle` can be derived by:
-    /// ```python
-    /// ExpectedDeltaPerPicOrderCntCycle = sum(offset_for_ref_frame)
-    /// ```
-    ///
-    /// The value of this ranges from \[-2^(31), 2^(31) - 1\].
-    ///
-    /// This is a variable number of bits as it is encoded by a SIGNED exp golomb.
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub offset_for_ref_frame: Vec<i64>,
-}
-
-/// `SarDimensions` contains the fields that are set when `aspect_ratio_info_present_flag == 1`,
-/// and `aspect_ratio_idc == 255`.
-///
-/// This contains the following fields: `sar_width` and `sar_height`.
-#[derive(Debug, Clone, PartialEq)]
-pub struct SarDimensions {
-    /// The `aspect_ratio_idc` is the sample aspect ratio of the luma samples as a u8.
-    ///
-    /// This is a full byte, and defaults to 0.
-    ///
-    /// Refer to the `AspectRatioIdc` nutype enum for more info.
-    ///
-    /// ISO/IEC-14496-10-2022 - E.2.1 Table E-1
-    pub aspect_ratio_idc: AspectRatioIdc,
-
-    /// The `sar_width` is the horizontal size of the aspect ratio as a u16.
-    ///
-    /// This is a full 2 bytes.
-    ///
-    /// The value is supposed to be "relatively prime or equal to 0". If set to 0,
-    /// the sample aspect ratio is considered to be unspecified by ISO/IEC-14496-10-2022.
-    ///
-    /// ISO/IEC-14496-10-2022 - E.2.1
-    pub sar_width: u16,
-
-    /// The `offset_for_non_ref_pic` is the vertical size of the aspect ratio as a u16.
-    ///
-    /// This is a full 2 bytes.
-    ///
-    /// The value is supposed to be "relatively prime or equal to 0". If set to 0,
-    /// the sample aspect ratio is considered to be unspecified by ISO/IEC-14496-10-2022.
-    ///
-    /// The value is supposed to be "relatively prime or equal to 0".
-    ///
-    /// ISO/IEC-14496-10-2022 - E.2.1
-    pub sar_height: u16,
-}
-
-/// The color config for SPS. ISO/IEC-14496-10-2022 - E.2.1
-#[derive(Debug, Clone, PartialEq)]
-pub struct ColorConfig {
-    /// The `video_format` is comprised of 3 bits stored as a u8.
-    ///
-    /// Refer to the `VideoFormat` nutype enum for more info.
-    ///
-    /// ISO/IEC-14496-10-2022 - E.2.1 Table E-2
-    pub video_format: VideoFormat,
-
-    /// The `video_full_range_flag` is a single bit indicating the black level and range of
-    /// luma and chroma signals.
-    ///
-    /// This field is passed into the `ColorConfig`.
-    /// ISO/IEC-14496-10-2022 - E.2.1
-    pub video_full_range_flag: bool,
-
-    /// The `colour_primaries` byte as a u8. If `color_description_present_flag` is not set,
-    /// the value defaults to 2. ISO/IEC-14496-10-2022 - E.2.1 Table E-3
-    pub color_primaries: u8,
-
-    /// The `transfer_characteristics` byte as a u8. If `color_description_present_flag` is not set,
-    /// the value defaults to 2. ISO/IEC-14496-10-2022 - E.2.1 Table E-4
-    pub transfer_characteristics: u8,
-
-    /// The `matrix_coefficients` byte as a u8. If `color_description_present_flag` is not set,
-    /// the value defaults to 2. ISO/IEC-14496-10-2022 - E.2.1 Table E-5
-    pub matrix_coefficients: u8,
-}
-
-/// `ChromaSampleLoc` contains the fields that are set when `chroma_loc_info_present_flag == 1`,
-///
-/// This contains the following fields: `chroma_sample_loc_type_top_field` and `chroma_sample_loc_type_bottom_field`.
-#[derive(Debug, Clone, PartialEq)]
-pub struct ChromaSampleLoc {
-    /// The `chroma_sample_loc_type_top_field` specifies the location of chroma samples.
-    ///
-    /// The value of this ranges from \[0, 5\]. By default, this value is set to 0.
-    ///
-    /// See ISO/IEC-14496-10-2022 - E.2.1 Figure E-1 for more info.
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// The smallest encoding would be for `0` which is encoded as `1`, which is a single bit.
-    /// The largest encoding would be for `5` which is encoded as `0 0110`, which is 5 bits.
-    /// ISO/IEC-14496-10-2022 - E.2.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub chroma_sample_loc_type_top_field: u8,
-
-    /// The `chroma_sample_loc_type_bottom_field`
-    ///
-    /// The value of this ranges from \[0, 5\]. By default, this value is set to 0.
-    ///
-    /// See ISO/IEC-14496-10-2022 - E.2.1 Figure E-1 for more info.
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// The smallest encoding would be for `0` which is encoded as `1`, which is a single bit.
-    /// The largest encoding would be for `5` which is encoded as `0 0110`, which is 5 bits.
-    /// ISO/IEC-14496-10-2022 - E.2.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub chroma_sample_loc_type_bottom_field: u8,
-}
-
-/// `TimingInfo` contains the fields that are set when `timing_info_present_flag == 1`.
-///
-/// This contains the following fields: `num_units_in_tick` and `time_scale`.
-///
-/// ISO/IEC-14496-10-2022 - E.2.1
-///
-/// Refer to the direct fields for more information.
-#[derive(Debug, Clone, PartialEq)]
-pub struct TimingInfo {
-    /// The `num_units_in_tick` is the smallest unit used to measure time.
-    ///
-    /// It is used alongside `time_scale` to compute the `frame_rate` as follows:
-    ///
-    /// `frame_rate = time_scale / (2 * num_units_in_tick)`
-    ///
-    /// It must be greater than 0, therefore, it is a `NonZeroU32`. If it isn't provided,
-    /// the value is defaulted to None instead of 0.
-    ///
-    /// ISO/IEC-14496-10-2022 - E.2.1
-    pub num_units_in_tick: NonZeroU32,
-
-    /// The `time_scale` is the number of time units that pass in 1 second (hz).
-    ///
-    /// It is used alongside `num_units_in_tick` to compute the `frame_rate` as follows:
-    ///
-    /// `frame_rate = time_scale / (2 * num_units_in_tick)`
-    ///
-    /// It must be greater than 0, therefore, it is a `NonZeroU32`. If it isn't provided,
-    /// the value is defaulted to None instead of 0.
-    ///
-    /// ISO/IEC-14496-10-2022 - E.2.1
-    pub time_scale: NonZeroU32,
-}
-
 impl Sps {
     /// Demuxes an SPS from the input bytes.
     /// Returns an `Sps` struct.
@@ -649,7 +377,7 @@ impl Sps {
 
         let nal_ref_idc = bit_reader.read_bits(2)? as u8;
         let nal_unit_type = bit_reader.read_bits(5)? as u8;
-        if nal_unit_type != 7 {
+        if NALUnitType(nal_unit_type) != NALUnitType::SPS {
             return Err(io::Error::new(io::ErrorKind::InvalidData, "NAL unit type is not SPS"));
         }
 
@@ -721,23 +449,7 @@ impl Sps {
         if pic_order_cnt_type == 0 {
             log2_max_pic_order_cnt_lsb_minus4 = Some(bit_reader.read_exp_golomb()? as u8);
         } else if pic_order_cnt_type == 1 {
-            let delta_pic_order_always_zero_flag = bit_reader.read_bit()?;
-            let offset_for_non_ref_pic = bit_reader.read_signed_exp_golomb()?;
-            let offset_for_top_to_bottom_field = bit_reader.read_signed_exp_golomb()?;
-            let num_ref_frames_in_pic_order_cnt_cycle = bit_reader.read_exp_golomb()?;
-
-            let mut offset_for_ref_frame = vec![];
-            for _ in 0..num_ref_frames_in_pic_order_cnt_cycle {
-                offset_for_ref_frame.push(bit_reader.read_signed_exp_golomb()?);
-            }
-
-            pic_order_cnt_type1 = Some(PicOrderCountType1 {
-                delta_pic_order_always_zero_flag,
-                offset_for_non_ref_pic,
-                offset_for_top_to_bottom_field,
-                num_ref_frames_in_pic_order_cnt_cycle,
-                offset_for_ref_frame,
-            })
+            pic_order_cnt_type1 = Some(PicOrderCountType1::demux(&mut bit_reader)?)
         }
 
         let max_num_ref_frames = bit_reader.read_exp_golomb()? as u8;
@@ -757,17 +469,7 @@ impl Sps {
 
         let frame_cropping_flag = bit_reader.read_bit()?;
         if frame_cropping_flag {
-            let frame_crop_left_offset = bit_reader.read_exp_golomb()?;
-            let frame_crop_right_offset = bit_reader.read_exp_golomb()?;
-            let frame_crop_top_offset = bit_reader.read_exp_golomb()?;
-            let frame_crop_bottom_offset = bit_reader.read_exp_golomb()?;
-
-            frame_crop_info = Some(FrameCropInfo {
-                frame_crop_left_offset,
-                frame_crop_right_offset,
-                frame_crop_top_offset,
-                frame_crop_bottom_offset,
-            })
+            frame_crop_info = Some(FrameCropInfo::demux(&mut bit_reader)?)
         }
 
         // setting default values for vui section
@@ -783,20 +485,7 @@ impl Sps {
 
             let aspect_ratio_info_present_flag = bit_reader.read_bit()?;
             if aspect_ratio_info_present_flag {
-                let mut sar_width = 0; // defaults to 0, E.2.1
-                let mut sar_height = 0; // deafults to 0, E.2.1
-
-                let aspect_ratio_idc = bit_reader.read_u8()?;
-                if aspect_ratio_idc == 255 {
-                    sar_width = bit_reader.read_bits(16)? as u16;
-                    sar_height = bit_reader.read_bits(16)? as u16;
-                }
-
-                sample_aspect_ratio = Some(SarDimensions {
-                    aspect_ratio_idc: AspectRatioIdc(aspect_ratio_idc),
-                    sar_width,
-                    sar_height,
-                });
+                sample_aspect_ratio = Some(SarDimensions::demux(&mut bit_reader)?)
             }
 
             let overscan_info_present_flag = bit_reader.read_bit()?;
@@ -806,35 +495,11 @@ impl Sps {
 
             let video_signal_type_present_flag = bit_reader.read_bit()?;
             if video_signal_type_present_flag {
-                let video_format = bit_reader.read_bits(3)? as u8;
-                let video_full_range_flag = bit_reader.read_bit()?;
-
-                let color_primaries;
-                let transfer_characteristics;
-                let matrix_coefficients;
-
-                let color_description_present_flag = bit_reader.read_bit()?;
-                if color_description_present_flag {
-                    color_primaries = bit_reader.read_u8()?;
-                    transfer_characteristics = bit_reader.read_u8()?;
-                    matrix_coefficients = bit_reader.read_u8()?;
-                } else {
-                    color_primaries = 2; // UNSPECIFIED
-                    transfer_characteristics = 2; // UNSPECIFIED
-                    matrix_coefficients = 2; // UNSPECIFIED
-                }
-
-                color_config = Some(ColorConfig {
-                    video_format: VideoFormat(video_format), // defalut value is 5 E.2.1 Table E-2
-                    video_full_range_flag,
-                    color_primaries,
-                    transfer_characteristics,
-                    matrix_coefficients,
-                });
+                color_config = Some(ColorConfig::demux(&mut bit_reader)?)
             }
 
             let chroma_loc_info_present_flag = bit_reader.read_bit()?;
-            if sps_ext.as_ref().unwrap_or(&SpsExtended::DEFAULT).chroma_format_idc != 1 && chroma_loc_info_present_flag {
+            if sps_ext.as_ref().unwrap_or(&SpsExtended::default()).chroma_format_idc != 1 && chroma_loc_info_present_flag {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
                     "chroma_loc_info_present_flag cannot be set to 1 when chroma_format_idc is not 1",
@@ -842,27 +507,12 @@ impl Sps {
             }
 
             if chroma_loc_info_present_flag {
-                let chroma_sample_loc_type_top_field = bit_reader.read_exp_golomb()? as u8;
-                let chroma_sample_loc_type_bottom_field = bit_reader.read_exp_golomb()? as u8;
-
-                chroma_sample_loc = Some(ChromaSampleLoc {
-                    chroma_sample_loc_type_top_field,
-                    chroma_sample_loc_type_bottom_field,
-                })
+                chroma_sample_loc = Some(ChromaSampleLoc::demux(&mut bit_reader)?)
             }
 
             let timing_info_present_flag = bit_reader.read_bit()?;
             if timing_info_present_flag {
-                let num_units_in_tick = NonZeroU32::new(bit_reader.read_u32::<BigEndian>()?)
-                    .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "num_units_in_tick cannot be 0"))?;
-
-                let time_scale = NonZeroU32::new(bit_reader.read_u32::<BigEndian>()?)
-                    .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "time_scale cannot be 0"))?;
-
-                timing_info = Some(TimingInfo {
-                    num_units_in_tick,
-                    time_scale,
-                })
+                timing_info = Some(TimingInfo::demux(&mut bit_reader)?)
             }
         }
 
@@ -1078,6 +728,404 @@ impl SpsExtended {
             bit_depth_chroma_minus8,
             qpprime_y_zero_transform_bypass_flag,
             seq_scaling_matrix_present_flag,
+        })
+    }
+}
+
+/// `PicOrderCountType1` contains the fields that are set when `pic_order_cnt_type == 1`.
+///
+/// This contains the following fields: `delta_pic_order_always_zero_flag`,
+/// `offset_for_non_ref_pic`, `offset_for_top_to_bottom_field`, and
+/// `offset_for_ref_frame`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PicOrderCountType1 {
+    /// The `delta_pic_order_always_zero_flag` is a single bit.
+    ///
+    /// 0 means the `delta_pic_order_cnt[0]` is in the slice headers and `delta_pic_order_cnt[1]`
+    /// might not be in the slice headers.
+    ///
+    /// 1 means the `delta_pic_order_cnt[0]` and `delta_pic_order_cnt[1]` are NOT in the slice headers
+    /// and will be set to 0 by default.
+    ///
+    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    pub delta_pic_order_always_zero_flag: bool,
+
+    /// The `offset_for_non_ref_pic` is used to calculate the pic order count for a non-reference picture
+    /// from subclause 8.2.1.
+    ///
+    /// The value of this ranges from \[-2^(31), 2^(31) - 1\].
+    ///
+    /// This is a variable number of bits as it is encoded by a SIGNED exp golomb.
+    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    ///
+    /// For more information:
+    ///
+    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
+    pub offset_for_non_ref_pic: i64,
+
+    /// The `offset_for_top_to_bottom_field` is used to calculate the pic order count of a bottom field from
+    /// subclause 8.2.1.
+    ///
+    /// The value of this ranges from \[-2^(31), 2^(31) - 1\].
+    ///
+    /// This is a variable number of bits as it is encoded by a SIGNED exp golomb.
+    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    ///
+    /// For more information:
+    ///
+    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
+    pub offset_for_top_to_bottom_field: i64,
+
+    /// The `num_ref_frames_in_pic_order_cnt_cycle` is used in the decoding process for the picture order
+    /// count in 8.2.1.
+    ///
+    /// The value of this ranges from \[0, 255\].
+    ///
+    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
+    /// The smallest encoding would be for `0` which is encoded as `1`, which is a single bit.
+    /// The largest encoding would be for `255` which is encoded as `0 0000 0001 0000 0000`, which is 17 bits.
+    ///
+    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    pub num_ref_frames_in_pic_order_cnt_cycle: u64,
+
+    /// The `offset_for_ref_frame` is a vec where each value used in decoding the picture order count
+    /// from subclause 8.2.1.
+    ///
+    /// When `pic_order_cnt_type == 1`, `ExpectedDeltaPerPicOrderCntCycle` can be derived by:
+    /// ```python
+    /// ExpectedDeltaPerPicOrderCntCycle = sum(offset_for_ref_frame)
+    /// ```
+    ///
+    /// The value of this ranges from \[-2^(31), 2^(31) - 1\].
+    ///
+    /// This is a variable number of bits as it is encoded by a SIGNED exp golomb.
+    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    ///
+    /// For more information:
+    ///
+    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
+    pub offset_for_ref_frame: Vec<i64>,
+}
+
+impl PicOrderCountType1 {
+    /// Parses the fields defined when the `pic_order_count_type == 1` from a bitstream.
+    /// Returns a `PicOrderCountType1` struct.
+    pub fn demux<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
+        let delta_pic_order_always_zero_flag = reader.read_bit()?;
+        let offset_for_non_ref_pic = reader.read_signed_exp_golomb()?;
+        let offset_for_top_to_bottom_field = reader.read_signed_exp_golomb()?;
+        let num_ref_frames_in_pic_order_cnt_cycle = reader.read_exp_golomb()?;
+
+        let mut offset_for_ref_frame = vec![];
+        for _ in 0..num_ref_frames_in_pic_order_cnt_cycle {
+            offset_for_ref_frame.push(reader.read_signed_exp_golomb()?);
+        }
+
+        Ok(PicOrderCountType1 {
+            delta_pic_order_always_zero_flag,
+            offset_for_non_ref_pic,
+            offset_for_top_to_bottom_field,
+            num_ref_frames_in_pic_order_cnt_cycle,
+            offset_for_ref_frame,
+        })
+    }
+}
+
+/// `FrameCropInfo` contains the frame cropping info.
+///
+/// This includes `frame_crop_left_offset`, `frame_crop_right_offset`, `frame_crop_top_offset`,
+/// and `frame_crop_bottom_offset`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FrameCropInfo {
+    /// The `frame_crop_left_offset` is the the left crop offset which is used to compute the width:
+    ///
+    /// `width = ((pic_width_in_mbs_minus1 + 1) * 16) - frame_crop_right_offset * 2 - frame_crop_left_offset * 2`
+    ///
+    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
+    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    ///
+    /// For more information:
+    ///
+    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
+    pub frame_crop_left_offset: u64,
+
+    /// The `frame_crop_right_offset` is the the right crop offset which is used to compute the width:
+    ///
+    /// `width = ((pic_width_in_mbs_minus1 + 1) * 16) - frame_crop_right_offset * 2 - frame_crop_left_offset * 2`
+    ///
+    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
+    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    ///
+    /// For more information:
+    ///
+    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
+    pub frame_crop_right_offset: u64,
+
+    /// The `frame_crop_top_offset` is the the top crop offset which is used to compute the height:
+    ///
+    /// `height = ((2 - frame_mbs_only_flag as u64) * (pic_height_in_map_units_minus1 + 1) * 16)
+    /// - frame_crop_bottom_offset * 2 - frame_crop_top_offset * 2`
+    ///
+    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
+    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    ///
+    /// For more information:
+    ///
+    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
+    pub frame_crop_top_offset: u64,
+
+    /// The `frame_crop_bottom_offset` is the the bottom crop offset which is used to compute the height:
+    ///
+    /// `height = ((2 - frame_mbs_only_flag as u64) * (pic_height_in_map_units_minus1 + 1) * 16)
+    /// - frame_crop_bottom_offset * 2 - frame_crop_top_offset * 2`
+    ///
+    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
+    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
+    ///
+    /// For more information:
+    ///
+    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
+    pub frame_crop_bottom_offset: u64,
+}
+
+impl FrameCropInfo {
+    /// Parses the fields defined when the `frame_cropping_flag == 1` from a bitstream.
+    /// Returns a `FrameCropInfo` struct.
+    pub fn demux<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
+        let frame_crop_left_offset = reader.read_exp_golomb()?;
+        let frame_crop_right_offset = reader.read_exp_golomb()?;
+        let frame_crop_top_offset = reader.read_exp_golomb()?;
+        let frame_crop_bottom_offset = reader.read_exp_golomb()?;
+
+        Ok(FrameCropInfo {
+            frame_crop_left_offset,
+            frame_crop_right_offset,
+            frame_crop_top_offset,
+            frame_crop_bottom_offset,
+        })
+    }
+}
+
+/// `SarDimensions` contains the fields that are set when `aspect_ratio_info_present_flag == 1`,
+/// and `aspect_ratio_idc == 255`.
+///
+/// This contains the following fields: `sar_width` and `sar_height`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SarDimensions {
+    /// The `aspect_ratio_idc` is the sample aspect ratio of the luma samples as a u8.
+    ///
+    /// This is a full byte, and defaults to 0.
+    ///
+    /// Refer to the `AspectRatioIdc` nutype enum for more info.
+    ///
+    /// ISO/IEC-14496-10-2022 - E.2.1 Table E-1
+    pub aspect_ratio_idc: AspectRatioIdc,
+
+    /// The `sar_width` is the horizontal size of the aspect ratio as a u16.
+    ///
+    /// This is a full 2 bytes.
+    ///
+    /// The value is supposed to be "relatively prime or equal to 0". If set to 0,
+    /// the sample aspect ratio is considered to be unspecified by ISO/IEC-14496-10-2022.
+    ///
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    pub sar_width: u16,
+
+    /// The `offset_for_non_ref_pic` is the vertical size of the aspect ratio as a u16.
+    ///
+    /// This is a full 2 bytes.
+    ///
+    /// The value is supposed to be "relatively prime or equal to 0". If set to 0,
+    /// the sample aspect ratio is considered to be unspecified by ISO/IEC-14496-10-2022.
+    ///
+    /// The value is supposed to be "relatively prime or equal to 0".
+    ///
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    pub sar_height: u16,
+}
+
+impl SarDimensions {
+    /// Parses the fields defined when the `aspect_ratio_info_present_flag == 1` from a bitstream.
+    /// Returns a `SarDimensions` struct.
+    pub fn demux<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
+        let mut sar_width = 0; // defaults to 0, E.2.1
+        let mut sar_height = 0; // deafults to 0, E.2.1
+
+        let aspect_ratio_idc = reader.read_u8()?;
+        if aspect_ratio_idc == 255 {
+            sar_width = reader.read_bits(16)? as u16;
+            sar_height = reader.read_bits(16)? as u16;
+        }
+
+        Ok(SarDimensions {
+            aspect_ratio_idc: AspectRatioIdc(aspect_ratio_idc),
+            sar_width,
+            sar_height,
+        })
+    }
+}
+
+/// The color config for SPS. ISO/IEC-14496-10-2022 - E.2.1
+#[derive(Debug, Clone, PartialEq)]
+pub struct ColorConfig {
+    /// The `video_format` is comprised of 3 bits stored as a u8.
+    ///
+    /// Refer to the `VideoFormat` nutype enum for more info.
+    ///
+    /// ISO/IEC-14496-10-2022 - E.2.1 Table E-2
+    pub video_format: VideoFormat,
+
+    /// The `video_full_range_flag` is a single bit indicating the black level and range of
+    /// luma and chroma signals.
+    ///
+    /// This field is passed into the `ColorConfig`.
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    pub video_full_range_flag: bool,
+
+    /// The `colour_primaries` byte as a u8. If `color_description_present_flag` is not set,
+    /// the value defaults to 2. ISO/IEC-14496-10-2022 - E.2.1 Table E-3
+    pub color_primaries: u8,
+
+    /// The `transfer_characteristics` byte as a u8. If `color_description_present_flag` is not set,
+    /// the value defaults to 2. ISO/IEC-14496-10-2022 - E.2.1 Table E-4
+    pub transfer_characteristics: u8,
+
+    /// The `matrix_coefficients` byte as a u8. If `color_description_present_flag` is not set,
+    /// the value defaults to 2. ISO/IEC-14496-10-2022 - E.2.1 Table E-5
+    pub matrix_coefficients: u8,
+}
+
+impl ColorConfig {
+    /// Parses the fields defined when the `video_signal_type_present_flag == 1` from a bitstream.
+    /// Returns a `ColorConfig` struct.
+    pub fn demux<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
+        let video_format = reader.read_bits(3)? as u8;
+        let video_full_range_flag = reader.read_bit()?;
+
+        let color_primaries;
+        let transfer_characteristics;
+        let matrix_coefficients;
+
+        let color_description_present_flag = reader.read_bit()?;
+        if color_description_present_flag {
+            color_primaries = reader.read_u8()?;
+            transfer_characteristics = reader.read_u8()?;
+            matrix_coefficients = reader.read_u8()?;
+        } else {
+            color_primaries = 2; // UNSPECIFIED
+            transfer_characteristics = 2; // UNSPECIFIED
+            matrix_coefficients = 2; // UNSPECIFIED
+        }
+
+        Ok(ColorConfig {
+            video_format: VideoFormat(video_format), // defalut value is 5 E.2.1 Table E-2
+            video_full_range_flag,
+            color_primaries,
+            transfer_characteristics,
+            matrix_coefficients,
+        })
+    }
+}
+
+/// `ChromaSampleLoc` contains the fields that are set when `chroma_loc_info_present_flag == 1`,
+///
+/// This contains the following fields: `chroma_sample_loc_type_top_field` and `chroma_sample_loc_type_bottom_field`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChromaSampleLoc {
+    /// The `chroma_sample_loc_type_top_field` specifies the location of chroma samples.
+    ///
+    /// The value of this ranges from \[0, 5\]. By default, this value is set to 0.
+    ///
+    /// See ISO/IEC-14496-10-2022 - E.2.1 Figure E-1 for more info.
+    ///
+    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
+    /// The smallest encoding would be for `0` which is encoded as `1`, which is a single bit.
+    /// The largest encoding would be for `5` which is encoded as `0 0110`, which is 5 bits.
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    ///
+    /// For more information:
+    ///
+    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
+    pub chroma_sample_loc_type_top_field: u8,
+
+    /// The `chroma_sample_loc_type_bottom_field`
+    ///
+    /// The value of this ranges from \[0, 5\]. By default, this value is set to 0.
+    ///
+    /// See ISO/IEC-14496-10-2022 - E.2.1 Figure E-1 for more info.
+    ///
+    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
+    /// The smallest encoding would be for `0` which is encoded as `1`, which is a single bit.
+    /// The largest encoding would be for `5` which is encoded as `0 0110`, which is 5 bits.
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    ///
+    /// For more information:
+    ///
+    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
+    pub chroma_sample_loc_type_bottom_field: u8,
+}
+
+impl ChromaSampleLoc {
+    /// Parses the fields defined when the `chroma_loc_info_present_flag == 1` from a bitstream.
+    /// Returns a `ChromaSampleLoc` struct.
+    pub fn demux<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
+        let chroma_sample_loc_type_top_field = reader.read_exp_golomb()? as u8;
+        let chroma_sample_loc_type_bottom_field = reader.read_exp_golomb()? as u8;
+
+        Ok(ChromaSampleLoc {
+            chroma_sample_loc_type_top_field,
+            chroma_sample_loc_type_bottom_field,
+        })
+    }
+}
+
+/// `TimingInfo` contains the fields that are set when `timing_info_present_flag == 1`.
+///
+/// This contains the following fields: `num_units_in_tick` and `time_scale`.
+///
+/// ISO/IEC-14496-10-2022 - E.2.1
+///
+/// Refer to the direct fields for more information.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TimingInfo {
+    /// The `num_units_in_tick` is the smallest unit used to measure time.
+    ///
+    /// It is used alongside `time_scale` to compute the `frame_rate` as follows:
+    ///
+    /// `frame_rate = time_scale / (2 * num_units_in_tick)`
+    ///
+    /// It must be greater than 0, therefore, it is a `NonZeroU32`. If it isn't provided,
+    /// the value is defaulted to None instead of 0.
+    ///
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    pub num_units_in_tick: NonZeroU32,
+
+    /// The `time_scale` is the number of time units that pass in 1 second (hz).
+    ///
+    /// It is used alongside `num_units_in_tick` to compute the `frame_rate` as follows:
+    ///
+    /// `frame_rate = time_scale / (2 * num_units_in_tick)`
+    ///
+    /// It must be greater than 0, therefore, it is a `NonZeroU32`. If it isn't provided,
+    /// the value is defaulted to None instead of 0.
+    ///
+    /// ISO/IEC-14496-10-2022 - E.2.1
+    pub time_scale: NonZeroU32,
+}
+
+impl TimingInfo {
+    /// Parses the fields defined when the `timing_info_present_flag == 1` from a bitstream.
+    /// Returns a `TimingInfo` struct.
+    pub fn demux<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
+        let num_units_in_tick = NonZeroU32::new(reader.read_u32::<BigEndian>()?)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "num_units_in_tick cannot be 0"))?;
+
+        let time_scale = NonZeroU32::new(reader.read_u32::<BigEndian>()?)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "time_scale cannot be 0"))?;
+
+        Ok(TimingInfo {
+            num_units_in_tick,
+            time_scale,
         })
     }
 }
@@ -1316,6 +1364,8 @@ mod tests {
         ");
 
         assert_eq!(144.0, result.frame_rate());
+        assert_eq!(3840, result.width());
+        assert_eq!(2160, result.height());
     }
 
     #[test]
@@ -1566,6 +1616,8 @@ mod tests {
         ");
 
         assert_eq!(480.0, result.frame_rate());
+        assert_eq!(1920, result.width());
+        assert_eq!(1080, result.height());
     }
 
     #[test]
@@ -1704,6 +1756,8 @@ mod tests {
         ");
 
         assert_eq!(0.0, result.frame_rate());
+        assert_eq!(1280, result.width());
+        assert_eq!(800, result.height());
     }
 
     #[test]
