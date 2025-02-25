@@ -37,7 +37,13 @@ impl Dependencies {
 
         // Ideally we should find a way to not need to do this on windows.
         #[cfg(windows)]
-        let target_dir = target_dir.join("postcompile");
+        {
+            let exe = std::env::current_exe().unwrap();
+            let file_name = exe.file_name().unwrap();
+            let file_name_without_ext = file_name.to_str().unwrap().split(".").next().unwrap();
+            let tmp_dir = exe.parent().unwrap().parent().unwrap().join(".fingerprint").join(file_name_without_ext);
+            std::fs::remove_dir_all(tmp_dir).ok();
+        }
 
         build.arg("test");
         build.arg("--no-run");
