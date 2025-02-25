@@ -36,6 +36,8 @@ impl Dependencies {
         };
 
         // Ideally we should find a way to not need to do this on windows.
+        // The issue is related to the way windows locks executables when they are run.
+        // We delete the fingerprint directory to cause cargo to recompile the binary.
         #[cfg(windows)]
         {
             let exe = std::env::current_exe().unwrap();
