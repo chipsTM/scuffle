@@ -149,7 +149,7 @@ def create_docs_jobs() -> list[Job]:
                 job="docs",
                 ffmpeg=FfmpegSetup(),
                 inputs=DocsMatrix(
-                    artifact_name="docs",
+                    artifact_name=None,
                     deploy_docs=False,
                     pr_number=pr_number(),
                 ),
