@@ -22,13 +22,8 @@ runs:
         cargo doc --no-deps --all-features
 
     - name: Insert custom html for PR
-      if: ${{ inputs.pr_number }}
       shell: bash
-      run: .github/scripts/patch-docs.sh ${{ github.event.repository.html_url }} ${{ env.SHA }} ${{ inputs.pr_number }}
-
-    - name: Insert custom html for merge
-      shell: bash
-      run: .github/scripts/patch-docs.sh ${{ github.event.repository.html_url }} ${{ env.SHA }}
+      run: python3 .github/scripts/patch-docs.py --repo-url ${{ github.event.repository.html_url }} --commit-hash ${{ env.SHA }} --pr-number ${{ inputs.pr_number || '' }}
 
     - name: Upload docs
       uses: actions/upload-artifact@v4
