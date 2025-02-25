@@ -15,6 +15,7 @@ WINDOWS_X86_64 = "windows-2025"
 MACOS_X86_64 = "macos-13"
 MACOS_ARM64 = "macos-15"
 
+
 def is_brawl(mode: Optional[str] = None) -> bool:
     if mode is None:
         mode = ""
@@ -51,9 +52,11 @@ class RustSetup:
     tools: str = ""
     cache_backend: str = "ubicloud"
 
+
 @dataclass
 class FfmpegSetup:
     version: Optional[str] = None
+
 
 @dataclass
 class DocsMatrix:
@@ -61,26 +64,32 @@ class DocsMatrix:
     pr_number: Optional[int]
     deploy_docs: bool
 
+
 @dataclass
 class ClippyMatrix:
     powerset: bool
+
 
 @dataclass
 class TestMatrix:
     pr_number: Optional[int]
     commit_sha: str
 
+
 @dataclass
 class GrindMatrix:
     env: str
+
 
 @dataclass
 class FmtMatrix:
     pass
 
+
 @dataclass
 class HakariMatrix:
     pass
+
 
 @dataclass
 class Job:
@@ -93,6 +102,7 @@ class Job:
     )
     job: str
     secrets: Optional[list[str]] = None
+
 
 def create_docs_jobs() -> list[Job]:
     jobs: list[Job] = []
@@ -442,9 +452,11 @@ def create_grind_jobs() -> list[Job]:
                 job="grind",
                 ffmpeg=FfmpegSetup(),
                 inputs=GrindMatrix(
-                    env=json.dumps({
-                        "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER": "valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log",
-                    }),
+                    env=json.dumps(
+                        {
+                            "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER": "valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log",
+                        }
+                    ),
                 ),
                 rust=RustSetup(
                     toolchain="nightly",
@@ -462,9 +474,11 @@ def create_grind_jobs() -> list[Job]:
                 job="grind",
                 ffmpeg=FfmpegSetup(),
                 inputs=GrindMatrix(
-                    env=json.dumps({
-                        "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUNNER": "valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log",
-                    }),
+                    env=json.dumps(
+                        {
+                            "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUNNER": "valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log",
+                        }
+                    ),
                 ),
                 rust=RustSetup(
                     toolchain="nightly",
