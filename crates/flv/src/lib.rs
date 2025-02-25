@@ -275,41 +275,25 @@ mod tests {
                 gaps_in_frame_num_value_allowed_flag: false,
                 pic_width_in_mbs_minus1: 239,
                 pic_height_in_map_units_minus1: 134,
-                frame_mbs_only_flag: true,
-                mb_adaptive_frame_field_flag: false,
+                mb_adaptive_frame_field_flag: None,
                 direct_8x8_inference_flag: true,
-                frame_cropping_flag: false,
-                frame_crop_left_offset: 0,
-                frame_crop_right_offset: 0,
-                frame_crop_top_offset: 0,
-                frame_crop_bottom_offset: 0,
-                width: 3840,
-                height: 2160,
-                vui_parameters_present_flag: true,
-                aspect_ratio_info_present_flag: true,
-                sample_aspect_ratio: SarDimensions {
-                    aspect_ratio_idc: AspectRatioIdc::Square,
-                    sar_width: 0,
-                    sar_height: 0,
-                },
-                overscan_info_present_flag: false,
+                frame_crop_info: None,
+                sample_aspect_ratio: Some(
+                    SarDimensions {
+                        aspect_ratio_idc: AspectRatioIdc::Square,
+                        sar_width: 0,
+                        sar_height: 0,
+                    },
+                ),
                 overscan_appropriate_flag: None,
-                video_signal_type_present_flag: false,
-                chroma_loc_info_present_flag: false,
-                chroma_sample_loc_type_top_field: 0,
-                chroma_sample_loc_type_bottom_field: 0,
-                color_description_present_flag: false,
                 color_config: None,
-                timing_info_present_flag: true,
-                timing_info: TimingInfo {
-                    num_units_in_tick: Some(
-                        1,
-                    ),
-                    time_scale: Some(
-                        120,
-                    ),
-                    frame_rate: 60.0,
-                },
+                chroma_sample_loc: None,
+                timing_info: Some(
+                    TimingInfo {
+                        num_units_in_tick: 1,
+                        time_scale: 120,
+                    },
+                ),
             }
             ");
         }

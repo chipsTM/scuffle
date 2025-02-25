@@ -6,9 +6,9 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use bytes::{Buf, Bytes};
 use scuffle_bytes_util::{BitWriter, BytesCursorExt};
 
-#[derive(Debug, Clone, PartialEq)]
 /// The AVC (H.264) Decoder Configuration Record.
 /// ISO/IEC 14496-15:2022(E) - 5.3.2.1.2
+#[derive(Debug, Clone, PartialEq)]
 pub struct AVCDecoderConfigurationRecord {
     /// The `configuration_version` is set to 1 (as a u8) defined by the h264 spec until further notice.
     ///
@@ -57,9 +57,9 @@ pub struct AVCDecoderConfigurationRecord {
     pub extended_config: Option<AvccExtendedConfig>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
 /// The AVC (H.264) Extended Configuration.
 /// ISO/IEC 14496-15:2022(E) - 5.3.2.1.2
+#[derive(Debug, Clone, PartialEq)]
 pub struct AvccExtendedConfig {
     /// The `chroma_format_idc` as a u8.
     ///
@@ -329,30 +329,18 @@ mod tests {
             gaps_in_frame_num_value_allowed_flag: false,
             pic_width_in_mbs_minus1: 29,
             pic_height_in_map_units_minus1: 53,
-            frame_mbs_only_flag: true,
-            mb_adaptive_frame_field_flag: false,
+            mb_adaptive_frame_field_flag: None,
             direct_8x8_inference_flag: true,
-            frame_cropping_flag: true,
-            frame_crop_left_offset: 0,
-            frame_crop_right_offset: 0,
-            frame_crop_top_offset: 0,
-            frame_crop_bottom_offset: 6,
-            width: 480,
-            height: 852,
-            vui_parameters_present_flag: true,
-            aspect_ratio_info_present_flag: false,
-            sample_aspect_ratio: SarDimensions {
-                aspect_ratio_idc: AspectRatioIdc::Unspecified,
-                sar_width: 0,
-                sar_height: 0,
-            },
-            overscan_info_present_flag: false,
+            frame_crop_info: Some(
+                FrameCropInfo {
+                    frame_crop_left_offset: 0,
+                    frame_crop_right_offset: 0,
+                    frame_crop_top_offset: 0,
+                    frame_crop_bottom_offset: 6,
+                },
+            ),
+            sample_aspect_ratio: None,
             overscan_appropriate_flag: None,
-            video_signal_type_present_flag: true,
-            chroma_loc_info_present_flag: false,
-            chroma_sample_loc_type_top_field: 0,
-            chroma_sample_loc_type_bottom_field: 0,
-            color_description_present_flag: true,
             color_config: Some(
                 ColorConfig {
                     video_format: VideoFormat::Unspecified,
@@ -362,16 +350,13 @@ mod tests {
                     matrix_coefficients: 1,
                 },
             ),
-            timing_info_present_flag: true,
-            timing_info: TimingInfo {
-                num_units_in_tick: Some(
-                    1,
-                ),
-                time_scale: Some(
-                    60,
-                ),
-                frame_rate: 30.0,
-            },
+            chroma_sample_loc: None,
+            timing_info: Some(
+                TimingInfo {
+                    num_units_in_tick: 1,
+                    time_scale: 60,
+                },
+            ),
         }
         ");
     }

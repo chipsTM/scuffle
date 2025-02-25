@@ -28,7 +28,7 @@ pub fn stsd_entry(config: AVCDecoderConfigurationRecord) -> Result<(DynBox, Sps)
 
     Ok((
         Avc1::new(
-            SampleEntry::new(VisualSampleEntry::new(sps.width as u16, sps.height as u16, colr)),
+            SampleEntry::new(VisualSampleEntry::new(sps.width() as u16, sps.height() as u16, colr)),
             AvcC::new(config),
             None,
         )
