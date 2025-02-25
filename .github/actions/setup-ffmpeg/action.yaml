@@ -1,14 +1,6 @@
 name: Setup FFmpeg
 description: Installs FFmpeg on the system
 inputs:
-  arch:
-    description: "The architecture the runner is running on"
-    required: false
-    default: ${{ runner.arch }}
-  os:
-    description: "The operating system the runner is running on"
-    required: false
-    default: ${{ runner.os }}
   version:
     description: "The version of FFmpeg to install"
     required: false
@@ -24,9 +16,9 @@ runs:
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends nasm
 
-    - name: Determine File
-      id: file
+    - name: Install FFmpeg
       shell: bash
+      if: ${{ runner.os == 'Linux' || runner.os == 'Windows' }}
       run: |
         set -xeo pipefail
 
@@ -96,3 +88,18 @@ runs:
         echo "${FFMPEG_ROOT}/include" >> $GITHUB_PATH
 
         echo "FFmpeg installed successfully"
+
+    - name: Install ffmpeg
+      shell: bash
+      if: ${{ runner.os == 'macOS' }}
+      run: |
+        set -xeo pipefail
+
+        case "${{ inputs.version || '7.1' }}" in
+          "7.1") FILE="ffmpeg@7" ;;
+          "6.1") FILE="ffmpeg@6" ;;
+          "master") FILE="ffmpeg --HEAD" ;;
+          *) echo "Unsupported version: ${{ inputs.version }}" && exit 1 ;;
+        esac
+
+        brew install $FILE

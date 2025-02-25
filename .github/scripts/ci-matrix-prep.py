@@ -12,6 +12,9 @@ GITHUB_DEFAULT_RUNNER = "ubuntu-24.04"
 LINUX_X86_64 = "ubicloud-standard-8"
 LINUX_ARM64 = "ubicloud-standard-8-arm"
 WINDOWS_X86_64 = "windows-2025"
+MACOS_X86_64 = "macos-13"
+MACOS_ARM64 = "macos-15"
+
 
 def is_brawl(mode: Optional[str] = None) -> bool:
     if mode is None:
@@ -49,10 +52,11 @@ class RustSetup:
     tools: str = ""
     cache_backend: str = "ubicloud"
 
+
 @dataclass
 class FfmpegSetup:
     version: Optional[str] = None
-    arch: Optional[str] = None
+
 
 @dataclass
 class DocsMatrix:
@@ -60,26 +64,32 @@ class DocsMatrix:
     pr_number: Optional[int]
     deploy_docs: bool
 
+
 @dataclass
 class ClippyMatrix:
     powerset: bool
+
 
 @dataclass
 class TestMatrix:
     pr_number: Optional[int]
     commit_sha: str
 
+
 @dataclass
 class GrindMatrix:
     env: str
+
 
 @dataclass
 class FmtMatrix:
     pass
 
+
 @dataclass
 class HakariMatrix:
     pass
+
 
 @dataclass
 class Job:
@@ -92,6 +102,7 @@ class Job:
     )
     job: str
     secrets: Optional[list[str]] = None
+
 
 def create_docs_jobs() -> list[Job]:
     jobs: list[Job] = []
@@ -163,6 +174,48 @@ def create_docs_jobs() -> list[Job]:
             )
         )
 
+        jobs.append(
+            Job(
+                runner=MACOS_X86_64,
+                job_name=f"Docs (macOS x86_64)",
+                job="docs",
+                ffmpeg=FfmpegSetup(),
+                inputs=DocsMatrix(
+                    artifact_name=None,
+                    deploy_docs=False,
+                    pr_number=pr_number(),
+                ),
+                rust=RustSetup(
+                    toolchain="nightly",
+                    components="rust-docs",
+                    shared_key="docs-macos-x86_64",
+                    tools="",
+                    cache_backend="github",
+                ),
+            )
+        )
+
+        jobs.append(
+            Job(
+                runner=MACOS_ARM64,
+                job_name=f"Docs (macOS arm64)",
+                job="docs",
+                ffmpeg=FfmpegSetup(),
+                inputs=DocsMatrix(
+                    artifact_name=None,
+                    deploy_docs=False,
+                    pr_number=pr_number(),
+                ),
+                rust=RustSetup(
+                    toolchain="nightly",
+                    components="rust-docs",
+                    shared_key="docs-macos-arm64",
+                    tools="",
+                    cache_backend="github",
+                ),
+            )
+        )
+
     return jobs
 
 
@@ -221,6 +274,44 @@ def create_clippy_jobs() -> list[Job]:
                     toolchain="nightly",
                     components="clippy",
                     shared_key="clippy-windows-x86_64",
+                    tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
+                    cache_backend="github",
+                ),
+            )
+        )
+
+        jobs.append(
+            Job(
+                runner=MACOS_X86_64,
+                job_name=f"Clippy (macOS x86_64)",
+                job="clippy",
+                ffmpeg=FfmpegSetup(),
+                inputs=ClippyMatrix(
+                    powerset=True,
+                ),
+                rust=RustSetup(
+                    toolchain="nightly",
+                    components="clippy",
+                    shared_key="clippy-macos-x86_64",
+                    tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
+                    cache_backend="github",
+                ),
+            )
+        )
+
+        jobs.append(
+            Job(
+                runner=MACOS_ARM64,
+                job_name=f"Clippy (macOS arm64)",
+                job="clippy",
+                ffmpeg=FfmpegSetup(),
+                inputs=ClippyMatrix(
+                    powerset=True,
+                ),
+                rust=RustSetup(
+                    toolchain="nightly",
+                    components="clippy",
+                    shared_key="clippy-macos-arm64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
                     cache_backend="github",
                 ),
@@ -305,6 +396,48 @@ def create_test_jobs() -> list[Job]:
             )
         )
 
+        jobs.append(
+            Job(
+                runner=MACOS_X86_64,
+                job_name=f"Test (macOS x86_64)",
+                job="test",
+                ffmpeg=FfmpegSetup(),
+                inputs=TestMatrix(
+                    pr_number=pr_number(),
+                    commit_sha=commit_sha,
+                ),
+                rust=RustSetup(
+                    toolchain="nightly",
+                    components="llvm-tools-preview",
+                    shared_key="test-macos-x86_64",
+                    tools="cargo-nextest,cargo-llvm-cov",
+                    cache_backend="github",
+                ),
+                secrets=["CODECOV_TOKEN"],
+            )
+        )
+
+        jobs.append(
+            Job(
+                runner=MACOS_ARM64,
+                job_name=f"Test (macOS arm64)",
+                job="test",
+                ffmpeg=FfmpegSetup(),
+                inputs=TestMatrix(
+                    pr_number=pr_number(),
+                    commit_sha=commit_sha,
+                ),
+                rust=RustSetup(
+                    toolchain="nightly",
+                    components="llvm-tools-preview",
+                    shared_key="test-macos-arm64",
+                    tools="cargo-nextest,cargo-llvm-cov",
+                    cache_backend="github",
+                ),
+                secrets=["CODECOV_TOKEN"],
+            )
+        )
+
     return jobs
 
 
@@ -319,9 +452,11 @@ def create_grind_jobs() -> list[Job]:
                 job="grind",
                 ffmpeg=FfmpegSetup(),
                 inputs=GrindMatrix(
-                    env=json.dumps({
-                        "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER": "valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log",
-                    }),
+                    env=json.dumps(
+                        {
+                            "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER": "valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log",
+                        }
+                    ),
                 ),
                 rust=RustSetup(
                     toolchain="nightly",
@@ -339,9 +474,11 @@ def create_grind_jobs() -> list[Job]:
                 job="grind",
                 ffmpeg=FfmpegSetup(),
                 inputs=GrindMatrix(
-                    env=json.dumps({
-                        "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUNNER": "valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log",
-                    }),
+                    env=json.dumps(
+                        {
+                            "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUNNER": "valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log",
+                        }
+                    ),
                 ),
                 rust=RustSetup(
                     toolchain="nightly",
