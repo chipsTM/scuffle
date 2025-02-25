@@ -9,6 +9,8 @@
 
 A crate designed to provide a more ergonomic interface to the `pprof` crate.
 
+Only supports Unix-like systems. This crate will not compile on Windows.
+
 ## Example
 
 ```rust,no_run

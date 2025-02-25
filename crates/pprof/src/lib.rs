@@ -1,5 +1,7 @@
 //! A crate designed to provide a more ergonomic interface to the `pprof` crate.
 //!
+//! Only supports Unix-like systems. This crate will not compile on Windows.
+//!
 //! ## Example
 //!
 //! ```rust,no_run
@@ -36,6 +38,7 @@
 //!
 //! `SPDX-License-Identifier: MIT OR Apache-2.0`
 #![cfg_attr(all(coverage_nightly, test), feature(coverage_attribute))]
+#![cfg(unix)]
 
 mod cpu;
 

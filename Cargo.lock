@@ -3294,6 +3294,8 @@ dependencies = [
  "tracing-log",
  "tracing-subscriber",
  "uuid",
+ "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
  "zerocopy 0.7.35",
 ]
 

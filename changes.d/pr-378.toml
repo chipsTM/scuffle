@@ -7,3 +7,8 @@ authors = ["@TroyKomodo"]
 category = "feat"
 description = "add support for windows builds"
 authors = ["@TroyKomodo"]
+
+[[scuffle-pprof]]
+category = "docs"
+description = "document lack of windows support"
+authors = ["@TroyKomodo"]
