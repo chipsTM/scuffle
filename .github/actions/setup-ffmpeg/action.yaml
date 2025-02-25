@@ -90,6 +90,7 @@ runs:
 
         echo "FFMPEG_PKG_CONFIG_PATH=${FFMPEG_ROOT}/lib/pkgconfig" >> $GITHUB_ENV
         echo "FFMPEG_LIBS_DIR=${FFMPEG_ROOT}/lib" >> $GITHUB_ENV
+        echo "FFMPEG_INCLUDE_DIR=${FFMPEG_ROOT}/include" >> $GITHUB_ENV
         echo "${FFMPEG_ROOT}/bin" >> $GITHUB_PATH
         echo "${FFMPEG_ROOT}/lib" >> $GITHUB_PATH
         echo "${FFMPEG_ROOT}/include" >> $GITHUB_PATH
