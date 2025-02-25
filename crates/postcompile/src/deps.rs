@@ -35,16 +35,9 @@ impl Dependencies {
             config.target_dir.as_ref()
         };
 
-        let mut clean = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()));
-        clean.arg("clean");
-        clean.arg("--manifest-path");
-        clean.arg(config.manifest.as_ref());
-        clean.arg("--package");
-        clean.arg(config.package_name.as_ref());
-        clean.arg("--target-dir");
-        clean.arg(target_dir);
-        clean.arg("--locked");
-        clean.output().unwrap();
+        // Ideally we should find a way to not need to do this on windows.
+        #[cfg(windows)]
+        let target_dir = target_dir.join("postcompile");
 
         build.arg("test");
         build.arg("--no-run");
