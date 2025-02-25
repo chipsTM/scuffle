@@ -9,7 +9,7 @@
 
 A crate designed to provide a more ergonomic interface to the `pprof` crate.
 
-Only supports Unix-like systems. This crate will have be empty on Windows.
+Only supports Unix-like systems. This crate will be empty on Windows.
 
 ## Example
 
