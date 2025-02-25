@@ -237,7 +237,7 @@ mod tests {
             assert_eq!(avc_decoder_configuration_record.pps.len(), 1);
             assert_eq!(avc_decoder_configuration_record.extended_config, None);
 
-            let sps = Sps::demux(&avc_decoder_configuration_record.sps[0]).expect("expected sequence parameter set");
+            let sps = Sps::parse(&avc_decoder_configuration_record.sps[0]).expect("expected sequence parameter set");
 
             insta::assert_debug_snapshot!(sps, @r"
             Sps {

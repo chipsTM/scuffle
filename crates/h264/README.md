@@ -7,9 +7,9 @@
 
 ---
 
-A pure Rust implementation of the H.264 (header only) encoder and decoder.
+A pure Rust implementation of the H.264 (header only) builder and parser.
 
-This crate is designed to provide a simple and safe interface to encode and decode H.264 headers.
+This crate is designed to provide a simple and safe interface to build and parse H.264 headers.
 
 ## Why do we need this?
 
@@ -27,7 +27,7 @@ We mainly use this with scuffle-mp4 and scuffle-flv to work with mp4 and flv con
 
 ## Examples
 
-### Demuxing
+### Parsing
 
 ```rust
 use std::io;
@@ -36,21 +36,21 @@ use bytes::Bytes;
 
 use scuffle_h264::{Sps, AVCDecoderConfigurationRecord};
 
-// A sample h264 bytestream to demux
+// A sample h264 bytestream to parse
 let data = Bytes::from(b"\x01d\0\x1f\xff\xe1\0\x1dgd\0\x1f\xac\xd9A\xe0m\xf9\xe6\xa0  (\0\0\x03\0\x08\0\0\x03\x01\xe0x\xc1\x8c\xb0\x01\0\x06h\xeb\xe3\xcb\"\xc0\xfd\xf8\xf8\0".to_vec());
 
-// Demuxing
-let result = AVCDecoderConfigurationRecord::demux(&mut io::Cursor::new(data.into())).unwrap();
+// Parsing
+let result = AVCDecoderConfigurationRecord::parse(&mut io::Cursor::new(data.into())).unwrap();
 
 // Do something with it!
 
 // You can also access the sps bytestream and parse it:
-let sps = Sps::demux(&result.sps[0]).unwrap();
+let sps = Sps::parse(&result.sps[0]).unwrap();
 ```
 
-For more examples, check out the tests in the source code for the demux function.
+For more examples, check out the tests in the source code for the parse function.
 
-### Muxing
+### Building
 
 ```rust
 use bytes::Bytes;
@@ -74,16 +74,16 @@ let config = AVCDecoderConfigurationRecord {
     extended_config: Some(extended_config),
 };
 
-// Creating a buffer to store the muxed bytestream
-let mut muxed = Vec::new();
+// Creating a buffer to store the built bytestream
+let mut built = Vec::new();
 
-// Muxing
-config.mux(&mut muxed).unwrap();
+// Building
+config.build(&mut built).unwrap();
 
 // Do something with it!
 ```
 
-For more examples, check out the tests in the source code for the mux function.
+For more examples, check out the tests in the source code for the build function.
 
 ## Status
 

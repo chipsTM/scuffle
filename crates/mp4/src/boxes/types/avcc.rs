@@ -30,7 +30,7 @@ impl BoxType for AvcC {
         let mut reader = io::Cursor::new(data);
         Ok(Self {
             header,
-            avc_decoder_configuration_record: AVCDecoderConfigurationRecord::demux(&mut reader)?,
+            avc_decoder_configuration_record: AVCDecoderConfigurationRecord::parse(&mut reader)?,
         })
     }
 
@@ -39,6 +39,6 @@ impl BoxType for AvcC {
     }
 
     fn primitive_mux<T: io::Write>(&self, writer: &mut T) -> io::Result<()> {
-        self.avc_decoder_configuration_record.mux(writer)
+        self.avc_decoder_configuration_record.build(writer)
     }
 }

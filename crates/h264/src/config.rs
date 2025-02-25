@@ -90,9 +90,9 @@ pub struct AvccExtendedConfig {
 }
 
 impl AVCDecoderConfigurationRecord {
-    /// Demuxes an AVCDecoderConfigurationRecord from a byte stream.
-    /// Returns a demuxed AVCDecoderConfigurationRecord.
-    pub fn demux(reader: &mut io::Cursor<Bytes>) -> io::Result<Self> {
+    /// Parsees an AVCDecoderConfigurationRecord from a byte stream.
+    /// Returns a parseed AVCDecoderConfigurationRecord.
+    pub fn parse(reader: &mut io::Cursor<Bytes>) -> io::Result<Self> {
         let configuration_version = reader.read_u8()?;
         let profile_indication = reader.read_u8()?;
         let profile_compatibility = reader.read_u8()?;
@@ -192,9 +192,9 @@ impl AVCDecoderConfigurationRecord {
         }
     }
 
-    /// Muxes the AVCDecoderConfigurationRecord into a byte stream.
-    /// Returns a muxed byte stream.
-    pub fn mux<T: io::Write>(&self, writer: &mut T) -> io::Result<()> {
+    /// Builds the AVCDecoderConfigurationRecord into a byte stream.
+    /// Returns a built byte stream.
+    pub fn build<T: io::Write>(&self, writer: &mut T) -> io::Result<()> {
         let mut bit_writer = BitWriter::new(writer);
 
         bit_writer.write_u8(self.configuration_version)?;
@@ -250,7 +250,7 @@ mod tests {
     use crate::sps::Sps;
 
     #[test]
-    fn test_config_demux() {
+    fn test_config_parse() {
         let mut data = Vec::new();
         let mut writer = BitWriter::new(&mut data);
 
@@ -290,9 +290,9 @@ mod tests {
         let _ = writer.write_bits(0, 8);
         let _ = writer.finish();
 
-        let result = AVCDecoderConfigurationRecord::demux(&mut io::Cursor::new(data.into())).unwrap();
+        let result = AVCDecoderConfigurationRecord::parse(&mut io::Cursor::new(data.into())).unwrap();
 
-        let sps = Sps::demux(&result.sps[0]).unwrap();
+        let sps = Sps::parse(&result.sps[0]).unwrap();
 
         insta::assert_debug_snapshot!(sps, @r"
         Sps {
@@ -361,15 +361,15 @@ mod tests {
     }
 
     #[test]
-    fn test_config_mux() {
+    fn test_config_build() {
         let data = Bytes::from(b"\x01d\0\x1f\xff\xe1\0\x1dgd\0\x1f\xac\xd9A\xe0m\xf9\xe6\xa0  (\0\0\x03\0\x08\0\0\x03\x01\xe0x\xc1\x8c\xb0\x01\0\x06h\xeb\xe3\xcb\"\xc0\xfd\xf8\xf8\0".to_vec());
 
-        let config = AVCDecoderConfigurationRecord::demux(&mut io::Cursor::new(data.clone())).unwrap();
+        let config = AVCDecoderConfigurationRecord::parse(&mut io::Cursor::new(data.clone())).unwrap();
 
         assert_eq!(config.size(), data.len() as u64);
 
         let mut buf = Vec::new();
-        config.mux(&mut buf).unwrap();
+        config.build(&mut buf).unwrap();
 
         assert_eq!(buf, data.to_vec());
     }
@@ -377,7 +377,7 @@ mod tests {
     #[test]
     fn test_no_ext_cfg_for_profiles_66_77_88() {
         let data = Bytes::from(b"\x01B\x00\x1F\xFF\xE1\x00\x1Dgd\x00\x1F\xAC\xD9A\xE0m\xF9\xE6\xA0  (\x00\x00\x03\x00\x08\x00\x00\x03\x01\xE0x\xC1\x8C\xB0\x01\x00\x06h\xEB\xE3\xCB\"\xC0\xFD\xF8\xF8\x00".to_vec());
-        let config = AVCDecoderConfigurationRecord::demux(&mut io::Cursor::new(data)).unwrap();
+        let config = AVCDecoderConfigurationRecord::parse(&mut io::Cursor::new(data)).unwrap();
 
         assert_eq!(config.extended_config, None);
     }
@@ -430,7 +430,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mux_with_sequence_parameter_set_ext() {
+    fn test_build_with_sequence_parameter_set_ext() {
         let extended_config = AvccExtendedConfig {
             chroma_format_idc: 1,
             bit_depth_luma_minus8: 0,
@@ -449,10 +449,10 @@ mod tests {
         };
 
         let mut buf = Vec::new();
-        config.mux(&mut buf).unwrap();
+        config.build(&mut buf).unwrap();
 
-        let demuxed = AVCDecoderConfigurationRecord::demux(&mut io::Cursor::new(buf.into())).unwrap();
-        assert_eq!(demuxed.extended_config.unwrap().sequence_parameter_set_ext.len(), 1);
+        let parseed = AVCDecoderConfigurationRecord::parse(&mut io::Cursor::new(buf.into())).unwrap();
+        assert_eq!(parseed.extended_config.unwrap().sequence_parameter_set_ext.len(), 1);
         insta::assert_debug_snapshot!(config, @r#"
         AVCDecoderConfigurationRecord {
             configuration_version: 1,

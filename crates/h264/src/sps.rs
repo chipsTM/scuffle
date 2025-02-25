@@ -340,9 +340,9 @@ pub struct Sps {
 }
 
 impl Sps {
-    /// Demuxes an SPS from the input bytes.
+    /// Parsees an SPS from the input bytes.
     /// Returns an `Sps` struct.
-    pub fn demux(data: &[u8]) -> io::Result<Self> {
+    pub fn parse(data: &[u8]) -> io::Result<Self> {
         // Returns an error if there aren't enough bytes.
         if data.len() < 4 {
             return Err(io::Error::new(
@@ -435,7 +435,7 @@ impl Sps {
 
         let sps_ext = match profile_idc {
             100 | 110 | 122 | 244 | 44 | 83 | 86 | 118 | 128 | 138 | 139 | 134 | 135 => {
-                Some(SpsExtended::demux(&mut bit_reader)?)
+                Some(SpsExtended::parse(&mut bit_reader)?)
             }
             _ => None,
         };
@@ -449,7 +449,7 @@ impl Sps {
         if pic_order_cnt_type == 0 {
             log2_max_pic_order_cnt_lsb_minus4 = Some(bit_reader.read_exp_golomb()? as u8);
         } else if pic_order_cnt_type == 1 {
-            pic_order_cnt_type1 = Some(PicOrderCountType1::demux(&mut bit_reader)?)
+            pic_order_cnt_type1 = Some(PicOrderCountType1::parse(&mut bit_reader)?)
         }
 
         let max_num_ref_frames = bit_reader.read_exp_golomb()? as u8;
@@ -469,7 +469,7 @@ impl Sps {
 
         let frame_cropping_flag = bit_reader.read_bit()?;
         if frame_cropping_flag {
-            frame_crop_info = Some(FrameCropInfo::demux(&mut bit_reader)?)
+            frame_crop_info = Some(FrameCropInfo::parse(&mut bit_reader)?)
         }
 
         // setting default values for vui section
@@ -485,7 +485,7 @@ impl Sps {
 
             let aspect_ratio_info_present_flag = bit_reader.read_bit()?;
             if aspect_ratio_info_present_flag {
-                sample_aspect_ratio = Some(SarDimensions::demux(&mut bit_reader)?)
+                sample_aspect_ratio = Some(SarDimensions::parse(&mut bit_reader)?)
             }
 
             let overscan_info_present_flag = bit_reader.read_bit()?;
@@ -495,7 +495,7 @@ impl Sps {
 
             let video_signal_type_present_flag = bit_reader.read_bit()?;
             if video_signal_type_present_flag {
-                color_config = Some(ColorConfig::demux(&mut bit_reader)?)
+                color_config = Some(ColorConfig::parse(&mut bit_reader)?)
             }
 
             let chroma_loc_info_present_flag = bit_reader.read_bit()?;
@@ -507,12 +507,12 @@ impl Sps {
             }
 
             if chroma_loc_info_present_flag {
-                chroma_sample_loc = Some(ChromaSampleLoc::demux(&mut bit_reader)?)
+                chroma_sample_loc = Some(ChromaSampleLoc::parse(&mut bit_reader)?)
             }
 
             let timing_info_present_flag = bit_reader.read_bit()?;
             if timing_info_present_flag {
-                timing_info = Some(TimingInfo::demux(&mut bit_reader)?)
+                timing_info = Some(TimingInfo::parse(&mut bit_reader)?)
             }
         }
 
@@ -689,7 +689,7 @@ impl SpsExtended {
 
     /// Parses an extended SPS from a bitstream.
     /// Returns an `SpsExtended` struct.
-    pub fn demux<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
+    pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
         let chroma_format_idc = reader.read_exp_golomb()? as u8;
         // Defaults to false: ISO/IEC-14496-10-2022 - 7.4.2.1.1
         let mut separate_color_plane_flag = false;
@@ -810,7 +810,7 @@ pub struct PicOrderCountType1 {
 impl PicOrderCountType1 {
     /// Parses the fields defined when the `pic_order_count_type == 1` from a bitstream.
     /// Returns a `PicOrderCountType1` struct.
-    pub fn demux<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
+    pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
         let delta_pic_order_always_zero_flag = reader.read_bit()?;
         let offset_for_non_ref_pic = reader.read_signed_exp_golomb()?;
         let offset_for_top_to_bottom_field = reader.read_signed_exp_golomb()?;
@@ -891,7 +891,7 @@ pub struct FrameCropInfo {
 impl FrameCropInfo {
     /// Parses the fields defined when the `frame_cropping_flag == 1` from a bitstream.
     /// Returns a `FrameCropInfo` struct.
-    pub fn demux<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
+    pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
         let frame_crop_left_offset = reader.read_exp_golomb()?;
         let frame_crop_right_offset = reader.read_exp_golomb()?;
         let frame_crop_top_offset = reader.read_exp_golomb()?;
@@ -947,7 +947,7 @@ pub struct SarDimensions {
 impl SarDimensions {
     /// Parses the fields defined when the `aspect_ratio_info_present_flag == 1` from a bitstream.
     /// Returns a `SarDimensions` struct.
-    pub fn demux<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
+    pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
         let mut sar_width = 0; // defaults to 0, E.2.1
         let mut sar_height = 0; // deafults to 0, E.2.1
 
@@ -998,7 +998,7 @@ pub struct ColorConfig {
 impl ColorConfig {
     /// Parses the fields defined when the `video_signal_type_present_flag == 1` from a bitstream.
     /// Returns a `ColorConfig` struct.
-    pub fn demux<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
+    pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
         let video_format = reader.read_bits(3)? as u8;
         let video_full_range_flag = reader.read_bit()?;
 
@@ -1068,7 +1068,7 @@ pub struct ChromaSampleLoc {
 impl ChromaSampleLoc {
     /// Parses the fields defined when the `chroma_loc_info_present_flag == 1` from a bitstream.
     /// Returns a `ChromaSampleLoc` struct.
-    pub fn demux<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
+    pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
         let chroma_sample_loc_type_top_field = reader.read_exp_golomb()? as u8;
         let chroma_sample_loc_type_bottom_field = reader.read_exp_golomb()? as u8;
 
@@ -1116,7 +1116,7 @@ pub struct TimingInfo {
 impl TimingInfo {
     /// Parses the fields defined when the `timing_info_present_flag == 1` from a bitstream.
     /// Returns a `TimingInfo` struct.
-    pub fn demux<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
+    pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
         let num_units_in_tick = NonZeroU32::new(reader.read_u32::<BigEndian>()?)
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "num_units_in_tick cannot be 0"))?;
 
@@ -1148,7 +1148,7 @@ mod tests {
         let _ = writer.write_bit(true); // only write 1 bit
         let _ = writer.finish();
 
-        let result = Sps::demux(&sps);
+        let result = Sps::parse(&sps);
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -1168,7 +1168,7 @@ mod tests {
         let _ = writer.write_bits(0x00, 8); // ensure length > 3 bytes
         let _ = writer.finish();
 
-        let result = Sps::demux(&sps);
+        let result = Sps::parse(&sps);
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -1191,7 +1191,7 @@ mod tests {
         let _ = writer.write_bits(0x00, 8); // ensure length > 3 bytes
         let _ = writer.finish();
 
-        let result = Sps::demux(&sps);
+        let result = Sps::parse(&sps);
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -1303,7 +1303,7 @@ mod tests {
         let _ = writer.write_bits(28800, 32);
         let _ = writer.finish();
 
-        let result = Sps::demux(&sps).unwrap();
+        let result = Sps::parse(&sps).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
@@ -1532,7 +1532,7 @@ mod tests {
         let _ = writer.write_bits(960000, 32);
         let _ = writer.finish();
 
-        let result = Sps::demux(&sps).unwrap();
+        let result = Sps::parse(&sps).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
@@ -1704,7 +1704,7 @@ mod tests {
         let _ = writer.write_exp_golomb(2);
         let _ = writer.finish();
 
-        let result = Sps::demux(&sps).unwrap();
+        let result = Sps::parse(&sps).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
@@ -1854,7 +1854,7 @@ mod tests {
         let _ = writer.write_bit(true);
         let _ = writer.finish();
 
-        let result = Sps::demux(&sps);
+        let result = Sps::parse(&sps);
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -1964,7 +1964,7 @@ mod tests {
         let _ = writer.write_bits(0, 32);
         let _ = writer.finish();
 
-        let result = Sps::demux(&sps);
+        let result = Sps::parse(&sps);
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -2071,7 +2071,7 @@ mod tests {
         let _ = writer.write_bits(0, 32);
         let _ = writer.finish();
 
-        let result = Sps::demux(&sps);
+        let result = Sps::parse(&sps);
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -2166,7 +2166,7 @@ mod tests {
         let _ = writer.write_bit(false);
         let _ = writer.finish();
 
-        let result = Sps::demux(&sps).unwrap();
+        let result = Sps::parse(&sps).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {

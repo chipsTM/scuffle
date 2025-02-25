@@ -15,7 +15,7 @@ pub fn stsd_entry(config: AVCDecoderConfigurationRecord) -> Result<(DynBox, Sps)
         return Err(TransmuxError::InvalidAVCDecoderConfigurationRecord);
     }
 
-    let sps = scuffle_h264::Sps::demux(&config.sps[0])?;
+    let sps = scuffle_h264::Sps::parse(&config.sps[0])?;
 
     let colr = sps.color_config.as_ref().map(|color_config| {
         Colr::new(ColorType::Nclx {
