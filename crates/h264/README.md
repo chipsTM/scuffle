@@ -40,13 +40,12 @@ use scuffle_h264::{Sps, AVCDecoderConfigurationRecord};
 let data = Bytes::from(b"\x01d\0\x1f\xff\xe1\0\x1dgd\0\x1f\xac\xd9A\xe0m\xf9\xe6\xa0  (\0\0\x03\0\x08\0\0\x03\x01\xe0x\xc1\x8c\xb0\x01\0\x06h\xeb\xe3\xcb\"\xc0\xfd\xf8\xf8\0".to_vec());
 
 // Demuxing
-let result = AVCDecoderConfigurationRecord::demux(&mut io::Cursor::new(data.clone())).unwrap();
+let result = AVCDecoderConfigurationRecord::demux(&mut io::Cursor::new(data.into())).unwrap();
 
 // Do something with it!
 
 // You can also access the sps bytestream and parse it:
-let sps = &result.sps[0];
-let sps = Sps::parse(sps.clone()).unwrap();
+let sps = Sps::demux(&result.sps[0]).unwrap();
 ```
 
 For more examples, check out the tests in the source code for the demux function.
