@@ -1,6 +1,7 @@
 #[cfg(unix)]
 fn work() {
     use std::io::Write;
+
     use rand::Rng;
 
     let mut rng = rand::rng();

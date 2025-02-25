@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use scuffle_bootstrap::prelude::*;
 use scuffle_bootstrap::service::Service;
-
 #[cfg(unix)]
 use scuffle_signal::{SignalConfig, SignalSvc};
 

@@ -6,7 +6,6 @@ const _: () = {
     assert!(std::mem::size_of::<AVSampleFormat>() == std::mem::size_of_val(&AV_SAMPLE_FMT_NONE));
 };
 
-
 nutype_enum! {
     /// Audio sample formats used in FFmpeg's `AVSampleFormat` enumeration.
     ///
