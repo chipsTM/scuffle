@@ -29,9 +29,9 @@ jobs:
         uses: ./.github/actions/setup-rust
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-          shared-key: release
+          shared_key: release
           tools: just,cargo-hakari,release-plz
-          cache-backend: ubicloud
+          cache_backend: ubicloud
 
       - name: Remove cargo registries
         run: |

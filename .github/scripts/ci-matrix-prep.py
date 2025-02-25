@@ -127,7 +127,7 @@ def create_docs_jobs() -> list[Job]:
                 tools="",
                 cache_backend="ubicloud",
             ),
-            secrets=["CF_DOCS_API_KEY", "CF_DOCS_ACCOUNT_ID"],
+            secrets=["CF_DOCS_API_KEY", "CF_DOCS_ACCOUNT_ID"] if not is_brawl("merge") else None,
         )
     )
 
