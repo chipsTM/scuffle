@@ -2,3 +2,8 @@
 category = "feat"
 description = "add support for arm64 builds"
 authors = ["@TroyKomodo"]
+
+[[postcompile]]
+category = "feat"
+description = "add support for windows builds"
+authors = ["@TroyKomodo"]

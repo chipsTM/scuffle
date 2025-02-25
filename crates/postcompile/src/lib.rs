@@ -87,8 +87,7 @@
 #![cfg_attr(all(coverage_nightly, test), feature(coverage_attribute))]
 
 use std::borrow::Cow;
-use std::ffi::{OsStr, OsString};
-use std::os::unix::ffi::OsStrExt;
+use std::ffi::OsStr;
 use std::path::Path;
 use std::process::Command;
 
@@ -151,7 +150,7 @@ fn rustc(config: &Config, tmp_file: &Path) -> Command {
             rust_flags
                 .as_encoded_bytes()
                 .split(|&b| b == b' ')
-                .map(|flag| OsString::from(OsStr::from_bytes(flag))),
+                .map(|flag| unsafe { OsStr::from_encoded_bytes_unchecked(flag) }),
         );
     }
 
