@@ -10,6 +10,8 @@
 //! ## Example
 //!
 //! ```rust
+//! # #[cfg(unix)]
+//! # {
 //! use scuffle_signal::SignalHandler;
 //! use tokio::signal::unix::SignalKind;
 //!
@@ -39,6 +41,7 @@
 //!     },
 //! }
 //! # });
+//! # }
 //! ```
 //!
 //! ## Status

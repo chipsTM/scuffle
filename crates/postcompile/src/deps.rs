@@ -35,6 +35,17 @@ impl Dependencies {
             config.target_dir.as_ref()
         };
 
+        let mut clean = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()));
+        clean.arg("clean");
+        clean.arg("--manifest-path");
+        clean.arg(config.manifest.as_ref());
+        clean.arg("--package");
+        clean.arg(config.package_name.as_ref());
+        clean.arg("--target-dir");
+        clean.arg(target_dir);
+        clean.arg("--locked");
+        clean.output().unwrap();
+
         build.arg("test");
         build.arg("--no-run");
         build.arg("--message-format=json");

@@ -180,7 +180,7 @@ fn write_tmp_file(tokens: &str, tmp_file: &Path) {
 
 /// Compiles the given tokens and returns the output.
 pub fn compile_custom(tokens: &str, config: &Config) -> Result<CompileOutput, Errored> {
-    let tmp_file = Path::new(config.tmp_dir.as_ref()).join(format!("{}.rs", config.function_name));
+    let tmp_file = Path::new(config.tmp_dir.as_ref()).join(format!("{}.rs", config.function_name.replace("::", "____")));
 
     write_tmp_file(tokens, &tmp_file);
 
@@ -257,6 +257,10 @@ pub struct Config {
     pub tmp_dir: Cow<'static, Path>,
     /// The name of the function to compile.
     pub function_name: Cow<'static, str>,
+    /// The path to the file being compiled.
+    pub file_path: Cow<'static, Path>,
+    /// The name of the package being compiled.
+    pub package_name: Cow<'static, str>,
 }
 
 #[macro_export]
@@ -302,6 +306,8 @@ macro_rules! _config {
             tmp_dir: ::std::borrow::Cow::Borrowed($crate::build_dir()),
             target_dir: ::std::borrow::Cow::Borrowed($crate::target_dir()),
             function_name: ::std::borrow::Cow::Borrowed($crate::_function_name!()),
+            file_path: ::std::borrow::Cow::Borrowed(::std::path::Path::new(file!())),
+            package_name: ::std::borrow::Cow::Borrowed(env!("CARGO_PKG_NAME")),
         }
     }};
 }

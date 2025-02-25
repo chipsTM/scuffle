@@ -5,6 +5,8 @@
 //! ## Example
 //!
 //! ```rust,no_run
+//! # #[cfg(unix)]
+//! # {
 //! // Create a new CPU profiler with a sampling frequency of 1000 Hz and an empty ignore list.
 //! let cpu = scuffle_pprof::Cpu::new::<String>(1000, &[]);
 //!
@@ -14,6 +16,7 @@
 //!
 //! // Write the profile to a file.
 //! std::fs::write("capture.pprof", capture).unwrap();
+//! # }
 //! ```
 //!
 //! ## Analyzing the profile
