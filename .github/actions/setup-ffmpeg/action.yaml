@@ -97,7 +97,7 @@ runs:
 
         case "${{ inputs.version || '7.1' }}" in
           "7.1") FILE="ffmpeg@7" ;;
-          "6.1") FILE="ffmpeg@" ;;
+          "6.1") FILE="ffmpeg@6" ;;
           "master") FILE="ffmpeg --HEAD" ;;
           *) echo "Unsupported version: ${{ inputs.version }}" && exit 1 ;;
         esac
