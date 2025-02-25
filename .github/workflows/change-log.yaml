@@ -25,7 +25,7 @@ jobs:
         uses: ./.github/actions/setup-rust
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-          shared-key: change-log
+          shared_key: change-log
           tools: just
 
       - name: Check change log entry
