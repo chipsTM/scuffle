@@ -255,40 +255,42 @@ mod tests {
         let mut writer = BitWriter::new(&mut data);
 
         // configuration_version
-        let _ = writer.write_bits(1, 8);
+        writer.write_bits(1, 8).unwrap();
         // profile_indication
-        let _ = writer.write_bits(100, 8);
+        writer.write_bits(100, 8).unwrap();
         // profile_compatibility
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
         // level_indication
-        let _ = writer.write_bits(31, 8);
+        writer.write_bits(31, 8).unwrap();
         // length_size_minus_one
-        let _ = writer.write_bits(3, 8);
+        writer.write_bits(3, 8).unwrap();
 
         // num_of_sequence_parameter_sets
-        let _ = writer.write_bits(1, 8);
+        writer.write_bits(1, 8).unwrap();
         // sps_length
-        let _ = writer.write_bits(29, 16);
+        writer.write_bits(29, 16).unwrap();
         // sps
         // this was from the old test
-        let _ = writer.write_all(b"gd\0\x1f\xac\xd9A\xe0m\xf9\xe6\xa0  (\0\0\x03\0\x08\0\0\x03\x01\xe0x\xc1\x8c\xb0");
+        writer
+            .write_all(b"gd\0\x1f\xac\xd9A\xe0m\xf9\xe6\xa0  (\0\0\x03\0\x08\0\0\x03\x01\xe0x\xc1\x8c\xb0")
+            .unwrap();
 
         // num_of_picture_parameter_sets
-        let _ = writer.write_bits(1, 8);
+        writer.write_bits(1, 8).unwrap();
         // pps_length
-        let _ = writer.write_bits(6, 16);
+        writer.write_bits(6, 16).unwrap();
         // pps
-        let _ = writer.write_all(b"h\xeb\xe3\xcb\"\xc0\x00\x00");
+        writer.write_all(b"h\xeb\xe3\xcb\"\xc0\x00\x00").unwrap();
 
         // chroma_format_idc
-        let _ = writer.write_bits(1, 8);
+        writer.write_bits(1, 8).unwrap();
         // bit_depth_luma_minus8
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
         // bit_depth_chroma_minus8
-        let _ = writer.write_bits(0, 8);
+        writer.write_bits(0, 8).unwrap();
         // number_of_sequence_parameter_set_ext
-        let _ = writer.write_bits(0, 8);
-        let _ = writer.finish();
+        writer.write_bits(0, 8).unwrap();
+        writer.finish().unwrap();
 
         let result = AVCDecoderConfigurationRecord::parse(&mut io::Cursor::new(data.into())).unwrap();
 

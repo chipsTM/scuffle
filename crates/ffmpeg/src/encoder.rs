@@ -331,8 +331,8 @@ mod tests {
         let rc_buffer_size = 1024;
         let max_b_frames = 3;
         let mut codec_specific_options = Dictionary::new();
-        let _ = codec_specific_options.set("preset", "ultrafast");
-        let _ = codec_specific_options.set("crf", "23");
+        codec_specific_options.set("preset", "ultrafast").unwrap();
+        codec_specific_options.set("crf", "23").unwrap();
         let flags = 0x01;
         let flags2 = 0x02;
 
