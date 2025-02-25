@@ -348,7 +348,8 @@ mod tests {
         use crate::log::log_callback_tracing;
 
         let subscriber = FmtSubscriber::builder().with_max_level(Level::TRACE).finish();
-        let _guard = set_default(subscriber);
+        // Intentional improper error handling to cause an error that we handle later in the test.
+        let _ = set_default(subscriber);
         log_callback_tracing();
 
         let levels_and_expected_tracing = [
@@ -401,7 +402,8 @@ mod tests {
         use crate::log::log_callback_tracing;
 
         let subscriber = FmtSubscriber::builder().with_max_level(Level::TRACE).finish();
-        let _guard = set_default(subscriber);
+        // Intentional improper error handling to cause an error that we handle later in the test.
+        let _ = set_default(subscriber);
         log_callback_tracing();
 
         let deprecated_message = "deprecated pixel format used, make sure you did set range correctly";
