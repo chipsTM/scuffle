@@ -150,6 +150,7 @@ fn rustc(config: &Config, tmp_file: &Path) -> Command {
             rust_flags
                 .as_encoded_bytes()
                 .split(|&b| b == b' ')
+                // Safety: The bytes are already encoded (we call OsString::as_encoded_bytes above)
                 .map(|flag| unsafe { OsStr::from_encoded_bytes_unchecked(flag) }),
         );
     }
