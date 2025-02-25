@@ -89,18 +89,6 @@ runs:
 
         echo "FFmpeg installed successfully"
 
-    - name: Cache Homebrew Packages
-      uses: actions/cache@v4
-      if: ${{ runner.os == 'macOS' }}
-      with:
-        path: |
-          /usr/local/Homebrew
-          /usr/local/Cellar
-          ~/Library/Caches/Homebrew
-        key: homebrew-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/workflows/ffmpeg-cache.yaml') }}
-        restore-keys: |
-          homebrew-${{ runner.os }}-${{ runner.arch }}-
-
     - name: Install ffmpeg
       shell: bash
       if: ${{ runner.os == 'macOS' }}
