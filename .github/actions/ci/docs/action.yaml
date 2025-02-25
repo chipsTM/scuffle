@@ -23,7 +23,7 @@ runs:
 
     - name: Insert custom html for PR
       shell: bash
-      run: python3 .github/scripts/patch-docs.py --repo-url ${{ github.event.repository.html_url }} --commit-hash ${{ env.SHA }} --pr-number ${{ inputs.pr_number || '' }}
+      run: python3 .github/scripts/patch-docs.py --repo-url='${{ github.event.repository.html_url }}' --commit-hash='${{ env.SHA }}' --pr-number='${{ inputs.pr_number || '' }}'
 
     - name: Upload docs
       uses: actions/upload-artifact@v4
