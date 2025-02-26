@@ -677,7 +677,7 @@ mod tests {
     fn test_raw_number_as_f64() {
         assert_eq!(RawNumber::U64(42).as_f64(), 42.0);
         assert_eq!(RawNumber::I64(-42).as_f64(), -42.0);
-        assert_eq!(RawNumber::F64(3.14).as_f64(), 3.14);
+        assert_eq!(RawNumber::F64(5.44).as_f64(), 5.44);
 
         #[cfg(feature = "extended-numbers")]
         {
@@ -687,7 +687,7 @@ mod tests {
             assert_eq!(RawNumber::I32(-42).as_f64(), -42.0);
             assert_eq!(RawNumber::I16(-16).as_f64(), -16.0);
             assert_eq!(RawNumber::I8(-8).as_f64(), -8.0);
-            assert_eq!(RawNumber::F32(3.14).as_f64(), 3.140000104904175);
+            assert_eq!(RawNumber::F32(5.44).as_f64(), 5.440000057220459);
         }
     }
 
