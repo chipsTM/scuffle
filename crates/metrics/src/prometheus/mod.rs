@@ -585,3 +585,335 @@ impl prometheus_client::encoding::EncodeLabelSet for KeyValueEncoder<'_> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(all(test, coverage_nightly), coverage(off))]
+mod tests {
+    use opentelemetry::KeyValue;
+    use opentelemetry::metrics::MeterProvider;
+    use opentelemetry_sdk::Resource;
+    use opentelemetry_sdk::metrics::SdkMeterProvider;
+    use prometheus_client::registry::Registry;
+
+    use super::*;
+
+    fn setup_prometheus_exporter(
+        temporality: opentelemetry_sdk::metrics::Temporality,
+        full_utf8: bool,
+    ) -> (PrometheusExporter, Registry) {
+        let exporter = PrometheusExporter::builder()
+            .with_temporality(temporality)
+            .with_prometheus_full_utf8(full_utf8)
+            .build();
+        let mut registry = Registry::default();
+        registry.register_collector(exporter.collector());
+        (exporter, registry)
+    }
+
+    fn collect_and_encode(registry: &Registry) -> String {
+        let mut buffer = String::new();
+        prometheus_client::encoding::text::encode(&mut buffer, registry).unwrap();
+        buffer
+    }
+
+    #[test]
+    fn test_prometheus_collect() {
+        let (exporter, registry) = setup_prometheus_exporter(opentelemetry_sdk::metrics::Temporality::Cumulative, false);
+        let provider = SdkMeterProvider::builder()
+            .with_reader(exporter.clone())
+            .with_resource(
+                Resource::builder()
+                    .with_attributes(vec![KeyValue::new("service.name", "test_service")])
+                    .build(),
+            )
+            .build();
+        opentelemetry::global::set_meter_provider(provider.clone());
+
+        let meter = provider.meter("test_meter");
+        let counter = meter.u64_counter("test_counter").build();
+        counter.add(1, &[KeyValue::new("key", "value")]);
+
+        let encoded = collect_and_encode(&registry);
+
+        assert!(encoded.contains("test_counter"));
+        assert!(encoded.contains(r#"key="value""#));
+        assert!(encoded.contains(r#"test_counter_total{otel_scope_name="test_meter",key="value"} 1"#));
+    }
+
+    #[test]
+    fn test_prometheus_temporality() {
+        let exporter = PrometheusExporter::builder()
+            .with_temporality(opentelemetry_sdk::metrics::Temporality::Delta)
+            .build();
+
+        let temporality = exporter.temporality(opentelemetry_sdk::metrics::InstrumentKind::Counter);
+
+        assert_eq!(temporality, opentelemetry_sdk::metrics::Temporality::Delta);
+    }
+
+    #[test]
+    fn test_prometheus_full_utf8() {
+        let (exporter, registry) = setup_prometheus_exporter(opentelemetry_sdk::metrics::Temporality::Cumulative, true);
+        let provider = SdkMeterProvider::builder()
+            .with_reader(exporter.clone())
+            .with_resource(
+                Resource::builder()
+                    .with_attributes(vec![KeyValue::new("service.name", "test_service")])
+                    .build(),
+            )
+            .build();
+        opentelemetry::global::set_meter_provider(provider.clone());
+
+        let meter = provider.meter("test_meter");
+        let counter = meter.u64_counter("test_counter").build();
+        counter.add(1, &[KeyValue::new("key_😊", "value_😊")]);
+
+        let encoded = collect_and_encode(&registry);
+
+        assert!(encoded.contains(r#"key_😊="value_😊""#));
+    }
+
+    #[test]
+    fn test_raw_number_as_f64() {
+        assert_eq!(RawNumber::U64(42).as_f64(), 42.0);
+        assert_eq!(RawNumber::I64(-42).as_f64(), -42.0);
+        assert_eq!(RawNumber::F64(3.14).as_f64(), 3.14);
+
+        #[cfg(feature = "extended-numbers")]
+        {
+            assert_eq!(RawNumber::U32(42).as_f64(), 42.0);
+            assert_eq!(RawNumber::U16(16).as_f64(), 16.0);
+            assert_eq!(RawNumber::U8(8).as_f64(), 8.0);
+            assert_eq!(RawNumber::I32(-42).as_f64(), -42.0);
+            assert_eq!(RawNumber::I16(-16).as_f64(), -16.0);
+            assert_eq!(RawNumber::I8(-8).as_f64(), -8.0);
+
+            let f32_value = RawNumber::F32(3.14).as_f64();
+            assert!(
+                (f32_value - 3.14).abs() < 1e-6,
+                "Expected F32 conversion to be close to 3.14, got {}",
+                f32_value
+            );
+        }
+    }
+
+    #[test]
+    fn test_known_metric_t_from_any() {
+        let time = std::time::SystemTime::now();
+        let gauge = Gauge::<u64> {
+            data_points: vec![],
+            start_time: Some(time - std::time::Duration::from_secs(10)),
+            time,
+        };
+        let sum = Sum::<u64> {
+            data_points: vec![],
+            is_monotonic: true,
+            start_time: time - std::time::Duration::from_secs(10),
+            time,
+            temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
+        };
+        let histogram = Histogram::<u64> {
+            data_points: vec![],
+            start_time: time - std::time::Duration::from_secs(10),
+            time,
+            temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
+        };
+
+        assert!(matches!(KnownMetricT::<u64>::from_any(&gauge), Some(KnownMetricT::Gauge(_))));
+        assert!(matches!(KnownMetricT::<u64>::from_any(&sum), Some(KnownMetricT::Sum(_))));
+        assert!(matches!(
+            KnownMetricT::<u64>::from_any(&histogram),
+            Some(KnownMetricT::Histogram(_))
+        ));
+    }
+
+    #[test]
+    fn test_known_metric_t_metric_type() {
+        let time = std::time::SystemTime::now();
+        let gauge = Gauge::<u64> {
+            data_points: vec![],
+            start_time: Some(time - std::time::Duration::from_secs(10)),
+            time,
+        };
+        let gauge = KnownMetricT::Gauge(&gauge);
+        matches!(gauge.metric_type(), MetricType::Gauge);
+
+        let sum = Sum::<u64> {
+            data_points: vec![],
+            is_monotonic: true,
+            start_time: time - std::time::Duration::from_secs(10),
+            time,
+            temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
+        };
+        let sum_monotonic = KnownMetricT::Sum(&sum);
+        matches!(sum_monotonic.metric_type(), MetricType::Counter);
+
+        let sum = Sum::<u64> {
+            data_points: vec![],
+            is_monotonic: false,
+            start_time: time - std::time::Duration::from_secs(10),
+            time,
+            temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
+        };
+        let sum_non_monotonic = KnownMetricT::Sum(&sum);
+        matches!(sum_non_monotonic.metric_type(), MetricType::Gauge);
+
+        let histogram = Histogram::<u64> {
+            data_points: vec![],
+            start_time: time - std::time::Duration::from_secs(10),
+            time,
+            temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
+        };
+        let histogram = KnownMetricT::Histogram(&histogram);
+        matches!(histogram.metric_type(), MetricType::Histogram);
+    }
+
+    #[test]
+    fn test_known_metric_t_encode() {
+        let (exporter, registry) = setup_prometheus_exporter(opentelemetry_sdk::metrics::Temporality::Cumulative, false);
+        let provider = SdkMeterProvider::builder().with_reader(exporter.clone()).build();
+        let meter = provider.meter("test_meter");
+        let gauge = meter.u64_gauge("test_gauge").build();
+        gauge.record(42, &[KeyValue::new("key", "value")]);
+
+        let encoded = collect_and_encode(&registry);
+        assert!(encoded.contains(r#"test_gauge{otel_scope_name="test_meter",key="value"} 42"#));
+    }
+
+    #[test]
+    fn test_known_metric_from_any() {
+        let time = std::time::SystemTime::now();
+        let gauge = Gauge::<u64> {
+            data_points: vec![],
+            start_time: Some(time - std::time::Duration::from_secs(10)),
+            time,
+        };
+        let sum = Sum::<i64> {
+            data_points: vec![],
+            is_monotonic: true,
+            start_time: time - std::time::Duration::from_secs(10),
+            time,
+            temporality: opentelemetry_sdk::metrics::Temporality::Delta,
+        };
+        let histogram = Histogram::<f64> {
+            data_points: vec![],
+            start_time: time - std::time::Duration::from_secs(10),
+            time,
+            temporality: opentelemetry_sdk::metrics::Temporality::Delta,
+        };
+
+        assert!(matches!(
+            KnownMetric::from_any(&gauge),
+            Some(KnownMetric::U64(KnownMetricT::Gauge(_)))
+        ));
+        assert!(matches!(
+            KnownMetric::from_any(&sum),
+            Some(KnownMetric::I64(KnownMetricT::Sum(_)))
+        ));
+        assert!(matches!(
+            KnownMetric::from_any(&histogram),
+            Some(KnownMetric::F64(KnownMetricT::Histogram(_)))
+        ));
+    }
+
+    #[test]
+    fn test_known_metric_metric_type() {
+        let time = std::time::SystemTime::now();
+        let gauge = Gauge::<u64> {
+            data_points: vec![],
+            start_time: Some(time - std::time::Duration::from_secs(10)),
+            time,
+        };
+        let metric = KnownMetric::U64(KnownMetricT::Gauge(&gauge));
+        matches!(metric.metric_type(), MetricType::Gauge);
+    }
+
+    #[test]
+    fn test_known_metric_encode() {
+        let (exporter, registry) = setup_prometheus_exporter(opentelemetry_sdk::metrics::Temporality::Cumulative, false);
+        let provider = SdkMeterProvider::builder().with_reader(exporter.clone()).build();
+        let meter = provider.meter("test_meter");
+        let counter = meter.u64_counter("test_counter").build();
+        counter.add(1, &[KeyValue::new("key", "value")]);
+
+        let encoded = collect_and_encode(&registry);
+        assert!(encoded.contains(r#"test_counter_total{otel_scope_name="test_meter",key="value"} 1"#));
+    }
+
+    #[test]
+    fn test_prometheus_collect_histogram() {
+        let (exporter, registry) = setup_prometheus_exporter(opentelemetry_sdk::metrics::Temporality::Cumulative, false);
+        let provider = SdkMeterProvider::builder().with_reader(exporter.clone()).build();
+        let meter = provider.meter("test_meter");
+        let histogram = meter
+            .u64_histogram("test_histogram")
+            .with_boundaries(vec![5.0, 10.0, 20.0])
+            .build();
+        histogram.record(3, &[KeyValue::new("key", "value")]);
+        histogram.record(7, &[KeyValue::new("key", "value")]);
+        histogram.record(12, &[KeyValue::new("key", "value")]);
+        histogram.record(25, &[KeyValue::new("key", "value")]);
+
+        let mut metrics = ResourceMetrics {
+            scope_metrics: vec![],
+            resource: Resource::builder_empty().build(),
+        };
+        exporter.collect(&mut metrics).unwrap();
+
+        let scope_metrics = metrics.scope_metrics.first().expect("scope metrics should be present");
+        let metric = scope_metrics
+            .metrics
+            .iter()
+            .find(|m| m.name == "test_histogram")
+            .expect("histogram metric should be present");
+        let histogram_data = metric
+            .data
+            .as_any()
+            .downcast_ref::<Histogram<u64>>()
+            .expect("metric data should be a histogram");
+
+        let data_point = histogram_data.data_points.first().expect("data point should be present");
+        assert_eq!(data_point.sum, 47, "sum should be 3 + 7 + 12 + 25 = 47");
+        assert_eq!(data_point.count, 4, "count should be 4");
+        assert_eq!(
+            data_point.bucket_counts,
+            vec![1, 1, 1, 1],
+            "each value should fall into a separate bucket"
+        );
+        assert_eq!(
+            data_point.bounds,
+            vec![5.0, 10.0, 20.0],
+            "boundaries should match the defined ones"
+        );
+
+        let encoded = collect_and_encode(&registry);
+        assert!(encoded.contains(r#"test_histogram_sum{otel_scope_name="test_meter",key="value"} 47"#));
+    }
+
+    #[test]
+    fn test_non_monotonic_sum_as_gauge() {
+        let (exporter, registry) = setup_prometheus_exporter(opentelemetry_sdk::metrics::Temporality::Cumulative, false);
+        let provider = SdkMeterProvider::builder()
+            .with_reader(exporter.clone())
+            .with_resource(
+                Resource::builder()
+                    .with_attributes(vec![KeyValue::new("service.name", "test_service")])
+                    .build(),
+            )
+            .build();
+        opentelemetry::global::set_meter_provider(provider.clone());
+
+        let meter = provider.meter("test_meter");
+        let sum_metric = meter.i64_up_down_counter("test_non_monotonic_sum").build();
+        sum_metric.add(10, &[KeyValue::new("key", "value")]);
+        sum_metric.add(-5, &[KeyValue::new("key", "value")]);
+
+        let encoded = collect_and_encode(&registry);
+
+        assert!(encoded.contains(r#"test_non_monotonic_sum{otel_scope_name="test_meter",key="value"} 5"#));
+        assert!(
+            !encoded.contains("test_non_monotonic_sum_total"),
+            "Non-monotonic sum should not have '_total' suffix"
+        );
+    }
+}
