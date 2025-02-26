@@ -40,7 +40,7 @@ jobs:
           python3 .github/scripts/ci-matrix-prep.py '${{ toJson(github) }}' | tee -a $GITHUB_OUTPUT
 
   jobs:
-    name: ${{ matrix.job_name }}
+    name: ${{ matrix.job_name || 'Jobs' }}
     needs: matrix_prep
     strategy:
       matrix:
