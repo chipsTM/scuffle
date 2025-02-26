@@ -687,13 +687,7 @@ mod tests {
             assert_eq!(RawNumber::I32(-42).as_f64(), -42.0);
             assert_eq!(RawNumber::I16(-16).as_f64(), -16.0);
             assert_eq!(RawNumber::I8(-8).as_f64(), -8.0);
-
-            let f32_value = RawNumber::F32(3.14).as_f64();
-            assert!(
-                (f32_value - 3.14).abs() < 1e-6,
-                "Expected F32 conversion to be close to 3.14, got {}",
-                f32_value
-            );
+            assert_eq!(RawNumber::F32(3.14).as_f64(), 3.140000104904175);
         }
     }
 
