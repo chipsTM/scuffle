@@ -47,7 +47,6 @@ mod tests {
     use scuffle_amf0::Amf0Value;
     use scuffle_av1::ObuHeader;
     use scuffle_av1::seq::SequenceHeaderObu;
-    use scuffle_h264::Sps;
 
     use crate::aac::AacPacket;
     use crate::audio::{AudioData, AudioDataBody, SoundRate, SoundSize, SoundType};
@@ -237,7 +236,7 @@ mod tests {
             assert_eq!(avc_decoder_configuration_record.pps.len(), 1);
             assert_eq!(avc_decoder_configuration_record.extended_config, None);
 
-            let sps = Sps::parse(&avc_decoder_configuration_record.sps[0]).expect("expected sequence parameter set");
+            let sps = &avc_decoder_configuration_record.sps[0];
 
             insta::assert_debug_snapshot!(sps, @r"
             Sps {
