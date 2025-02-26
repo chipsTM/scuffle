@@ -31,6 +31,16 @@ def is_pr() -> bool:
     return GITHUB_CONTEXT["event_name"] == "pull_request"
 
 
+def is_fork_pr() -> bool:
+    return (
+        is_pr()
+        and GITHUB_CONTEXT["event"]["pull_request"]["head"]["repo"][
+            "full_name"
+        ].casefold()
+        != "scufflecloud/scuffle".casefold()
+    )
+
+
 def pr_number() -> Optional[int]:
     if is_pr():
         return GITHUB_CONTEXT["event"]["number"]
@@ -107,6 +117,8 @@ class Job:
 def create_docs_jobs() -> list[Job]:
     jobs: list[Job] = []
 
+    deploy_docs = not is_brawl("merge") and not is_fork_pr()
+
     jobs.append(
         Job(
             runner=LINUX_X86_64,
@@ -115,9 +127,7 @@ def create_docs_jobs() -> list[Job]:
             ffmpeg=FfmpegSetup(),
             inputs=DocsMatrix(
                 artifact_name="docs",
-                # if its brawl merge, we don't want to deploy docs
-                # since that will be deployed after the merge is successful
-                deploy_docs=not is_brawl("merge"),
+                deploy_docs=deploy_docs,
                 pr_number=pr_number(),
             ),
             rust=RustSetup(
@@ -127,7 +137,9 @@ def create_docs_jobs() -> list[Job]:
                 tools="",
                 cache_backend="ubicloud",
             ),
-            secrets=["CF_DOCS_API_KEY", "CF_DOCS_ACCOUNT_ID"] if not is_brawl("merge") else None,
+            secrets=(
+                ["CF_DOCS_API_KEY", "CF_DOCS_ACCOUNT_ID"] if deploy_docs else None
+            ),
         )
     )
 
@@ -324,6 +336,8 @@ def create_clippy_jobs() -> list[Job]:
 def create_test_jobs() -> list[Job]:
     jobs: list[Job] = []
 
+    secrets = ["CODECOV_TOKEN"] if not is_fork_pr() else None
+
     commit_sha = os.environ["SHA"]
     if is_brawl("try"):
         commit_sha = (
@@ -349,7 +363,7 @@ def create_test_jobs() -> list[Job]:
                 tools="cargo-nextest,cargo-llvm-cov",
                 cache_backend="ubicloud",
             ),
-            secrets=["CODECOV_TOKEN"],
+            secrets=secrets,
         )
     )
 
@@ -371,7 +385,7 @@ def create_test_jobs() -> list[Job]:
                     tools="cargo-nextest,cargo-llvm-cov",
                     cache_backend="ubicloud",
                 ),
-                secrets=["CODECOV_TOKEN"],
+                secrets=secrets,
             )
         )
 
@@ -392,7 +406,7 @@ def create_test_jobs() -> list[Job]:
                     tools="cargo-nextest,cargo-llvm-cov",
                     cache_backend="github",
                 ),
-                secrets=["CODECOV_TOKEN"],
+                secrets=secrets,
             )
         )
 
@@ -413,7 +427,7 @@ def create_test_jobs() -> list[Job]:
                     tools="cargo-nextest,cargo-llvm-cov",
                     cache_backend="github",
                 ),
-                secrets=["CODECOV_TOKEN"],
+                secrets=secrets,
             )
         )
 
@@ -434,7 +448,7 @@ def create_test_jobs() -> list[Job]:
                     tools="cargo-nextest,cargo-llvm-cov",
                     cache_backend="github",
                 ),
-                secrets=["CODECOV_TOKEN"],
+                secrets=secrets,
             )
         )
 
