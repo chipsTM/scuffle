@@ -214,8 +214,8 @@ impl AVCDecoderConfigurationRecord {
         bit_writer.write_bits(self.sps.len() as u64, 5)?;
         for sps in &self.sps {
             bit_writer.write_u16::<BigEndian>(sps.size() as u16)?;
+            // Sps::build() automatically aligns the writer.
             sps.build(&mut bit_writer)?;
-            bit_writer.align()?;
         }
 
         bit_writer.write_bits(self.pps.len() as u64, 8)?;
@@ -235,7 +235,16 @@ impl AVCDecoderConfigurationRecord {
             bit_writer.write_bits(config.sequence_parameter_set_ext.len() as u64, 8)?;
             for sps_ext in &config.sequence_parameter_set_ext {
                 bit_writer.write_u16::<BigEndian>(sps_ext.bytesize() as u16)?;
+                // SpsExtended::build() does not automatically align the writer
+                // due to the fact that it's used when building the Sps.
+                // If SpsExtended::build() were to align the writer, it could
+                // potentially cause a mismatch as it might introduce 0-padding in
+                // the middle of the bytestream, as the bytestream should only be aligned
+                // at the very end.
+                // In this case however, we want to intentionally align the writer as
+                // the sps is the only thing here.
                 sps_ext.build(&mut bit_writer)?;
+                bit_writer.align()?;
             }
         }
 
@@ -304,6 +313,7 @@ mod tests {
 
         insta::assert_debug_snapshot!(sps, @r"
         Sps {
+            emu_bytes: 2,
             forbidden_zero_bit: false,
             nal_ref_idc: 3,
             nal_unit_type: NALUnitType::SPS,
@@ -373,7 +383,7 @@ mod tests {
         // these may not be the same size due to the natural reduction from the SPS parsing.
         // in specific, the sps size function may return a lower size than the original bitstring.
         // reduction will occur from rebuilding the sps and from rebuilding the sps_ext.
-        let data = Bytes::from(b"\x01d\0\x1f\xff\xe1\0\x17\x67\x64\x00\x1F\xAC\xD9\x41\xE0\x6D\xF9\xE6\xA0\x20\x20\x28\x00\x00\x00\x08\x00\x00\x01\xE0\x01\0\x06h\xeb\xe3\xcb\"\xc0\xfd\xf8\xf8\0".to_vec());
+        let data = Bytes::from(b"\x01d\0\x1f\xff\xe1\0\x19\x67\x64\x00\x1F\xAC\xD9\x41\xE0\x6D\xF9\xE6\xA0\x20\x20\x28\x00\x00\x03\x00\x08\x00\x00\x03\x01\xE0\x01\0\x06h\xeb\xe3\xcb\"\xc0\xfd\xf8\xf8\0".to_vec());
 
         let config = AVCDecoderConfigurationRecord::parse(&mut io::Cursor::new(data.clone())).unwrap();
 
@@ -432,6 +442,7 @@ mod tests {
             length_size_minus_one: 3,
             sps: [
                 Sps {
+                    emu_bytes: 0,
                     forbidden_zero_bit: false,
                     nal_ref_idc: 3,
                     nal_unit_type: NALUnitType::SPS,
@@ -560,6 +571,7 @@ mod tests {
             length_size_minus_one: 3,
             sps: [
                 Sps {
+                    emu_bytes: 2,
                     forbidden_zero_bit: false,
                     nal_ref_idc: 3,
                     nal_unit_type: NALUnitType::SPS,

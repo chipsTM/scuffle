@@ -240,6 +240,7 @@ mod tests {
 
             insta::assert_debug_snapshot!(sps, @r"
             Sps {
+                emu_bytes: 1,
                 forbidden_zero_bit: false,
                 nal_ref_idc: 3,
                 nal_unit_type: NALUnitType::SPS,

@@ -11,6 +11,18 @@ use crate::{AspectRatioIdc, NALUnitType, VideoFormat};
 /// ISO/IEC-14496-10-2022 - 7.3.2
 #[derive(Debug, Clone, PartialEq)]
 pub struct Sps {
+    /// The number of emulation bytes that are in the Sps.
+    ///
+    /// This is necessary because reading in a vec of Sps in `AVCDecoderConfigurationRecord::build()` requires
+    /// the length of the Sps, however, the existing size function would have to build the Sps into a bytestream
+    /// and then determine how many emulation prevention bytes exist in the Sps. This field saves us from having to
+    /// rebuild the entire Sps by simply storing the number of emulation prevention bytes present in the original Sps.
+    ///
+    /// Note that the input bytestream can potentially have 0 emulation prevention bytes, but when rebuilding the Sps we
+    /// will insert appropriate emulation prevention bytes. If you notice your Sps seems to be different in this case,
+    /// you can simply use [`Sps::reduce()`] on your original bytestream to add the emulation prevention bytes to your Sps.
+    pub emu_bytes: u8,
+
     /// The `forbidden_zero_bit` is a single bit that must be set to 0. Otherwise
     /// `parse()` will return an error. ISO/IEC-14496-10-2022 - 7.4.1
     pub forbidden_zero_bit: bool,
@@ -357,12 +369,14 @@ impl Sps {
         // We need to remove the emulation prevention byte
         // This is BARELY documented in the spec, but it's there.
         // ISO/IEC-14496-10-2022 - 3.1.48
+        let mut emu_bytes = 0;
         let mut i = 0;
         while i < data.len() {
             if i + 2 < data.len() && data[i] == 0x00 && data[i + 1] == 0x00 && data[i + 2] == 0x03 {
                 vec.push(0x00);
                 vec.push(0x00);
                 i += 3; // Skip the emulation prevention byte.
+                emu_bytes += 1;
             } else {
                 vec.push(data[i]);
                 i += 1;
@@ -518,6 +532,7 @@ impl Sps {
         }
 
         Ok(Sps {
+            emu_bytes,
             forbidden_zero_bit,
             nal_ref_idc,
             nal_unit_type: NALUnitType(nal_unit_type),
@@ -552,57 +567,60 @@ impl Sps {
 
     /// Builds the Sps struct into a byte stream.
     /// Returns a built byte stream.
-    pub fn build<T: io::Write>(&self, writer: &mut BitWriter<T>) -> io::Result<()> {
-        writer.write_bit(false)?;
-        writer.write_bits(self.nal_ref_idc as u64, 2)?;
-        writer.write_bits(self.nal_unit_type.into(), 5)?;
-        writer.write_bits(self.profile_idc as u64, 8)?;
+    pub fn build<T: io::Write>(&self, writer: &mut T) -> io::Result<()> {
+        let mut temp_bytestream = Vec::new();
+        let mut bit_writer = BitWriter::new(&mut temp_bytestream);
 
-        writer.write_bit(self.constraint_set0_flag)?;
-        writer.write_bit(self.constraint_set1_flag)?;
-        writer.write_bit(self.constraint_set2_flag)?;
-        writer.write_bit(self.constraint_set3_flag)?;
-        writer.write_bit(self.constraint_set4_flag)?;
-        writer.write_bit(self.constraint_set5_flag)?;
+        bit_writer.write_bit(false)?;
+        bit_writer.write_bits(self.nal_ref_idc as u64, 2)?;
+        bit_writer.write_bits(self.nal_unit_type.into(), 5)?;
+        bit_writer.write_bits(self.profile_idc as u64, 8)?;
+
+        bit_writer.write_bit(self.constraint_set0_flag)?;
+        bit_writer.write_bit(self.constraint_set1_flag)?;
+        bit_writer.write_bit(self.constraint_set2_flag)?;
+        bit_writer.write_bit(self.constraint_set3_flag)?;
+        bit_writer.write_bit(self.constraint_set4_flag)?;
+        bit_writer.write_bit(self.constraint_set5_flag)?;
         // reserved 2 bits
-        writer.write_bits(0, 2)?;
+        bit_writer.write_bits(0, 2)?;
 
-        writer.write_bits(self.level_idc as u64, 8)?;
-        writer.write_exp_golomb(self.seq_parameter_set_id as u64)?;
+        bit_writer.write_bits(self.level_idc as u64, 8)?;
+        bit_writer.write_exp_golomb(self.seq_parameter_set_id as u64)?;
 
         // sps ext
         if let Some(ext) = &self.ext {
-            ext.build(writer)?;
+            ext.build(&mut bit_writer)?;
         }
 
-        writer.write_exp_golomb(self.log2_max_frame_num_minus4 as u64)?;
-        writer.write_exp_golomb(self.pic_order_cnt_type as u64)?;
+        bit_writer.write_exp_golomb(self.log2_max_frame_num_minus4 as u64)?;
+        bit_writer.write_exp_golomb(self.pic_order_cnt_type as u64)?;
 
         if self.pic_order_cnt_type == 0 {
-            writer.write_exp_golomb(self.log2_max_pic_order_cnt_lsb_minus4.unwrap() as u64)?;
+            bit_writer.write_exp_golomb(self.log2_max_pic_order_cnt_lsb_minus4.unwrap() as u64)?;
         } else if let Some(pic_order_cnt) = &self.pic_order_cnt_type1 {
-            pic_order_cnt.build(writer)?;
+            pic_order_cnt.build(&mut bit_writer)?;
         }
 
-        writer.write_exp_golomb(self.max_num_ref_frames as u64)?;
-        writer.write_bit(self.gaps_in_frame_num_value_allowed_flag)?;
-        writer.write_exp_golomb(self.pic_width_in_mbs_minus1)?;
-        writer.write_exp_golomb(self.pic_height_in_map_units_minus1)?;
+        bit_writer.write_exp_golomb(self.max_num_ref_frames as u64)?;
+        bit_writer.write_bit(self.gaps_in_frame_num_value_allowed_flag)?;
+        bit_writer.write_exp_golomb(self.pic_width_in_mbs_minus1)?;
+        bit_writer.write_exp_golomb(self.pic_height_in_map_units_minus1)?;
 
         if let Some(flag) = self.mb_adaptive_frame_field_flag {
-            writer.write_bit(false)?;
-            writer.write_bit(flag)?;
+            bit_writer.write_bit(false)?;
+            bit_writer.write_bit(flag)?;
         } else {
-            writer.write_bit(true)?;
+            bit_writer.write_bit(true)?;
         }
 
-        writer.write_bit(self.direct_8x8_inference_flag)?;
+        bit_writer.write_bit(self.direct_8x8_inference_flag)?;
 
         if let Some(frame_crop_info) = &self.frame_crop_info {
-            writer.write_bit(true)?;
-            frame_crop_info.build(writer)?;
+            bit_writer.write_bit(true)?;
+            frame_crop_info.build(&mut bit_writer)?;
         } else {
-            writer.write_bit(false)?;
+            bit_writer.write_bit(false)?;
         }
 
         match (
@@ -613,53 +631,80 @@ impl Sps {
             &self.timing_info,
         ) {
             (None, None, None, None, None) => {
-                writer.write_bit(false)?;
+                bit_writer.write_bit(false)?;
             }
             _ => {
                 // vui_parameters_present_flag
-                writer.write_bit(true)?;
+                bit_writer.write_bit(true)?;
 
                 // aspect_ratio_info_present_flag
                 if let Some(sar) = &self.sample_aspect_ratio {
-                    writer.write_bit(true)?;
-                    sar.build(writer)?;
+                    bit_writer.write_bit(true)?;
+                    sar.build(&mut bit_writer)?;
                 } else {
-                    writer.write_bit(false)?;
+                    bit_writer.write_bit(false)?;
                 }
 
                 // overscan_info_present_flag
                 if let Some(overscan) = self.overscan_appropriate_flag {
-                    writer.write_bit(true)?;
-                    writer.write_bit(overscan)?;
+                    bit_writer.write_bit(true)?;
+                    bit_writer.write_bit(overscan)?;
                 } else {
-                    writer.write_bit(false)?;
+                    bit_writer.write_bit(false)?;
                 }
 
                 // video_signal_type_prsent_flag
                 if let Some(color) = &self.color_config {
-                    writer.write_bit(true)?;
-                    color.build(writer)?;
+                    bit_writer.write_bit(true)?;
+                    color.build(&mut bit_writer)?;
                 } else {
-                    writer.write_bit(false)?;
+                    bit_writer.write_bit(false)?;
                 }
 
                 // chroma_log_info_present_flag
                 if let Some(chroma) = &self.chroma_sample_loc {
-                    writer.write_bit(true)?;
-                    chroma.build(writer)?;
+                    bit_writer.write_bit(true)?;
+                    chroma.build(&mut bit_writer)?;
                 } else {
-                    writer.write_bit(false)?;
+                    bit_writer.write_bit(false)?;
                 }
 
                 // timing_info_present_flag
                 if let Some(timing) = &self.timing_info {
-                    writer.write_bit(true)?;
-                    timing.build(writer)?;
+                    bit_writer.write_bit(true)?;
+                    timing.build(&mut bit_writer)?;
                 } else {
-                    writer.write_bit(false)?;
+                    bit_writer.write_bit(false)?;
                 }
             }
         }
+        bit_writer.finish()?;
+
+        // now we reinsert the emulation bytes
+        let mut zero_byte_count = 0;
+        // create the actual writer
+        let mut final_writer = BitWriter::new(writer);
+
+        for &byte in &temp_bytestream {
+            // check bytes and insert an emulation byte if necessary
+            if zero_byte_count == 2 && byte <= 0x03 {
+                final_writer.write_bits(0x03, 8)?;
+                zero_byte_count = 0;
+            }
+
+            // insert current byte
+            final_writer.write_bits(byte as u64, 8)?;
+
+            // if current byte is 0x00 then incr the count
+            // otherwise reset the count
+            if byte == 0x00 {
+                zero_byte_count += 1;
+            } else {
+                zero_byte_count = 0;
+            }
+        }
+
+        final_writer.finish()?;
 
         Ok(())
     }
@@ -669,9 +714,8 @@ impl Sps {
     /// This takes the same `&[u8]` as the [`Sps::parse`] function, but instead outputs
     /// a result containing a vec of bytes.
     ///
-    /// The reductions occur in 3 places, the first is when removing the emulation bytes,
-    /// the second is from rebuilding the `color_config`, and the third is when rebuilding
-    /// the structs from `vui_parameters_present_flag`.
+    /// The reductions occur in 2 places, the first is from rebuilding the `color_config`
+    /// and the second is when rebuilding the structs from `vui_parameters_present_flag`.
     ///
     /// These reductions minimize the bytes from the original Sps header bytes while remaining
     /// functionally equivalent. This function also prevents having to manually handle rebuilding
@@ -687,10 +731,9 @@ impl Sps {
     ///
     /// This returns a result containing a vec of bytes.
     pub fn reduce(data: &[u8]) -> io::Result<Vec<u8>> {
-        // first reduction naturally happens via parsing
         let original_sps = Sps::parse(data)?;
 
-        // second and third reductions happen by building
+        // the two reductions happen by building
         // create a writer for the builder
         let mut reduced = Vec::new();
         let mut writer = BitWriter::new(&mut reduced);
@@ -703,7 +746,10 @@ impl Sps {
 
     /// Returns the total byte size of the Sps struct.
     pub fn size(&self) -> u64 {
-        (1 + // forbidden zero bit
+        // the emulation bytes
+        self.emu_bytes as u64 +
+        (
+        1 + // forbidden zero bit
         2 + // nal_ref_idc
         5 + // nal_unit_type
         8 + // profile_idc
@@ -1718,6 +1764,7 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
+            emu_bytes: 0,
             forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
@@ -1790,7 +1837,7 @@ mod tests {
         // some space with how the SPS is rebuilt.
         // so we can just confirm that they're the same
         // by rebuilding it.
-        let reduced = Sps::parse(&buf).unwrap();
+        let reduced = Sps::parse(&buf).unwrap(); // <- this is where things break
         assert_eq!(reduced, result);
 
         // now we can check that the bitstream from
@@ -1970,10 +2017,14 @@ mod tests {
         writer.write_bits(960000, 32).unwrap();
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps).unwrap();
+        // we "reduce" it which adds an emulation byte which the above sps is supposed to have.
+        let fixed_sps = Sps::reduce(&sps).unwrap();
+
+        let result = Sps::parse(&fixed_sps).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
+            emu_bytes: 1,
             forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
@@ -2192,6 +2243,7 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
+            emu_bytes: 0,
             forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
@@ -2681,6 +2733,7 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
+            emu_bytes: 0,
             forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
