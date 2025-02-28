@@ -1,6 +1,7 @@
 use anyhow::Context;
 
 mod change_logs;
+mod dev_tools;
 mod power_set;
 mod workspace_deps;
 
@@ -13,6 +14,7 @@ pub enum Commands {
     WorkspaceDeps(workspace_deps::WorkspaceDeps),
     #[clap(alias = "change-log", subcommand)]
     ChangeLogs(change_logs::Commands),
+    DevTools(dev_tools::DevTools),
 }
 
 impl Commands {
@@ -21,6 +23,7 @@ impl Commands {
             Commands::PowerSet(cmd) => cmd.run().context("power set"),
             Commands::WorkspaceDeps(cmd) => cmd.run().context("workspace deps"),
             Commands::ChangeLogs(cmd) => cmd.run().context("change logs"),
+            Commands::DevTools(cmd) => cmd.run().context("dev tools"),
         }
     }
 }
