@@ -52,7 +52,6 @@
 pub mod prometheus;
 
 #[doc(hidden)]
-#[cfg_attr(all(test, coverage_nightly), coverage(off))]
 pub mod value;
 
 pub mod collector;

@@ -109,20 +109,6 @@ enum RawNumber {
     U64(u64),
     I64(i64),
     F64(f64),
-    #[cfg(feature = "extended-numbers")]
-    U32(u32),
-    #[cfg(feature = "extended-numbers")]
-    U16(u16),
-    #[cfg(feature = "extended-numbers")]
-    U8(u8),
-    #[cfg(feature = "extended-numbers")]
-    I32(i32),
-    #[cfg(feature = "extended-numbers")]
-    I16(i16),
-    #[cfg(feature = "extended-numbers")]
-    I8(i8),
-    #[cfg(feature = "extended-numbers")]
-    F32(f32),
 }
 
 impl RawNumber {
@@ -131,20 +117,6 @@ impl RawNumber {
             RawNumber::U64(value) => value as f64,
             RawNumber::I64(value) => value as f64,
             RawNumber::F64(value) => value,
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::U32(value) => value as f64,
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::U16(value) => value as f64,
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::U8(value) => value as f64,
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::I32(value) => value as f64,
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::I16(value) => value as f64,
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::I8(value) => value as f64,
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::F32(value) => value as f64,
         }
     }
 }
@@ -155,20 +127,6 @@ impl EncodeGaugeValue for RawNumber {
             RawNumber::U64(value) => EncodeGaugeValue::encode(&(value as i64), encoder),
             RawNumber::I64(value) => EncodeGaugeValue::encode(&value, encoder),
             RawNumber::F64(value) => EncodeGaugeValue::encode(&value, encoder),
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::U32(value) => EncodeGaugeValue::encode(&value, encoder),
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::U16(value) => EncodeGaugeValue::encode(&(value as u32), encoder),
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::U8(value) => EncodeGaugeValue::encode(&(value as u32), encoder),
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::I32(value) => EncodeGaugeValue::encode(&(value as i64), encoder),
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::I16(value) => EncodeGaugeValue::encode(&(value as i64), encoder),
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::I8(value) => EncodeGaugeValue::encode(&(value as i64), encoder),
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::F32(value) => EncodeGaugeValue::encode(&(value as f64), encoder),
         }
     }
 }
@@ -179,20 +137,6 @@ impl EncodeCounterValue for RawNumber {
             RawNumber::U64(value) => EncodeCounterValue::encode(&value, encoder),
             RawNumber::I64(value) => EncodeCounterValue::encode(&(value as f64), encoder),
             RawNumber::F64(value) => EncodeCounterValue::encode(&value, encoder),
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::U32(value) => EncodeCounterValue::encode(&(value as u64), encoder),
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::U16(value) => EncodeCounterValue::encode(&(value as u64), encoder),
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::U8(value) => EncodeCounterValue::encode(&(value as u64), encoder),
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::I32(value) => EncodeCounterValue::encode(&(value as f64), encoder),
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::I16(value) => EncodeCounterValue::encode(&(value as f64), encoder),
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::I8(value) => EncodeCounterValue::encode(&(value as f64), encoder),
-            #[cfg(feature = "extended-numbers")]
-            RawNumber::F32(value) => EncodeCounterValue::encode(&(value as f64), encoder),
         }
     }
 }
@@ -210,17 +154,6 @@ macro_rules! impl_raw_number {
 impl_raw_number!(u64, U64);
 impl_raw_number!(i64, I64);
 impl_raw_number!(f64, F64);
-
-#[cfg(feature = "extended-numbers")]
-const _: () = {
-    impl_raw_number!(u32, U32);
-    impl_raw_number!(u16, U16);
-    impl_raw_number!(u8, U8);
-    impl_raw_number!(i32, I32);
-    impl_raw_number!(i16, I16);
-    impl_raw_number!(i8, I8);
-    impl_raw_number!(f32, F32);
-};
 
 enum KnownMetricT<'a, T> {
     Gauge(&'a Gauge<T>),
@@ -313,20 +246,6 @@ enum KnownMetric<'a> {
     U64(KnownMetricT<'a, u64>),
     I64(KnownMetricT<'a, i64>),
     F64(KnownMetricT<'a, f64>),
-    #[cfg(feature = "extended-numbers")]
-    U32(KnownMetricT<'a, u32>),
-    #[cfg(feature = "extended-numbers")]
-    U16(KnownMetricT<'a, u16>),
-    #[cfg(feature = "extended-numbers")]
-    U8(KnownMetricT<'a, u8>),
-    #[cfg(feature = "extended-numbers")]
-    I32(KnownMetricT<'a, i32>),
-    #[cfg(feature = "extended-numbers")]
-    I16(KnownMetricT<'a, i16>),
-    #[cfg(feature = "extended-numbers")]
-    I8(KnownMetricT<'a, i8>),
-    #[cfg(feature = "extended-numbers")]
-    F32(KnownMetricT<'a, f32>),
 }
 
 impl<'a> KnownMetric<'a> {
@@ -342,20 +261,6 @@ impl<'a> KnownMetric<'a> {
         try_decode!(u64, U64);
         try_decode!(i64, I64);
         try_decode!(f64, F64);
-        #[cfg(feature = "extended-numbers")]
-        try_decode!(u32, U32);
-        #[cfg(feature = "extended-numbers")]
-        try_decode!(i32, I32);
-        #[cfg(feature = "extended-numbers")]
-        try_decode!(u16, U16);
-        #[cfg(feature = "extended-numbers")]
-        try_decode!(i16, I16);
-        #[cfg(feature = "extended-numbers")]
-        try_decode!(u8, U8);
-        #[cfg(feature = "extended-numbers")]
-        try_decode!(i8, I8);
-        #[cfg(feature = "extended-numbers")]
-        try_decode!(f32, F32);
 
         None
     }
@@ -365,20 +270,6 @@ impl<'a> KnownMetric<'a> {
             KnownMetric::U64(metric) => metric.metric_type(),
             KnownMetric::I64(metric) => metric.metric_type(),
             KnownMetric::F64(metric) => metric.metric_type(),
-            #[cfg(feature = "extended-numbers")]
-            KnownMetric::U32(metric) => metric.metric_type(),
-            #[cfg(feature = "extended-numbers")]
-            KnownMetric::I32(metric) => metric.metric_type(),
-            #[cfg(feature = "extended-numbers")]
-            KnownMetric::U16(metric) => metric.metric_type(),
-            #[cfg(feature = "extended-numbers")]
-            KnownMetric::I16(metric) => metric.metric_type(),
-            #[cfg(feature = "extended-numbers")]
-            KnownMetric::U8(metric) => metric.metric_type(),
-            #[cfg(feature = "extended-numbers")]
-            KnownMetric::I8(metric) => metric.metric_type(),
-            #[cfg(feature = "extended-numbers")]
-            KnownMetric::F32(metric) => metric.metric_type(),
         }
     }
 
@@ -391,20 +282,6 @@ impl<'a> KnownMetric<'a> {
             KnownMetric::U64(metric) => metric.encode(encoder, labels),
             KnownMetric::I64(metric) => metric.encode(encoder, labels),
             KnownMetric::F64(metric) => metric.encode(encoder, labels),
-            #[cfg(feature = "extended-numbers")]
-            KnownMetric::U32(metric) => metric.encode(encoder, labels),
-            #[cfg(feature = "extended-numbers")]
-            KnownMetric::I32(metric) => metric.encode(encoder, labels),
-            #[cfg(feature = "extended-numbers")]
-            KnownMetric::U16(metric) => metric.encode(encoder, labels),
-            #[cfg(feature = "extended-numbers")]
-            KnownMetric::I16(metric) => metric.encode(encoder, labels),
-            #[cfg(feature = "extended-numbers")]
-            KnownMetric::U8(metric) => metric.encode(encoder, labels),
-            #[cfg(feature = "extended-numbers")]
-            KnownMetric::I8(metric) => metric.encode(encoder, labels),
-            #[cfg(feature = "extended-numbers")]
-            KnownMetric::F32(metric) => metric.encode(encoder, labels),
         }
     }
 }
@@ -678,17 +555,6 @@ mod tests {
         assert_eq!(RawNumber::U64(42).as_f64(), 42.0);
         assert_eq!(RawNumber::I64(-42).as_f64(), -42.0);
         assert_eq!(RawNumber::F64(5.44).as_f64(), 5.44);
-
-        #[cfg(feature = "extended-numbers")]
-        {
-            assert_eq!(RawNumber::U32(42).as_f64(), 42.0);
-            assert_eq!(RawNumber::U16(16).as_f64(), 16.0);
-            assert_eq!(RawNumber::U8(8).as_f64(), 8.0);
-            assert_eq!(RawNumber::I32(-42).as_f64(), -42.0);
-            assert_eq!(RawNumber::I16(-16).as_f64(), -16.0);
-            assert_eq!(RawNumber::I8(-8).as_f64(), -8.0);
-            assert_eq!(RawNumber::F32(5.44).as_f64(), 5.440000057220459);
-        }
     }
 
     #[test]
@@ -767,11 +633,18 @@ mod tests {
         let (exporter, registry) = setup_prometheus_exporter(opentelemetry_sdk::metrics::Temporality::Cumulative, false);
         let provider = SdkMeterProvider::builder().with_reader(exporter.clone()).build();
         let meter = provider.meter("test_meter");
-        let gauge = meter.u64_gauge("test_gauge").build();
-        gauge.record(42, &[KeyValue::new("key", "value")]);
+
+        let gauge_u64 = meter.u64_gauge("test_u64_gauge").build();
+        gauge_u64.record(42, &[KeyValue::new("key", "value")]);
 
         let encoded = collect_and_encode(&registry);
-        assert!(encoded.contains(r#"test_gauge{otel_scope_name="test_meter",key="value"} 42"#));
+        assert!(encoded.contains(r#"test_u64_gauge{otel_scope_name="test_meter",key="value"} 42"#));
+
+        let counter_i64_sum = meter.i64_up_down_counter("test_i64_counter").build();
+        counter_i64_sum.add(-42, &[KeyValue::new("key", "value")]);
+
+        let encoded = collect_and_encode(&registry);
+        assert!(encoded.contains(r#"test_i64_counter{otel_scope_name="test_meter",key="value"} -42"#));
     }
 
     #[test]
@@ -808,82 +681,7 @@ mod tests {
             KnownMetric::from_any(&histogram_f64),
             Some(KnownMetric::F64(KnownMetricT::Histogram(_)))
         ));
-
-        #[cfg(feature = "extended-numbers")]
-        {
-            let gauge_u32 = Gauge::<u32> {
-                data_points: vec![],
-                start_time: Some(time),
-                time,
-            };
-
-            let sum_i32 = Gauge::<i32> {
-                data_points: vec![],
-                start_time: Some(time),
-                time,
-            };
-
-            let gauge_u16 = Gauge::<u16> {
-                data_points: vec![],
-                start_time: Some(time),
-                time,
-            };
-
-            let gauge_i16 = Gauge::<i16> {
-                data_points: vec![],
-                start_time: Some(time),
-                time,
-            };
-
-            let gauge_u8 = Gauge::<u8> {
-                data_points: vec![],
-                start_time: Some(time),
-                time,
-            };
-
-            let gauge_i8 = Gauge::<i8> {
-                data_points: vec![],
-                start_time: Some(time),
-                time,
-            };
-
-            let histogram_f32 = Histogram::<f32> {
-                data_points: vec![],
-                start_time: time,
-                time,
-                temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
-            };
-
-            assert!(matches!(
-                KnownMetric::from_any(&gauge_u32),
-                Some(KnownMetric::U32(KnownMetricT::Gauge(_)))
-            ));
-            assert!(matches!(
-                KnownMetric::from_any(&sum_i32),
-                Some(KnownMetric::I32(KnownMetricT::Gauge(_)))
-            ));
-            assert!(matches!(
-                KnownMetric::from_any(&gauge_u16),
-                Some(KnownMetric::U16(KnownMetricT::Gauge(_)))
-            ));
-            assert!(matches!(
-                KnownMetric::from_any(&gauge_i16),
-                Some(KnownMetric::I16(KnownMetricT::Gauge(_)))
-            ));
-            assert!(matches!(
-                KnownMetric::from_any(&gauge_u8),
-                Some(KnownMetric::U8(KnownMetricT::Gauge(_)))
-            ));
-            assert!(matches!(
-                KnownMetric::from_any(&gauge_i8),
-                Some(KnownMetric::I8(KnownMetricT::Gauge(_)))
-            ));
-            assert!(matches!(
-                KnownMetric::from_any(&histogram_f32),
-                Some(KnownMetric::F32(KnownMetricT::Histogram(_)))
-            ));
-            assert!(KnownMetric::from_any(&true).is_none());
-        }
+        assert!(matches!(KnownMetric::from_any(&true), None));
     }
 
     #[test]
@@ -916,72 +714,6 @@ mod tests {
         };
         let metric = KnownMetric::F64(KnownMetricT::Sum(&sum_non_mono));
         assert!(matches!(metric.metric_type(), MetricType::Gauge));
-
-        #[cfg(feature = "extended-numbers")]
-        {
-            let histogram = Histogram::<u32> {
-                data_points: vec![],
-                start_time: time,
-                time,
-                temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
-            };
-            let metric = KnownMetric::U32(KnownMetricT::Histogram(&histogram));
-            assert!(matches!(metric.metric_type(), MetricType::Histogram));
-
-            let histogram = Histogram::<i32> {
-                data_points: vec![],
-                start_time: time,
-                time,
-                temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
-            };
-            let metric = KnownMetric::I32(KnownMetricT::Histogram(&histogram));
-            assert!(matches!(metric.metric_type(), MetricType::Histogram));
-
-            let histogram = Histogram::<u16> {
-                data_points: vec![],
-                start_time: time,
-                time,
-                temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
-            };
-            let metric = KnownMetric::U16(KnownMetricT::Histogram(&histogram));
-            assert!(matches!(metric.metric_type(), MetricType::Histogram));
-
-            let histogram = Histogram::<i16> {
-                data_points: vec![],
-                start_time: time,
-                time,
-                temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
-            };
-            let metric = KnownMetric::I16(KnownMetricT::Histogram(&histogram));
-            assert!(matches!(metric.metric_type(), MetricType::Histogram));
-
-            let histogram = Histogram::<u8> {
-                data_points: vec![],
-                start_time: time,
-                time,
-                temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
-            };
-            let metric = KnownMetric::U8(KnownMetricT::Histogram(&histogram));
-            assert!(matches!(metric.metric_type(), MetricType::Histogram));
-
-            let histogram = Histogram::<i8> {
-                data_points: vec![],
-                start_time: time,
-                time,
-                temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
-            };
-            let metric = KnownMetric::I8(KnownMetricT::Histogram(&histogram));
-            assert!(matches!(metric.metric_type(), MetricType::Histogram));
-
-            let histogram = Histogram::<f32> {
-                data_points: vec![],
-                start_time: time,
-                time,
-                temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
-            };
-            let metric = KnownMetric::F32(KnownMetricT::Histogram(&histogram));
-            assert!(matches!(metric.metric_type(), MetricType::Histogram));
-        }
     }
 
     #[test]

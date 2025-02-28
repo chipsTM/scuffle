@@ -41,7 +41,6 @@ rustdoc-args = ["--cfg", "docsrs"]
 additive-features = [
     "prometheus",
     "tracing",
-    "extended-numbers",
     "internal-logs",
     "default",
 ]

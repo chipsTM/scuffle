@@ -1,3 +1,4 @@
+#![cfg_attr(all(test, coverage_nightly), coverage(off))]
 use std::borrow::Cow;
 use std::sync::Arc;
 
