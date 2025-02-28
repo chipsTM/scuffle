@@ -28,15 +28,15 @@
 //! use scuffle_h264::{AVCDecoderConfigurationRecord, Sps};
 //!
 //! // A sample h264 bytestream to parse
-//! let data = Bytes::from(b"\x01d\0\x1f\xff\xe1\0\x17\x67\x64\x00\x1F\xAC\xD9\x41\xE0\x6D\xF9\xE6\xA0\x20\x20\x28\x00\x00\x00\x08\x00\x00\x01\xE0\x01\0\x06h\xeb\xe3\xcb\"\xc0\xfd\xf8\xf8\0".to_vec());
+//! # let bytes = Bytes::from(b"\x01d\0\x1f\xff\xe1\0\x17\x67\x64\x00\x1F\xAC\xD9\x41\xE0\x6D\xF9\xE6\xA0\x20\x20\x28\x00\x00\x00\x08\x00\x00\x01\xE0\x01\0\x06h\xeb\xe3\xcb\"\xc0\xfd\xf8\xf8\0".to_vec());
 //!
 //! // Parsing
-//! let result = AVCDecoderConfigurationRecord::parse(&mut io::Cursor::new(data.into())).unwrap();
+//! let result = AVCDecoderConfigurationRecord::parse(&mut io::Cursor::new(bytes.into())).unwrap();
 //!
 //! // Do something with it!
 //!
-//! // You can also access the contained Sps struct:
-//! let sps = &result.sps[0];
+//! // You can also parse an Sps from the Sps struct:
+//! let sps = Sps::parse_with_emulation_prevention(io::Cursor::new(&result.sps[0]));
 //! ```
 //!
 //! For more examples, check out the tests in the source code for the parse function.
@@ -108,7 +108,7 @@ mod io;
 mod sps;
 
 pub use enums::*;
+pub use io::EmulationPreventionIo;
+pub use sps::*;
 
 pub use self::config::{AVCDecoderConfigurationRecord, AvccExtendedConfig};
-pub use self::io::EmulationPreventionIo;
-pub use self::sps::{ColorConfig, Sps, SpsExtended};

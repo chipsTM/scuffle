@@ -6,7 +6,7 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use bytes::{Buf, Bytes};
 use scuffle_bytes_util::{BitReader, BitWriter, BytesCursorExt};
 
-use crate::SpsExtended;
+use crate::sps::SpsExtended;
 
 /// The AVC (H.264) Decoder Configuration Record.
 /// ISO/IEC 14496-15:2022(E) - 5.3.2.1.2
@@ -261,8 +261,8 @@ mod tests {
     use bytes::Bytes;
     use scuffle_bytes_util::BitWriter;
 
-    use crate::SpsExtended;
     use crate::config::{AVCDecoderConfigurationRecord, AvccExtendedConfig};
+    use crate::sps::SpsExtended;
 
     #[test]
     fn test_config_parse() {

@@ -1,6 +1,12 @@
 [[scuffle-h264]]
 category = "refactor"
-description = "AVCDecoderConfigurationRecord now uses actual Sps and SpsExtended structs"
+description = "AVCDecoderConfigurationRecord now uses actual SpsExtended struct (we intentionally do not let it use the Sps struct)"
+breaking = true
+authors = ["@philipch07"]
+
+[[scuffle-h264]]
+category = "refactor"
+description = "Refactored Sps to be its own module with each struct having its own file"
 breaking = true
 authors = ["@philipch07"]
 
@@ -26,7 +32,7 @@ authors = ["@philipch07"]
 category = "feat"
 description = "Building an Sps will automatically insert necessary emulation prevention bytes (which are already properly handled in the existing parse function)"
 breaking = false
-authors = ["@philipch07"]
+authors = ["@TroyKomodo"]
 
 [[scuffle-h264]]
 category = "feat"
