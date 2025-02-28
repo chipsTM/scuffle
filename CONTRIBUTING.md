@@ -4,6 +4,153 @@
 
 We have a [Code of Conduct](./CODE_OF_CONDUCT.md) that we expect all contributors to follow. Please read it before contributing.
 
+## Developer Environment
+
+All developers need to have a working rust developer environment setup. You can install rust via [rustup](https://rustup.rs/).
+
+After that you can run the following command to install all the other tools.
+
+```bash
+cargo xtask dev-tools
+```
+
+<details>
+<summary>If you want to install the tools manually you can do so with the following commands.</summary>
+
+You should install both the stable and nightly rust toolchains.
+
+```bash
+rustup install stable
+rustup install nightly
+```
+
+After installing rust you should also install a few components.
+
+```bash
+rustup component add clippy
+rustup component add rustfmt
+rustup component add llvm-tools-preview
+rustup component add rust-src
+rustup component add rust-docs
+```
+
+Then we need to install `cargo-binstall` to be able to install the other crates.
+
+```bash
+cargo install cargo-binstall
+```
+
+then all of the other crates can be installed with `cargo binstall`.
+
+```bash
+cargo binstall just cargo-llvm-cov cargo-nextest cargo-insta cargo-hakari miniserve
+```
+
+</details>
+
+### FFmpeg
+
+You need to have ffmpeg 7.1, with dev headers and shared libraries, installed.
+
+#### Package Managers
+
+Package managers often have an out-dated version of ffmpeg, so make sure you check your package manager before installing ffmpeg.
+
+For MacOS (or Linux) you can install ffmpeg via homebrew.
+
+```bash
+brew install ffmpeg
+```
+
+For Windows you can install ffmpeg via chocolatey or scoop.
+
+```bash
+choco install ffmpeg
+scoop install ffmpeg
+```
+
+#### Pre-built Binaries (Windows / Linux)
+
+However its far easier to download pre-built binaries from [here](https://github.com/BtbN/FFmpeg-Builds/releases/tag/latest) (linux or windows).
+
+| Platform | Download |
+|----------|----------|
+| Windows | [**`ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip`**](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip) |
+| Windows ARM | [**`ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip`**](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1.zip) |
+| Linux | [**`ffmpeg-n7.1-latest-linux64-gpl-shared-7.1.zip`**](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-linux64-gpl-shared-7.1.zip) |
+| Linux ARM | [**`ffmpeg-n7.1-latest-linuxarm64-gpl-shared-7.1.tar.xz`**](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-linuxarm64-gpl-shared-7.1.tar.xz) |
+
+#### Installing from source
+
+You can download it from source and build it with at least the following libraries:
+
+- libx264
+- libx265
+- libvpx
+- libopus
+- libdav1d
+
+For more information on building ffmpeg from source, you can refer to the [FFmpeg Documentation](https://trac.ffmpeg.org/wiki/CompilationGuide).
+
+### Valgrind (Linux / WSL Only)
+
+You need to have valgrind (at least version 3.24) installed.
+
+You can either build it from source or download it from our pre-built binaries [here](https://github.com/ScuffleCloud/valgrind-builds/releases/tag/latest).
+
+### Common Build Issues
+
+#### Cargo build fails with unable to find ffmpeg installation.
+
+Make sure ffmpeg is actually installed. If you are on linux or macos that you have `pkg-config` installed.
+
+```bash
+# Ubuntu / Debian
+sudo apt-get install pkg-config
+
+# MacOS
+brew install pkg-config
+```
+
+If this fails, try setting the following environment variables:
+
+These assume you have the path to ffmpeg installed in `${FFMPEG_ROOT}` and that you have an environment variable `FFMPEG_ROOT` set.
+
+##### Linux / MacOS
+
+```bash
+export FFMPEG_PKG_CONFIG_PATH="${FFMPEG_ROOT}/lib/pkgconfig"
+export FFMPEG_LIBS_DIR="${FFMPEG_ROOT}/lib"
+export FFMPEG_INCLUDE_DIR="${FFMPEG_ROOT}/include"
+export PATH="${FFMPEG_ROOT}/bin:${FFMPEG_ROOT}/lib:${FFMPEG_ROOT}/include:${PATH}"
+```
+
+##### Windows
+
+```ps1
+$env:FFMPEG_PKG_CONFIG_PATH="${$env:FFMPEG_ROOT}\lib\pkgconfig"
+$env:FFMPEG_LIBS_DIR="${$env:FFMPEG_ROOT}\lib"
+$env:FFMPEG_INCLUDE_DIR="${$env:FFMPEG_ROOT}\include"
+$env:PATH="${$env:FFMPEG_ROOT}\bin;${$env:FFMPEG_ROOT}\lib;${$env:FFMPEG_ROOT}\include;${env:PATH}"
+```
+
+On windows you need to include not just the binary directory but also the lib and include directories in your path, so that the linker can find the libraries.
+
+## Local Commnads
+
+| Command | Description |
+|---------|-------------|
+| `just test` | Run all tests |
+| `just grind` | Run tests with valgrind |
+| `just lint` | Lint the code & try auto-fix linting errors |
+| `just format` | Format the code |
+| `just workspace-hack` | Update the workspace hack cache, when adding / removing dependencies |
+| `just powerset <command>` | Run the powerset tests for a command |
+| `just deny` | Check that all dependencies have allowed licenses |
+| `just docs` | Build the docs |
+| `just docs-serve` | Serve the docs locally |
+| `just coverage-serve` | Serve the coverage report locally |
+
 ## CLA
 
 We require all contributors to sign a [Contributor License Agreement](./CLA.md) before we can accept any contributions.
