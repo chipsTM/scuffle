@@ -777,37 +777,113 @@ mod tests {
     #[test]
     fn test_known_metric_from_any() {
         let time = std::time::SystemTime::now();
-        let gauge = Gauge::<u64> {
+        let gauge_u64 = Gauge::<u64> {
             data_points: vec![],
-            start_time: Some(time - std::time::Duration::from_secs(10)),
+            start_time: Some(time),
             time,
         };
-        let sum = Sum::<i64> {
+        let sum_i64 = Sum::<i64> {
             data_points: vec![],
             is_monotonic: true,
-            start_time: time - std::time::Duration::from_secs(10),
+            start_time: time,
             time,
-            temporality: opentelemetry_sdk::metrics::Temporality::Delta,
+            temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
         };
-        let histogram = Histogram::<f64> {
+        let histogram_f64 = Histogram::<f64> {
             data_points: vec![],
-            start_time: time - std::time::Duration::from_secs(10),
+            start_time: time,
             time,
-            temporality: opentelemetry_sdk::metrics::Temporality::Delta,
+            temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
         };
 
         assert!(matches!(
-            KnownMetric::from_any(&gauge),
+            KnownMetric::from_any(&gauge_u64),
             Some(KnownMetric::U64(KnownMetricT::Gauge(_)))
         ));
         assert!(matches!(
-            KnownMetric::from_any(&sum),
+            KnownMetric::from_any(&sum_i64),
             Some(KnownMetric::I64(KnownMetricT::Sum(_)))
         ));
         assert!(matches!(
-            KnownMetric::from_any(&histogram),
+            KnownMetric::from_any(&histogram_f64),
             Some(KnownMetric::F64(KnownMetricT::Histogram(_)))
         ));
+
+        #[cfg(feature = "extended-numbers")]
+        {
+            let gauge_u32 = Gauge::<u32> {
+                data_points: vec![],
+                start_time: Some(time),
+                time,
+            };
+
+            let sum_i32 = Gauge::<i32> {
+                data_points: vec![],
+                start_time: Some(time),
+                time,
+            };
+
+            let gauge_u16 = Gauge::<u16> {
+                data_points: vec![],
+                start_time: Some(time),
+                time,
+            };
+
+            let gauge_i16 = Gauge::<i16> {
+                data_points: vec![],
+                start_time: Some(time),
+                time,
+            };
+
+            let gauge_u8 = Gauge::<u8> {
+                data_points: vec![],
+                start_time: Some(time),
+                time,
+            };
+
+            let gauge_i8 = Gauge::<i8> {
+                data_points: vec![],
+                start_time: Some(time),
+                time,
+            };
+
+            let histogram_f32 = Histogram::<f32> {
+                data_points: vec![],
+                start_time: time,
+                time,
+                temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
+            };
+
+            assert!(matches!(
+                KnownMetric::from_any(&gauge_u32),
+                Some(KnownMetric::U32(KnownMetricT::Gauge(_)))
+            ));
+            assert!(matches!(
+                KnownMetric::from_any(&sum_i32),
+                Some(KnownMetric::I32(KnownMetricT::Gauge(_)))
+            ));
+            assert!(matches!(
+                KnownMetric::from_any(&gauge_u16),
+                Some(KnownMetric::U16(KnownMetricT::Gauge(_)))
+            ));
+            assert!(matches!(
+                KnownMetric::from_any(&gauge_i16),
+                Some(KnownMetric::I16(KnownMetricT::Gauge(_)))
+            ));
+            assert!(matches!(
+                KnownMetric::from_any(&gauge_u8),
+                Some(KnownMetric::U8(KnownMetricT::Gauge(_)))
+            ));
+            assert!(matches!(
+                KnownMetric::from_any(&gauge_i8),
+                Some(KnownMetric::I8(KnownMetricT::Gauge(_)))
+            ));
+            assert!(matches!(
+                KnownMetric::from_any(&histogram_f32),
+                Some(KnownMetric::F32(KnownMetricT::Histogram(_)))
+            ));
+            assert!(KnownMetric::from_any(&true).is_none());
+        }
     }
 
     #[test]
@@ -815,11 +891,97 @@ mod tests {
         let time = std::time::SystemTime::now();
         let gauge = Gauge::<u64> {
             data_points: vec![],
-            start_time: Some(time - std::time::Duration::from_secs(10)),
+            start_time: Some(time),
             time,
         };
         let metric = KnownMetric::U64(KnownMetricT::Gauge(&gauge));
-        matches!(metric.metric_type(), MetricType::Gauge);
+        assert!(matches!(metric.metric_type(), MetricType::Gauge));
+
+        let sum_mono = Sum::<i64> {
+            data_points: vec![],
+            is_monotonic: true,
+            start_time: time,
+            time,
+            temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
+        };
+        let metric = KnownMetric::I64(KnownMetricT::Sum(&sum_mono));
+        assert!(matches!(metric.metric_type(), MetricType::Counter));
+
+        let sum_non_mono = Sum::<f64> {
+            data_points: vec![],
+            is_monotonic: false,
+            start_time: time,
+            time,
+            temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
+        };
+        let metric = KnownMetric::F64(KnownMetricT::Sum(&sum_non_mono));
+        assert!(matches!(metric.metric_type(), MetricType::Gauge));
+
+        #[cfg(feature = "extended-numbers")]
+        {
+            let histogram = Histogram::<u32> {
+                data_points: vec![],
+                start_time: time,
+                time,
+                temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
+            };
+            let metric = KnownMetric::U32(KnownMetricT::Histogram(&histogram));
+            assert!(matches!(metric.metric_type(), MetricType::Histogram));
+
+            let histogram = Histogram::<i32> {
+                data_points: vec![],
+                start_time: time,
+                time,
+                temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
+            };
+            let metric = KnownMetric::I32(KnownMetricT::Histogram(&histogram));
+            assert!(matches!(metric.metric_type(), MetricType::Histogram));
+
+            let histogram = Histogram::<u16> {
+                data_points: vec![],
+                start_time: time,
+                time,
+                temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
+            };
+            let metric = KnownMetric::U16(KnownMetricT::Histogram(&histogram));
+            assert!(matches!(metric.metric_type(), MetricType::Histogram));
+
+            let histogram = Histogram::<i16> {
+                data_points: vec![],
+                start_time: time,
+                time,
+                temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
+            };
+            let metric = KnownMetric::I16(KnownMetricT::Histogram(&histogram));
+            assert!(matches!(metric.metric_type(), MetricType::Histogram));
+
+            let histogram = Histogram::<u8> {
+                data_points: vec![],
+                start_time: time,
+                time,
+                temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
+            };
+            let metric = KnownMetric::U8(KnownMetricT::Histogram(&histogram));
+            assert!(matches!(metric.metric_type(), MetricType::Histogram));
+
+            let histogram = Histogram::<i8> {
+                data_points: vec![],
+                start_time: time,
+                time,
+                temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
+            };
+            let metric = KnownMetric::I8(KnownMetricT::Histogram(&histogram));
+            assert!(matches!(metric.metric_type(), MetricType::Histogram));
+
+            let histogram = Histogram::<f32> {
+                data_points: vec![],
+                start_time: time,
+                time,
+                temporality: opentelemetry_sdk::metrics::Temporality::Cumulative,
+            };
+            let metric = KnownMetric::F32(KnownMetricT::Histogram(&histogram));
+            assert!(matches!(metric.metric_type(), MetricType::Histogram));
+        }
     }
 
     #[test]
@@ -827,11 +989,68 @@ mod tests {
         let (exporter, registry) = setup_prometheus_exporter(opentelemetry_sdk::metrics::Temporality::Cumulative, false);
         let provider = SdkMeterProvider::builder().with_reader(exporter.clone()).build();
         let meter = provider.meter("test_meter");
-        let counter = meter.u64_counter("test_counter").build();
-        counter.add(1, &[KeyValue::new("key", "value")]);
 
-        let encoded = collect_and_encode(&registry);
-        assert!(encoded.contains(r#"test_counter_total{otel_scope_name="test_meter",key="value"} 1"#));
+        meter
+            .f64_counter("test_f64_counter")
+            .build()
+            .add(1.0, &[KeyValue::new("key", "value")]);
+        assert!(
+            collect_and_encode(&registry).contains(r#"test_f64_counter_total{otel_scope_name="test_meter",key="value"} 1"#)
+        );
+        meter
+            .u64_counter("test_u64_counter")
+            .build()
+            .add(1, &[KeyValue::new("key", "value")]);
+        assert!(
+            collect_and_encode(&registry).contains(r#"test_u64_counter_total{otel_scope_name="test_meter",key="value"} 1"#)
+        );
+        meter
+            .f64_up_down_counter("test_f64_up_down_counter")
+            .build()
+            .add(1.0, &[KeyValue::new("key", "value")]);
+        assert!(
+            collect_and_encode(&registry)
+                .contains(r#"test_f64_up_down_counter{otel_scope_name="test_meter",key="value"} 1"#)
+        );
+        meter
+            .i64_up_down_counter("test_i64_up_down_counter")
+            .build()
+            .add(-1, &[KeyValue::new("key", "value")]);
+        assert!(
+            collect_and_encode(&registry)
+                .contains(r#"test_i64_up_down_counter{otel_scope_name="test_meter",key="value"} -1"#)
+        );
+
+        meter
+            .f64_gauge("test_f64_gauge")
+            .build()
+            .record(1.0, &[KeyValue::new("key", "value")]);
+        assert!(collect_and_encode(&registry).contains(r#"test_f64_gauge{otel_scope_name="test_meter",key="value"} 1"#));
+        meter
+            .i64_gauge("test_i64_gauge")
+            .build()
+            .record(-1, &[KeyValue::new("key", "value")]);
+        assert!(collect_and_encode(&registry).contains(r#"test_i64_gauge{otel_scope_name="test_meter",key="value"} -1"#));
+        meter
+            .u64_gauge("test_u64_gauge")
+            .build()
+            .record(1, &[KeyValue::new("key", "value")]);
+        assert!(collect_and_encode(&registry).contains(r#"test_u64_gauge{otel_scope_name="test_meter",key="value"} 1"#));
+
+        meter
+            .f64_histogram("test_f64_histogram")
+            .build()
+            .record(1.0, &[KeyValue::new("key", "value")]);
+        assert!(
+            collect_and_encode(&registry).contains(r#"test_f64_histogram_sum{otel_scope_name="test_meter",key="value"} 1"#)
+        );
+        meter
+            .u64_histogram("test_u64_histogram")
+            .build()
+            .record(1, &[KeyValue::new("key", "value")]);
+        assert!(
+            collect_and_encode(&registry).contains(r#"test_u64_histogram_sum{otel_scope_name="test_meter",key="value"} 1"#)
+        );
     }
 
     #[test]
@@ -909,5 +1128,14 @@ mod tests {
             !encoded.contains("test_non_monotonic_sum_total"),
             "Non-monotonic sum should not have '_total' suffix"
         );
+    }
+
+    #[test]
+    fn test_escape_key() {
+        assert_eq!(escape_key("valid_key"), "valid_key");
+        assert_eq!(escape_key("123start"), "_123start");
+        assert_eq!(escape_key("key with spaces"), "key_with_spaces");
+        assert_eq!(escape_key("key_with:dots"), "key_with:dots");
+        assert_eq!(escape_key("!@#$%"), "_____");
     }
 }
