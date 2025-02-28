@@ -681,7 +681,7 @@ mod tests {
             KnownMetric::from_any(&histogram_f64),
             Some(KnownMetric::F64(KnownMetricT::Histogram(_)))
         ));
-        assert!(matches!(KnownMetric::from_any(&true), None));
+        assert!(KnownMetric::from_any(&true).is_none());
     }
 
     #[test]
