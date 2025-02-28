@@ -16,6 +16,7 @@ use scuffle_flv::hevc::HevcPacket;
 use scuffle_flv::script::ScriptData;
 use scuffle_flv::tag::{FlvTag, FlvTagData};
 use scuffle_flv::video::{EnhancedPacket, FrameType, VideoTagBody, VideoTagHeader};
+use scuffle_h264::Sps;
 use scuffle_mp4::BoxType;
 use scuffle_mp4::codec::{AudioCodec, VideoCodec};
 use scuffle_mp4::types::ftyp::{FourCC, Ftyp};
@@ -430,16 +431,17 @@ impl Transmuxer {
                     profile: config.profile_indication,
                 };
 
-                let sps = &config.sps[0];
+                let sps = Sps::parse_with_emulation_prevention(io::Cursor::new(&config.sps[0]))
+                    .map_err(|_| TransmuxError::InvalidAVCDecoderConfigurationRecord)?;
                 video_width = sps.width() as u32;
                 video_height = sps.height() as u32;
 
                 let frame_rate = sps.frame_rate();
-                if frame_rate != 0.0 {
+                if let Some(frame_rate) = frame_rate {
                     video_fps = frame_rate;
                 }
 
-                codecs::avc::stsd_entry(config)?
+                codecs::avc::stsd_entry(config, &sps)?
             }
             VideoSequenceHeader::Av1(config) => {
                 compatiable_brands.push(FourCC::Av01);

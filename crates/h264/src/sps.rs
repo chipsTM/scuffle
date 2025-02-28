@@ -5,24 +5,12 @@ use byteorder::{BigEndian, ReadBytesExt};
 use scuffle_bytes_util::{BitReader, BitWriter};
 use scuffle_expgolomb::{BitReaderExpGolombExt, BitWriterExpGolombExt, size_of_exp_golomb, size_of_signed_exp_golomb};
 
-use crate::{AspectRatioIdc, NALUnitType, VideoFormat};
+use crate::{AspectRatioIdc, EmulationPreventionIo, NALUnitType, VideoFormat};
 
 /// The Sequence Parameter Set.
 /// ISO/IEC-14496-10-2022 - 7.3.2
 #[derive(Debug, Clone, PartialEq)]
 pub struct Sps {
-    /// The number of emulation bytes that are in the Sps.
-    ///
-    /// This is necessary because reading in a vec of Sps in `AVCDecoderConfigurationRecord::build()` requires
-    /// the length of the Sps, however, the existing size function would have to build the Sps into a bytestream
-    /// and then determine how many emulation prevention bytes exist in the Sps. This field saves us from having to
-    /// rebuild the entire Sps by simply storing the number of emulation prevention bytes present in the original Sps.
-    ///
-    /// Note that the input bytestream can potentially have 0 emulation prevention bytes, but when rebuilding the Sps we
-    /// will insert appropriate emulation prevention bytes. If you notice your Sps seems to be different in this case,
-    /// you can simply use [`Sps::reduce()`] on your original bytestream to add the emulation prevention bytes to your Sps.
-    pub emu_bytes: u8,
-
     /// The `forbidden_zero_bit` is a single bit that must be set to 0. Otherwise
     /// `parse()` will return an error. ISO/IEC-14496-10-2022 - 7.4.1
     pub forbidden_zero_bit: bool,
@@ -355,35 +343,8 @@ impl Sps {
     /// Parses an Sps from the input bytes.
     ///
     /// Returns an `Sps` struct.
-    pub fn parse(data: &[u8]) -> io::Result<Self> {
-        // Returns an error if there aren't enough bytes.
-        if data.len() < 4 {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "Insufficient data: SPS must be at least 4 bytes long",
-            ));
-        }
-
-        let mut vec = Vec::with_capacity(data.len());
-
-        // We need to remove the emulation prevention byte
-        // This is BARELY documented in the spec, but it's there.
-        // ISO/IEC-14496-10-2022 - 3.1.48
-        let mut emu_bytes = 0;
-        let mut i = 0;
-        while i < data.len() {
-            if i + 2 < data.len() && data[i] == 0x00 && data[i + 1] == 0x00 && data[i + 2] == 0x03 {
-                vec.push(0x00);
-                vec.push(0x00);
-                i += 3; // Skip the emulation prevention byte.
-                emu_bytes += 1;
-            } else {
-                vec.push(data[i]);
-                i += 1;
-            }
-        }
-
-        let mut bit_reader = BitReader::new_from_slice(vec);
+    pub fn parse(reader: impl io::Read) -> io::Result<Self> {
+        let mut bit_reader = BitReader::new(reader);
 
         let forbidden_zero_bit = bit_reader.read_bit()?;
         if forbidden_zero_bit {
@@ -406,7 +367,7 @@ impl Sps {
             // 7.4.2.1.1
             44 | 100 | 110 | 122 | 244 => {
                 // constraint_set0 thru 2 must be false in this case
-                bit_reader.seek_bits(3)?;
+                bit_reader.read_bits(3)?;
                 constraint_set0_flag = false;
                 constraint_set1_flag = false;
                 constraint_set2_flag = false;
@@ -420,7 +381,7 @@ impl Sps {
         }
 
         let constraint_set3_flag = if profile_idc == 44 {
-            bit_reader.seek_bits(1)?;
+            bit_reader.read_bit()?;
             false
         } else {
             bit_reader.read_bit()?
@@ -430,7 +391,7 @@ impl Sps {
             // 7.4.2.1.1
             77 | 88 | 100 | 118 | 128 | 134 => bit_reader.read_bit()?,
             _ => {
-                bit_reader.seek_bits(1)?;
+                bit_reader.read_bit()?;
                 false
             }
         };
@@ -438,12 +399,12 @@ impl Sps {
         let constraint_set5_flag = match profile_idc {
             77 | 88 | 100 | 118 => bit_reader.read_bit()?,
             _ => {
-                bit_reader.seek_bits(1)?;
+                bit_reader.read_bit()?;
                 false
             }
         };
         // reserved_zero_2bits
-        bit_reader.seek_bits(2)?;
+        bit_reader.read_bits(2)?;
 
         let level_idc = bit_reader.read_u8()?;
         let seq_parameter_set_id = bit_reader.read_exp_golomb()? as u16;
@@ -532,7 +493,6 @@ impl Sps {
         }
 
         Ok(Sps {
-            emu_bytes,
             forbidden_zero_bit,
             nal_ref_idc,
             nal_unit_type: NALUnitType(nal_unit_type),
@@ -567,9 +527,8 @@ impl Sps {
 
     /// Builds the Sps struct into a byte stream.
     /// Returns a built byte stream.
-    pub fn build<T: io::Write>(&self, writer: &mut T) -> io::Result<()> {
-        let mut temp_bytestream = Vec::new();
-        let mut bit_writer = BitWriter::new(&mut temp_bytestream);
+    pub fn build(&self, writer: impl io::Write) -> io::Result<()> {
+        let mut bit_writer = BitWriter::new(writer);
 
         bit_writer.write_bit(false)?;
         bit_writer.write_bits(self.nal_ref_idc as u64, 2)?;
@@ -680,74 +639,24 @@ impl Sps {
         }
         bit_writer.finish()?;
 
-        // now we reinsert the emulation bytes
-        let mut zero_byte_count = 0;
-        // create the actual writer
-        let mut final_writer = BitWriter::new(writer);
-
-        for &byte in &temp_bytestream {
-            // check bytes and insert an emulation byte if necessary
-            if zero_byte_count == 2 && byte <= 0x03 {
-                final_writer.write_bits(0x03, 8)?;
-                zero_byte_count = 0;
-            }
-
-            // insert current byte
-            final_writer.write_bits(byte as u64, 8)?;
-
-            // if current byte is 0x00 then incr the count
-            // otherwise reset the count
-            if byte == 0x00 {
-                zero_byte_count += 1;
-            } else {
-                zero_byte_count = 0;
-            }
-        }
-
-        final_writer.finish()?;
-
         Ok(())
     }
 
-    /// Reduces an Sps from the input bytes to the returned output bytes.
-    ///
-    /// This takes the same `&[u8]` as the [`Sps::parse`] function, but instead outputs
-    /// a result containing a vec of bytes.
-    ///
-    /// The reductions occur in 2 places, the first is from rebuilding the `color_config`
-    /// and the second is when rebuilding the structs from `vui_parameters_present_flag`.
-    ///
-    /// These reductions minimize the bytes from the original Sps header bytes while remaining
-    /// functionally equivalent. This function also prevents having to manually handle rebuilding
-    /// and reparsing to have the same output, as ideally we can reduce and parse via the following:
-    ///
-    /// ```rust
-    /// use scuffle_h264::Sps;
-    /// let data = b"gd\0\x1f\xac\xd9A\xe0m\xf9\xe6\xa0  (\0\0\x03\0\x08\0\0\x03\x01\xe0x\xc1\x8c\xb0";
-    ///
-    /// let reduced_sps = Sps::reduce(data).unwrap();
-    /// let sps = Sps::parse(&reduced_sps).unwrap();
-    /// ```
-    ///
-    /// This returns a result containing a vec of bytes.
-    pub fn reduce(data: &[u8]) -> io::Result<Vec<u8>> {
-        let original_sps = Sps::parse(data)?;
+    /// Parses the Sps struct from a reader that may contain emulation prevention bytes.
+    /// Is the same as calling [`Self::parse`] with an [`EmulationPreventionIo`] wrapper.
+    pub fn parse_with_emulation_prevention(reader: impl io::Read) -> io::Result<Self> {
+        Self::parse(EmulationPreventionIo::new(reader))
+    }
 
-        // the two reductions happen by building
-        // create a writer for the builder
-        let mut reduced = Vec::new();
-        let mut writer = BitWriter::new(&mut reduced);
-
-        // build from the example sps
-        original_sps.build(&mut writer)?;
-        writer.finish()?;
-        Ok(reduced)
+    /// Builds the Sps struct into a byte stream that may contain emulation prevention bytes.
+    /// Is the same as calling [`Self::build`] with an [`EmulationPreventionIo`] wrapper.
+    pub fn build_with_emulation_prevention(self, writer: impl io::Write) -> io::Result<()> {
+        self.build(EmulationPreventionIo::new(writer))
     }
 
     /// Returns the total byte size of the Sps struct.
     pub fn size(&self) -> u64 {
         // the emulation bytes
-        self.emu_bytes as u64 +
         (
         1 + // forbidden zero bit
         2 + // nal_ref_idc
@@ -821,10 +730,8 @@ impl Sps {
     /// If `timing_info_present_flag` is set, then the `frame_rate` will be computed, and
     /// if `num_units_in_tick` is nonzero, then the framerate will be:
     /// `frame_rate = time_scale as f64 / (2.0 * num_units_in_tick as f64)`
-    pub fn frame_rate(&self) -> f64 {
-        self.timing_info.as_ref().map_or(0.0, |timing| {
-            timing.time_scale.get() as f64 / (2.0 * timing.num_units_in_tick.get() as f64)
-        })
+    pub fn frame_rate(&self) -> Option<f64> {
+        self.timing_info.as_ref().map(|timing| timing.frame_rate())
     }
 }
 
@@ -1583,6 +1490,11 @@ impl TimingInfo {
     pub fn bytesize(&self) -> u64 {
         8
     }
+
+    /// Returns the frame rate of the TimingInfo struct.
+    pub fn frame_rate(&self) -> f64 {
+        self.time_scale.get() as f64 / (2.0 * self.num_units_in_tick.get() as f64)
+    }
 }
 
 #[cfg(test)]
@@ -1598,23 +1510,6 @@ mod tests {
     use crate::{ColorConfig, SpsExtended};
 
     #[test]
-    fn test_parse_sps_insufficient_bytes_() {
-        let mut sps = Vec::new();
-        let mut writer = BitWriter::new(&mut sps);
-
-        writer.write_bit(true).unwrap(); // only write 1 bit
-        writer.finish().unwrap();
-
-        let result = Sps::parse(&sps);
-
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-
-        assert_eq!(err.kind(), io::ErrorKind::InvalidData);
-        assert_eq!(err.to_string(), "Insufficient data: SPS must be at least 4 bytes long");
-    }
-
-    #[test]
     fn test_parse_sps_set_forbidden_bit() {
         let mut sps = Vec::new();
         let mut writer = BitWriter::new(&mut sps);
@@ -1625,7 +1520,7 @@ mod tests {
         writer.write_bits(0x00, 8).unwrap(); // ensure length > 3 bytes
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps);
+        let result = Sps::parse(std::io::Cursor::new(sps));
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -1648,7 +1543,7 @@ mod tests {
         writer.write_bits(0x00, 8).unwrap(); // ensure length > 3 bytes
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps);
+        let result = Sps::parse(std::io::Cursor::new(sps));
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -1760,11 +1655,10 @@ mod tests {
         writer.write_bits(28800, 32).unwrap();
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps).unwrap();
+        let result = Sps::parse(std::io::Cursor::new(sps)).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
-            emu_bytes: 0,
             forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
@@ -1821,7 +1715,7 @@ mod tests {
         }
         ");
 
-        assert_eq!(144.0, result.frame_rate());
+        assert_eq!(Some(144.0), result.frame_rate());
         assert_eq!(3840, result.width());
         assert_eq!(2160, result.height());
 
@@ -1837,7 +1731,7 @@ mod tests {
         // some space with how the SPS is rebuilt.
         // so we can just confirm that they're the same
         // by rebuilding it.
-        let reduced = Sps::parse(&buf).unwrap(); // <- this is where things break
+        let reduced = Sps::parse(std::io::Cursor::new(&buf)).unwrap(); // <- this is where things break
         assert_eq!(reduced, result);
 
         // now we can check that the bitstream from
@@ -2017,14 +1911,10 @@ mod tests {
         writer.write_bits(960000, 32).unwrap();
         writer.finish().unwrap();
 
-        // we "reduce" it which adds an emulation byte which the above sps is supposed to have.
-        let fixed_sps = Sps::reduce(&sps).unwrap();
-
-        let result = Sps::parse(&fixed_sps).unwrap();
+        let result = Sps::parse(std::io::Cursor::new(sps)).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
-            emu_bytes: 1,
             forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
@@ -2120,36 +2010,13 @@ mod tests {
         }
         ");
 
-        assert_eq!(480.0, result.frame_rate());
+        assert_eq!(Some(480.0), result.frame_rate());
         assert_eq!(1920, result.width());
         assert_eq!(1080, result.height());
 
         // create a writer for the builder
         let mut buf = Vec::new();
-        let mut writer2 = BitWriter::new(&mut buf);
-
-        // build from the example sps
-        result.build(&mut writer2).unwrap();
-        writer2.finish().unwrap();
-
-        // sometimes bits can get lost because we save
-        // some space with how the SPS is rebuilt.
-        // so we can just confirm that they're the same
-        // by rebuilding it.
-        let reduced = Sps::parse(&buf).unwrap();
-        assert_eq!(reduced, result);
-
-        // now we can check that the bitstream from
-        // the reduced version should be the same
-        let mut reduced_buf = Vec::new();
-        let mut writer3 = BitWriter::new(&mut reduced_buf);
-
-        reduced.build(&mut writer3).unwrap();
-        writer3.finish().unwrap();
-        assert_eq!(reduced_buf, buf);
-
-        // now we can check the size:
-        assert_eq!(reduced.size(), result.size());
+        result.build(&mut buf).unwrap();
     }
 
     #[test]
@@ -2239,11 +2106,10 @@ mod tests {
         writer.write_bit(false).unwrap();
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps).unwrap();
+        let result = Sps::parse(std::io::Cursor::new(&sps)).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
-            emu_bytes: 0,
             forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
@@ -2291,36 +2157,15 @@ mod tests {
         }
         ");
 
-        assert_eq!(0.0, result.frame_rate());
+        assert_eq!(None, result.frame_rate());
         assert_eq!(1280, result.width());
         assert_eq!(800, result.height());
 
         // create a writer for the builder
         let mut buf = Vec::new();
-        let mut writer2 = BitWriter::new(&mut buf);
+        result.build(&mut buf).unwrap();
 
-        // build from the example sps
-        result.build(&mut writer2).unwrap();
-        writer2.finish().unwrap();
-
-        // sometimes bits can get lost because we save
-        // some space with how the SPS is rebuilt.
-        // so we can just confirm that they're the same
-        // by rebuilding it.
-        let reduced = Sps::parse(&buf).unwrap();
-        assert_eq!(reduced, result);
-
-        // now we can check that the bitstream from
-        // the reduced version should be the same
-        let mut reduced_buf = Vec::new();
-        let mut writer3 = BitWriter::new(&mut reduced_buf);
-
-        reduced.build(&mut writer3).unwrap();
-        writer3.finish().unwrap();
-        assert_eq!(reduced_buf, buf);
-
-        // now we can check the size:
-        assert_eq!(reduced.size(), result.size());
+        assert_eq!(buf, sps);
     }
 
     #[test]
@@ -2417,7 +2262,7 @@ mod tests {
         writer.write_bit(true).unwrap();
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps);
+        let result = Sps::parse(std::io::Cursor::new(&sps));
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -2527,7 +2372,7 @@ mod tests {
         writer.write_bits(0, 32).unwrap();
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps);
+        let result = Sps::parse(std::io::Cursor::new(&sps));
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -2634,7 +2479,7 @@ mod tests {
         writer.write_bits(0, 32).unwrap();
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps);
+        let result = Sps::parse(std::io::Cursor::new(&sps));
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -2662,13 +2507,13 @@ mod tests {
         writer.write_bits(0, 8).unwrap();
 
         // seq_parameter_set_id is expg so 0b1 (true) = false
-        writer.write_bit(true).unwrap();
+        writer.write_exp_golomb(0).unwrap();
 
         // skip sps ext since profile_idc = 77
         // log2_max_frame_num_minus4 is expg so 0b1 (true) = false
-        writer.write_bit(true).unwrap();
-        // we can try setting pic_order_cnt_type to 2
-        writer.write_exp_golomb(2).unwrap();
+        writer.write_exp_golomb(0).unwrap();
+        // we can try setting pic_order_cnt_type to 1
+        writer.write_exp_golomb(1).unwrap();
 
         // delta_pic_order_always_zero_flag
         writer.write_bit(false).unwrap();
@@ -2694,7 +2539,7 @@ mod tests {
         // p = 120
         // pic_width_in_mbs_minus1 is expg so:
         // 0 0000 0111 1001
-        writer.write_bits(0b0000001111001, 13).unwrap();
+        writer.write_exp_golomb(999).unwrap();
         // we want 1080 height:
         // 1080 = ((2 - m) * (p + 1) * 16) - 2 * offset1 - 2 * offset2
         // we set offset1 and offset2 to both be 2 later
@@ -2704,7 +2549,7 @@ mod tests {
         // p = 33
         // pic_height_in_map_units_minus1 is expg so:
         // 000 0010 0010
-        writer.write_bits(0b00000100010, 11).unwrap();
+        writer.write_exp_golomb(899).unwrap();
 
         // frame_mbs_only_flag
         writer.write_bit(false).unwrap();
@@ -2717,23 +2562,22 @@ mod tests {
         writer.write_bit(true).unwrap();
 
         // frame_crop_left_offset is expg
-        writer.write_bits(0b00101, 5).unwrap();
+        writer.write_exp_golomb(100).unwrap();
         // frame_crop_right_offset is expg
-        writer.write_bits(0b00101, 5).unwrap();
+        writer.write_exp_golomb(200).unwrap();
         // frame_crop_top_offset is expg
-        writer.write_bits(0b011, 3).unwrap();
+        writer.write_exp_golomb(300).unwrap();
         // frame_crop_bottom_offset is expg
-        writer.write_bits(0b011, 3).unwrap();
+        writer.write_exp_golomb(400).unwrap();
 
         // vui_parameters_present_flag
         writer.write_bit(false).unwrap();
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps).unwrap();
+        let result = Sps::parse(std::io::Cursor::new(&sps)).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
-            emu_bytes: 0,
             forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
@@ -2748,18 +2592,35 @@ mod tests {
             seq_parameter_set_id: 0,
             ext: None,
             log2_max_frame_num_minus4: 0,
-            pic_order_cnt_type: 2,
+            pic_order_cnt_type: 1,
             log2_max_pic_order_cnt_lsb_minus4: None,
-            pic_order_cnt_type1: None,
-            max_num_ref_frames: 2,
+            pic_order_cnt_type1: Some(
+                PicOrderCountType1 {
+                    delta_pic_order_always_zero_flag: false,
+                    offset_for_non_ref_pic: 0,
+                    offset_for_top_to_bottom_field: 0,
+                    num_ref_frames_in_pic_order_cnt_cycle: 1,
+                    offset_for_ref_frame: [
+                        0,
+                    ],
+                },
+            ),
+            max_num_ref_frames: 0,
             gaps_in_frame_num_value_allowed_flag: false,
-            pic_width_in_mbs_minus1: 0,
-            pic_height_in_map_units_minus1: 2,
+            pic_width_in_mbs_minus1: 999,
+            pic_height_in_map_units_minus1: 899,
             mb_adaptive_frame_field_flag: Some(
                 false,
             ),
             direct_8x8_inference_flag: false,
-            frame_crop_info: None,
+            frame_crop_info: Some(
+                FrameCropInfo {
+                    frame_crop_left_offset: 100,
+                    frame_crop_right_offset: 200,
+                    frame_crop_top_offset: 300,
+                    frame_crop_bottom_offset: 400,
+                },
+            ),
             sample_aspect_ratio: None,
             overscan_appropriate_flag: None,
             color_config: None,
@@ -2770,30 +2631,14 @@ mod tests {
 
         // create a writer for the builder
         let mut buf = Vec::new();
-        let mut writer2 = BitWriter::new(&mut buf);
-
         // build from the example sps
-        result.build(&mut writer2).unwrap();
-        writer2.finish().unwrap();
+        result.build(&mut buf).unwrap();
 
-        // sometimes bits can get lost because we save
-        // some space with how the SPS is rebuilt.
-        // so we can just confirm that they're the same
-        // by rebuilding it.
-        let reduced = Sps::parse(&buf).unwrap();
-        assert_eq!(reduced, result);
+        let rebuilt = Sps::parse(std::io::Cursor::new(&buf)).unwrap();
 
-        // now we can check that the bitstream from
-        // the reduced version should be the same
-        let mut reduced_buf = Vec::new();
-        let mut writer3 = BitWriter::new(&mut reduced_buf);
+        dbg!(&rebuilt);
 
-        reduced.build(&mut writer3).unwrap();
-        writer3.finish().unwrap();
-        assert_eq!(reduced_buf, buf);
-
-        // now we can check the size:
-        assert_eq!(reduced.size(), result.size());
+        assert_eq!(buf, sps);
     }
 
     #[test]
@@ -3436,7 +3281,7 @@ mod tests {
         bit_count += 32;
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps).unwrap();
+        let result = Sps::parse(std::io::Cursor::new(&sps)).unwrap();
 
         // now we can check the size:
         assert_eq!(result.size(), bit_count.div_ceil(8));
@@ -3533,9 +3378,12 @@ mod tests {
         writer.write_bit(false).unwrap();
         writer.finish().unwrap();
 
-        let reduced_sps = Sps::reduce(&sps).unwrap();
+        let reduced_sps = Sps::parse(std::io::Cursor::new(&sps)).unwrap();
 
-        assert_ne!(sps, reduced_sps);
+        let mut reduced_buf = Vec::new();
+        reduced_sps.build(&mut reduced_buf).unwrap();
+
+        assert_ne!(sps, reduced_buf);
     }
 
     #[test]
@@ -3617,8 +3465,11 @@ mod tests {
         writer.write_bit(false).unwrap();
         writer.finish().unwrap();
 
-        let reduced_sps = Sps::reduce(&sps).unwrap();
+        let reduced_sps = Sps::parse(std::io::Cursor::new(&sps)).unwrap();
 
-        assert_ne!(sps, reduced_sps);
+        let mut reduced_buf = Vec::new();
+        reduced_sps.build(&mut reduced_buf).unwrap();
+
+        assert_ne!(sps, reduced_buf);
     }
 }

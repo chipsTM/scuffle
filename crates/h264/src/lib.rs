@@ -68,7 +68,7 @@
 //!     level_indication: 31,
 //!     length_size_minus_one: 3,
 //!     sps: vec![
-//!         Sps::parse(b"gd\0\x1f\xac\xd9A\xe0m\xf9\xe6\xa0  (\0\0\x03\0\x08\0\0\x03\x01\xe0x\xc1\x8c\xb0").unwrap(),
+//!         Bytes::from_static(b"spsdata"),
 //!     ],
 //!     pps: vec![Bytes::from_static(b"ppsdata")],
 //!     extended_config: Some(extended_config),
@@ -104,9 +104,11 @@
 
 mod config;
 mod enums;
+mod io;
 mod sps;
 
 pub use enums::*;
 
 pub use self::config::{AVCDecoderConfigurationRecord, AvccExtendedConfig};
+pub use self::io::EmulationPreventionIo;
 pub use self::sps::{ColorConfig, Sps, SpsExtended};
