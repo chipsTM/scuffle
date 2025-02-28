@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use opentelemetry::{Array, StringValue, Value};
 
-#[doc(hidden)]
 /// A compiler trick to create a specialization for a type.
 /// Its particularly useful when we using macros so that we can at compile time
 /// specialize for an arbitrary input type. We want to specialize for specific
@@ -11,6 +10,7 @@ use opentelemetry::{Array, StringValue, Value};
 /// `Into<Value>` trait. Or if the type implements `std::fmt::Display` or
 /// `std::fmt::Debug` we use that to convert to a `String` and then to a
 /// `Value`.
+#[doc(hidden)]
 pub struct SpecializeValue<T>(Option<T>);
 
 impl<T> SpecializeValue<T> {
@@ -19,9 +19,8 @@ impl<T> SpecializeValue<T> {
     }
 
     #[inline]
-    pub fn take(&mut self) -> T {
-        // Safety: `self` is a `Some` value
-        unsafe { self.0.take().unwrap_unchecked() }
+    fn take(&mut self) -> T {
+        self.0.take().expect("value is not Some")
     }
 }
 
