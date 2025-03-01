@@ -30,15 +30,9 @@ authors = ["@philipch07"]
 
 [[scuffle-h264]]
 category = "feat"
-description = "Building an Sps will automatically insert necessary emulation prevention bytes (which are already properly handled in the existing parse function)"
+description = "Parsing and building Sps can now use the `EmulationPreventionIo` wrapper to automatically handle emulation prevention bytes"
 breaking = false
 authors = ["@TroyKomodo"]
-
-[[scuffle-h264]]
-category = "feat"
-description = "As a result of being able to build, we also have the ability to generate minimal and functionally equivalent Sps headers via `Sps::reduce()`"
-breaking = false
-authors = ["@philipch07"]
 
 [[scuffle-h264]]
 category = "feat"
