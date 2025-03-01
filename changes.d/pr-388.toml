@@ -1,0 +1,4 @@
+[[scuffle-metrics]]
+category = "chore"
+description = "removed extended-numbers feature"
+authors = ["@SimaoMoreira5228"]
