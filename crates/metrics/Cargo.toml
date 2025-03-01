@@ -31,7 +31,6 @@ internal-logs = ["dep:tracing"]
 prometheus = ["dep:prometheus-client"]
 default = ["prometheus"]
 tracing = ["internal-logs", "dep:tracing"]
-extended-numbers = []
 
 [package.metadata.docs.rs]
 all-features = true
