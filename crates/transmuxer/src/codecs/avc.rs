@@ -10,12 +10,10 @@ use scuffle_mp4::types::trun::{TrunSample, TrunSampleFlag};
 
 use crate::TransmuxError;
 
-pub fn stsd_entry(config: AVCDecoderConfigurationRecord) -> Result<(DynBox, Sps), TransmuxError> {
+pub fn stsd_entry(config: AVCDecoderConfigurationRecord, sps: &Sps) -> Result<DynBox, TransmuxError> {
     if config.sps.is_empty() {
         return Err(TransmuxError::InvalidAVCDecoderConfigurationRecord);
     }
-
-    let sps = scuffle_h264::Sps::parse(&config.sps[0])?;
 
     let colr = sps.color_config.as_ref().map(|color_config| {
         Colr::new(ColorType::Nclx {
@@ -26,15 +24,12 @@ pub fn stsd_entry(config: AVCDecoderConfigurationRecord) -> Result<(DynBox, Sps)
         })
     });
 
-    Ok((
-        Avc1::new(
-            SampleEntry::new(VisualSampleEntry::new(sps.width() as u16, sps.height() as u16, colr)),
-            AvcC::new(config),
-            None,
-        )
-        .into(),
-        sps,
-    ))
+    Ok(Avc1::new(
+        SampleEntry::new(VisualSampleEntry::new(sps.width() as u16, sps.height() as u16, colr)),
+        AvcC::new(config),
+        None,
+    )
+    .into())
 }
 
 pub fn trun_sample(

@@ -1,6 +1,7 @@
 ---
 source: crates/ffmpeg/src/io/output.rs
 expression: get_boxes!(output)
+snapshot_kind: text
 ---
 [
     Ftyp(

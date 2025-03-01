@@ -237,11 +237,11 @@ mod tests {
             assert_eq!(avc_decoder_configuration_record.pps.len(), 1);
             assert_eq!(avc_decoder_configuration_record.extended_config, None);
 
-            let sps = Sps::parse(&avc_decoder_configuration_record.sps[0]).expect("expected sequence parameter set");
+            let sps = Sps::parse(&mut std::io::Cursor::new(&avc_decoder_configuration_record.sps[0]))
+                .expect("expected sequence parameter set");
 
             insta::assert_debug_snapshot!(sps, @r"
             Sps {
-                forbidden_zero_bit: false,
                 nal_ref_idc: 3,
                 nal_unit_type: NALUnitType::SPS,
                 profile_idc: 100,
@@ -260,7 +260,7 @@ mod tests {
                         bit_depth_luma_minus8: 0,
                         bit_depth_chroma_minus8: 0,
                         qpprime_y_zero_transform_bypass_flag: false,
-                        seq_scaling_matrix_present_flag: false,
+                        scaling_matrix: [],
                     },
                 ),
                 log2_max_frame_num_minus4: 0,
@@ -288,8 +288,8 @@ mod tests {
                 chroma_sample_loc: None,
                 timing_info: Some(
                     TimingInfo {
-                        num_units_in_tick: 1,
-                        time_scale: 120,
+                        num_units_in_tick: 48,
+                        time_scale: 16777216,
                     },
                 ),
             }

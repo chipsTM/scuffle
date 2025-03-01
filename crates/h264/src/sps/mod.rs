@@ -1,20 +1,35 @@
+mod chroma_sample_loc;
+use self::chroma_sample_loc::ChromaSampleLoc;
+
+mod color_config;
+use self::color_config::ColorConfig;
+
+mod frame_crop_info;
+use self::frame_crop_info::FrameCropInfo;
+
+mod pic_order_count_type1;
+use self::pic_order_count_type1::PicOrderCountType1;
+
+mod sample_aspect_ratio;
+use self::sample_aspect_ratio::SarDimensions;
+
+mod sps_ext;
+pub use self::sps_ext::SpsExtended;
+
+mod timing_info;
 use std::io;
-use std::num::NonZeroU32;
 
-use byteorder::{BigEndian, ReadBytesExt};
-use scuffle_bytes_util::BitReader;
-use scuffle_expgolomb::BitReaderExpGolombExt;
+use byteorder::ReadBytesExt;
+use scuffle_bytes_util::{BitReader, BitWriter};
+use scuffle_expgolomb::{BitReaderExpGolombExt, BitWriterExpGolombExt, size_of_exp_golomb};
 
-use crate::{AspectRatioIdc, NALUnitType, VideoFormat};
+pub use self::timing_info::TimingInfo;
+use crate::{EmulationPreventionIo, NALUnitType};
 
 /// The Sequence Parameter Set.
 /// ISO/IEC-14496-10-2022 - 7.3.2
 #[derive(Debug, Clone, PartialEq)]
 pub struct Sps {
-    /// The `forbidden_zero_bit` is a single bit that must be set to 0. Otherwise
-    /// `parse()` will return an error. ISO/IEC-14496-10-2022 - 7.4.1
-    pub forbidden_zero_bit: bool,
-
     /// The `nal_ref_idc` is comprised of 2 bits.
     ///
     /// A nonzero value means the NAL unit has any of the following: SPS, SPS extension,
@@ -340,35 +355,11 @@ pub struct Sps {
 }
 
 impl Sps {
-    /// Parsees an SPS from the input bytes.
+    /// Parses an Sps from the input bytes.
+    ///
     /// Returns an `Sps` struct.
-    pub fn parse(data: &[u8]) -> io::Result<Self> {
-        // Returns an error if there aren't enough bytes.
-        if data.len() < 4 {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "Insufficient data: SPS must be at least 4 bytes long",
-            ));
-        }
-
-        let mut vec = Vec::with_capacity(data.len());
-
-        // We need to remove the emulation prevention byte
-        // This is BARELY documented in the spec, but it's there.
-        // ISO/IEC-14496-10-2022 - 3.1.48
-        let mut i = 0;
-        while i < data.len() {
-            if i + 2 < data.len() && data[i] == 0x00 && data[i + 1] == 0x00 && data[i + 2] == 0x03 {
-                vec.push(0x00);
-                vec.push(0x00);
-                i += 3; // Skip the emulation prevention byte.
-            } else {
-                vec.push(data[i]);
-                i += 1;
-            }
-        }
-
-        let mut bit_reader = BitReader::new_from_slice(vec);
+    pub fn parse(reader: impl io::Read) -> io::Result<Self> {
+        let mut bit_reader = BitReader::new(reader);
 
         let forbidden_zero_bit = bit_reader.read_bit()?;
         if forbidden_zero_bit {
@@ -391,7 +382,7 @@ impl Sps {
             // 7.4.2.1.1
             44 | 100 | 110 | 122 | 244 => {
                 // constraint_set0 thru 2 must be false in this case
-                bit_reader.seek_bits(3)?;
+                bit_reader.read_bits(3)?;
                 constraint_set0_flag = false;
                 constraint_set1_flag = false;
                 constraint_set2_flag = false;
@@ -405,7 +396,7 @@ impl Sps {
         }
 
         let constraint_set3_flag = if profile_idc == 44 {
-            bit_reader.seek_bits(1)?;
+            bit_reader.read_bit()?;
             false
         } else {
             bit_reader.read_bit()?
@@ -415,7 +406,7 @@ impl Sps {
             // 7.4.2.1.1
             77 | 88 | 100 | 118 | 128 | 134 => bit_reader.read_bit()?,
             _ => {
-                bit_reader.seek_bits(1)?;
+                bit_reader.read_bit()?;
                 false
             }
         };
@@ -423,12 +414,12 @@ impl Sps {
         let constraint_set5_flag = match profile_idc {
             77 | 88 | 100 | 118 => bit_reader.read_bit()?,
             _ => {
-                bit_reader.seek_bits(1)?;
+                bit_reader.read_bit()?;
                 false
             }
         };
         // reserved_zero_2bits
-        bit_reader.seek_bits(2)?;
+        bit_reader.read_bits(2)?;
 
         let level_idc = bit_reader.read_u8()?;
         let seq_parameter_set_id = bit_reader.read_exp_golomb()? as u16;
@@ -517,7 +508,6 @@ impl Sps {
         }
 
         Ok(Sps {
-            forbidden_zero_bit,
             nal_ref_idc,
             nal_unit_type: NALUnitType(nal_unit_type),
             profile_idc,
@@ -547,6 +537,162 @@ impl Sps {
             chroma_sample_loc,
             timing_info,
         })
+    }
+
+    /// Builds the Sps struct into a byte stream.
+    /// Returns a built byte stream.
+    pub fn build(&self, writer: impl io::Write) -> io::Result<()> {
+        let mut bit_writer = BitWriter::new(writer);
+
+        bit_writer.write_bit(false)?;
+        bit_writer.write_bits(self.nal_ref_idc as u64, 2)?;
+        bit_writer.write_bits(self.nal_unit_type.0 as u64, 5)?;
+        bit_writer.write_bits(self.profile_idc as u64, 8)?;
+
+        bit_writer.write_bit(self.constraint_set0_flag)?;
+        bit_writer.write_bit(self.constraint_set1_flag)?;
+        bit_writer.write_bit(self.constraint_set2_flag)?;
+        bit_writer.write_bit(self.constraint_set3_flag)?;
+        bit_writer.write_bit(self.constraint_set4_flag)?;
+        bit_writer.write_bit(self.constraint_set5_flag)?;
+        // reserved 2 bits
+        bit_writer.write_bits(0, 2)?;
+
+        bit_writer.write_bits(self.level_idc as u64, 8)?;
+        bit_writer.write_exp_golomb(self.seq_parameter_set_id as u64)?;
+
+        // sps ext
+        if let Some(ext) = &self.ext {
+            ext.build(&mut bit_writer)?;
+        }
+
+        bit_writer.write_exp_golomb(self.log2_max_frame_num_minus4 as u64)?;
+        bit_writer.write_exp_golomb(self.pic_order_cnt_type as u64)?;
+
+        if self.pic_order_cnt_type == 0 {
+            bit_writer.write_exp_golomb(self.log2_max_pic_order_cnt_lsb_minus4.unwrap() as u64)?;
+        } else if let Some(pic_order_cnt) = &self.pic_order_cnt_type1 {
+            pic_order_cnt.build(&mut bit_writer)?;
+        }
+
+        bit_writer.write_exp_golomb(self.max_num_ref_frames as u64)?;
+        bit_writer.write_bit(self.gaps_in_frame_num_value_allowed_flag)?;
+        bit_writer.write_exp_golomb(self.pic_width_in_mbs_minus1)?;
+        bit_writer.write_exp_golomb(self.pic_height_in_map_units_minus1)?;
+
+        bit_writer.write_bit(self.mb_adaptive_frame_field_flag.is_none())?;
+        if let Some(flag) = self.mb_adaptive_frame_field_flag {
+            bit_writer.write_bit(flag)?;
+        }
+
+        bit_writer.write_bit(self.direct_8x8_inference_flag)?;
+
+        bit_writer.write_bit(self.frame_crop_info.is_some())?;
+        if let Some(frame_crop_info) = &self.frame_crop_info {
+            frame_crop_info.build(&mut bit_writer)?;
+        }
+
+        match (
+            &self.sample_aspect_ratio,
+            &self.overscan_appropriate_flag,
+            &self.color_config,
+            &self.chroma_sample_loc,
+            &self.timing_info,
+        ) {
+            (None, None, None, None, None) => {
+                bit_writer.write_bit(false)?;
+            }
+            _ => {
+                // vui_parameters_present_flag
+                bit_writer.write_bit(true)?;
+
+                // aspect_ratio_info_present_flag
+                bit_writer.write_bit(self.sample_aspect_ratio.is_some())?;
+                if let Some(sar) = &self.sample_aspect_ratio {
+                    sar.build(&mut bit_writer)?;
+                }
+
+                // overscan_info_present_flag
+                bit_writer.write_bit(self.overscan_appropriate_flag.is_some())?;
+                if let Some(overscan) = &self.overscan_appropriate_flag {
+                    bit_writer.write_bit(*overscan)?;
+                }
+
+                // video_signal_type_prsent_flag
+                bit_writer.write_bit(self.color_config.is_some())?;
+                if let Some(color) = &self.color_config {
+                    color.build(&mut bit_writer)?;
+                }
+
+                // chroma_log_info_present_flag
+                bit_writer.write_bit(self.chroma_sample_loc.is_some())?;
+                if let Some(chroma) = &self.chroma_sample_loc {
+                    chroma.build(&mut bit_writer)?;
+                }
+
+                // timing_info_present_flag
+                bit_writer.write_bit(self.timing_info.is_some())?;
+                if let Some(timing) = &self.timing_info {
+                    timing.build(&mut bit_writer)?;
+                }
+            }
+        }
+        bit_writer.finish()?;
+
+        Ok(())
+    }
+
+    /// Parses the Sps struct from a reader that may contain emulation prevention bytes.
+    /// Is the same as calling [`Self::parse`] with an [`EmulationPreventionIo`] wrapper.
+    pub fn parse_with_emulation_prevention(reader: impl io::Read) -> io::Result<Self> {
+        Self::parse(EmulationPreventionIo::new(reader))
+    }
+
+    /// Builds the Sps struct into a byte stream that may contain emulation prevention bytes.
+    /// Is the same as calling [`Self::build`] with an [`EmulationPreventionIo`] wrapper.
+    pub fn build_with_emulation_prevention(self, writer: impl io::Write) -> io::Result<()> {
+        self.build(EmulationPreventionIo::new(writer))
+    }
+
+    /// Returns the total byte size of the Sps struct.
+    pub fn size(&self) -> u64 {
+        (1 + // forbidden zero bit
+        2 + // nal_ref_idc
+        5 + // nal_unit_type
+        8 + // profile_idc
+        8 + // 6 constraint_setn_flags + 2 reserved bits
+        8 + // level_idc
+        size_of_exp_golomb(self.seq_parameter_set_id as u64) +
+        self.ext.as_ref().map_or(0, |ext| ext.bitsize()) +
+        size_of_exp_golomb(self.log2_max_frame_num_minus4 as u64) +
+        size_of_exp_golomb(self.pic_order_cnt_type as u64) +
+        match self.pic_order_cnt_type {
+            0 => size_of_exp_golomb(self.log2_max_pic_order_cnt_lsb_minus4.unwrap() as u64),
+            1 => self.pic_order_cnt_type1.as_ref().unwrap().bitsize(),
+            _ => 0
+        } +
+        size_of_exp_golomb(self.max_num_ref_frames as u64) +
+        1 + // gaps_in_frame_num_value_allowed_flag
+        size_of_exp_golomb(self.pic_width_in_mbs_minus1) +
+        size_of_exp_golomb(self.pic_height_in_map_units_minus1) +
+        1 + // frame_mbs_only_flag
+        self.mb_adaptive_frame_field_flag.is_some() as u64 +
+        1 + // direct_8x8_inference_flag
+        1 + // frame_cropping_flag
+        self.frame_crop_info.as_ref().map_or(0, |frame| frame.bitsize()) +
+        1 + // vui_parameters_present_flag
+        if matches!(
+            (&self.sample_aspect_ratio, &self.overscan_appropriate_flag, &self.color_config, &self.chroma_sample_loc, &self.timing_info),
+            (None, None, None, None, None)
+        ) {
+            0
+        } else {
+            self.sample_aspect_ratio.as_ref().map_or(1, |sar| 1 + sar.bitsize()) +
+            self.overscan_appropriate_flag.map_or(1, |_| 2) +
+            self.color_config.as_ref().map_or(1, |color| 1 + color.bitsize()) +
+            self.chroma_sample_loc.as_ref().map_or(1, |chroma| 1 + chroma.bitsize()) +
+            self.timing_info.as_ref().map_or(1, |timing| 1 + timing.bitsize())
+        }).div_ceil(8)
     }
 
     /// The height as a u64. This is computed from other fields, and isn't directly set.
@@ -582,551 +728,8 @@ impl Sps {
     /// If `timing_info_present_flag` is set, then the `frame_rate` will be computed, and
     /// if `num_units_in_tick` is nonzero, then the framerate will be:
     /// `frame_rate = time_scale as f64 / (2.0 * num_units_in_tick as f64)`
-    pub fn frame_rate(&self) -> f64 {
-        self.timing_info.as_ref().map_or(0.0, |timing| {
-            timing.time_scale.get() as f64 / (2.0 * timing.num_units_in_tick.get() as f64)
-        })
-    }
-}
-
-/// The Sequence Parameter Set extension.
-/// ISO/IEC-14496-10-2022 - 7.3.2
-#[derive(Debug, Clone, PartialEq)]
-pub struct SpsExtended {
-    /// The `chroma_format_idc` as a u8. This is the chroma sampling relative
-    /// to the luma sampling specified in subclause 6.2.
-    ///
-    /// The value of this ranges from \[0, 3\].
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// The smallest encoding would be for `0` which is encoded as `1`, which is a single bit.
-    /// The largest encoding would be for `3` which is encoded as `0 0100`, which is 5 bits.
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub chroma_format_idc: u8,
-
-    /// The `separate_colour_plane_flag` is a single bit.
-    ///
-    /// 0 means the the color components aren't coded separately and `ChromaArrayType` is set to `chroma_format_idc`.
-    ///
-    /// 1 means the 3 color components of the 4:4:4 chroma format are coded separately and
-    /// `ChromaArrayType` is set to 0.
-    ///
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    pub separate_color_plane_flag: bool,
-
-    /// The `bit_depth_luma_minus8` as a u8. This is the chroma sampling relative
-    /// to the luma sampling specified in subclause 6.2.
-    ///
-    /// The value of this ranges from \[0, 6\].
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// The smallest encoding would be for `0` which is encoded as `1`, which is a single bit.
-    /// The largest encoding would be for `6` which is encoded as `0 0111`, which is 5 bits.
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub bit_depth_luma_minus8: u8,
-
-    /// The `bit_depth_chroma_minus8` as a u8. This is the chroma sampling
-    /// relative to the luma sampling specified in subclause 6.2.
-    ///
-    /// The value of this ranges from \[0, 6\].
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// The smallest encoding would be for `0` which is encoded as `1`, which is a single bit.
-    /// The largest encoding would be for `6` which is encoded as `0 0111`, which is 5 bits.
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub bit_depth_chroma_minus8: u8,
-
-    /// The `qpprime_y_zero_transform_bypass_flag` is a single bit.
-    ///
-    /// 0 means the transform coefficient decoding and picture construction processes wont
-    /// use the transform bypass operation.
-    ///
-    /// 1 means that when QP'_Y is 0 then a transform bypass operation for the transform
-    /// coefficient decoding and picture construction processes will be applied before
-    /// the deblocking filter process from subclause 8.5.
-    ///
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    pub qpprime_y_zero_transform_bypass_flag: bool,
-
-    /// The `seq_scaling_matrix_present_flag` is a single bit.
-    ///
-    /// 0 means the flags are NOT present.
-    ///
-    /// 1 means the flags `seq_scaling_matrix_present_flag[i]` for i values \[0, 7\] or \[0, 11\] are set.
-    ///
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    pub seq_scaling_matrix_present_flag: bool,
-}
-
-impl Default for SpsExtended {
-    fn default() -> Self {
-        Self::DEFAULT
-    }
-}
-
-impl SpsExtended {
-    // default values defined in 7.4.2.1.1
-    const DEFAULT: SpsExtended = SpsExtended {
-        chroma_format_idc: 1,
-        separate_color_plane_flag: false,
-        bit_depth_luma_minus8: 0,
-        bit_depth_chroma_minus8: 0,
-        qpprime_y_zero_transform_bypass_flag: false,
-        seq_scaling_matrix_present_flag: false,
-    };
-
-    /// Parses an extended SPS from a bitstream.
-    /// Returns an `SpsExtended` struct.
-    pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
-        let chroma_format_idc = reader.read_exp_golomb()? as u8;
-        // Defaults to false: ISO/IEC-14496-10-2022 - 7.4.2.1.1
-        let mut separate_color_plane_flag = false;
-        if chroma_format_idc == 3 {
-            separate_color_plane_flag = reader.read_bit()?;
-        }
-
-        let bit_depth_luma_minus8 = reader.read_exp_golomb()? as u8;
-        let bit_depth_chroma_minus8 = reader.read_exp_golomb()? as u8;
-        let qpprime_y_zero_transform_bypass_flag = reader.read_bit()?;
-        let seq_scaling_matrix_present_flag = reader.read_bit()?;
-
-        if seq_scaling_matrix_present_flag {
-            // We need to read the scaling matrices here, but we don't need them
-            // for decoding, so we just skip them.
-            let count = if chroma_format_idc != 3 { 8 } else { 12 };
-            for i in 0..count {
-                if reader.read_bit()? {
-                    let size = if i < 6 { 16 } else { 64 };
-                    let mut next_scale = 8;
-                    for _ in 0..size {
-                        let delta_scale = reader.read_signed_exp_golomb()?;
-                        next_scale = (next_scale + delta_scale + 256) % 256;
-                        if next_scale == 0 {
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        Ok(SpsExtended {
-            chroma_format_idc,
-            separate_color_plane_flag,
-            bit_depth_luma_minus8,
-            bit_depth_chroma_minus8,
-            qpprime_y_zero_transform_bypass_flag,
-            seq_scaling_matrix_present_flag,
-        })
-    }
-}
-
-/// `PicOrderCountType1` contains the fields that are set when `pic_order_cnt_type == 1`.
-///
-/// This contains the following fields: `delta_pic_order_always_zero_flag`,
-/// `offset_for_non_ref_pic`, `offset_for_top_to_bottom_field`, and
-/// `offset_for_ref_frame`.
-#[derive(Debug, Clone, PartialEq)]
-pub struct PicOrderCountType1 {
-    /// The `delta_pic_order_always_zero_flag` is a single bit.
-    ///
-    /// 0 means the `delta_pic_order_cnt[0]` is in the slice headers and `delta_pic_order_cnt[1]`
-    /// might not be in the slice headers.
-    ///
-    /// 1 means the `delta_pic_order_cnt[0]` and `delta_pic_order_cnt[1]` are NOT in the slice headers
-    /// and will be set to 0 by default.
-    ///
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    pub delta_pic_order_always_zero_flag: bool,
-
-    /// The `offset_for_non_ref_pic` is used to calculate the pic order count for a non-reference picture
-    /// from subclause 8.2.1.
-    ///
-    /// The value of this ranges from \[-2^(31), 2^(31) - 1\].
-    ///
-    /// This is a variable number of bits as it is encoded by a SIGNED exp golomb.
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub offset_for_non_ref_pic: i64,
-
-    /// The `offset_for_top_to_bottom_field` is used to calculate the pic order count of a bottom field from
-    /// subclause 8.2.1.
-    ///
-    /// The value of this ranges from \[-2^(31), 2^(31) - 1\].
-    ///
-    /// This is a variable number of bits as it is encoded by a SIGNED exp golomb.
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub offset_for_top_to_bottom_field: i64,
-
-    /// The `num_ref_frames_in_pic_order_cnt_cycle` is used in the decoding process for the picture order
-    /// count in 8.2.1.
-    ///
-    /// The value of this ranges from \[0, 255\].
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// The smallest encoding would be for `0` which is encoded as `1`, which is a single bit.
-    /// The largest encoding would be for `255` which is encoded as `0 0000 0001 0000 0000`, which is 17 bits.
-    ///
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    pub num_ref_frames_in_pic_order_cnt_cycle: u64,
-
-    /// The `offset_for_ref_frame` is a vec where each value used in decoding the picture order count
-    /// from subclause 8.2.1.
-    ///
-    /// When `pic_order_cnt_type == 1`, `ExpectedDeltaPerPicOrderCntCycle` can be derived by:
-    /// ```python
-    /// ExpectedDeltaPerPicOrderCntCycle = sum(offset_for_ref_frame)
-    /// ```
-    ///
-    /// The value of this ranges from \[-2^(31), 2^(31) - 1\].
-    ///
-    /// This is a variable number of bits as it is encoded by a SIGNED exp golomb.
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub offset_for_ref_frame: Vec<i64>,
-}
-
-impl PicOrderCountType1 {
-    /// Parses the fields defined when the `pic_order_count_type == 1` from a bitstream.
-    /// Returns a `PicOrderCountType1` struct.
-    pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
-        let delta_pic_order_always_zero_flag = reader.read_bit()?;
-        let offset_for_non_ref_pic = reader.read_signed_exp_golomb()?;
-        let offset_for_top_to_bottom_field = reader.read_signed_exp_golomb()?;
-        let num_ref_frames_in_pic_order_cnt_cycle = reader.read_exp_golomb()?;
-
-        let mut offset_for_ref_frame = vec![];
-        for _ in 0..num_ref_frames_in_pic_order_cnt_cycle {
-            offset_for_ref_frame.push(reader.read_signed_exp_golomb()?);
-        }
-
-        Ok(PicOrderCountType1 {
-            delta_pic_order_always_zero_flag,
-            offset_for_non_ref_pic,
-            offset_for_top_to_bottom_field,
-            num_ref_frames_in_pic_order_cnt_cycle,
-            offset_for_ref_frame,
-        })
-    }
-}
-
-/// `FrameCropInfo` contains the frame cropping info.
-///
-/// This includes `frame_crop_left_offset`, `frame_crop_right_offset`, `frame_crop_top_offset`,
-/// and `frame_crop_bottom_offset`.
-#[derive(Debug, Clone, PartialEq)]
-pub struct FrameCropInfo {
-    /// The `frame_crop_left_offset` is the the left crop offset which is used to compute the width:
-    ///
-    /// `width = ((pic_width_in_mbs_minus1 + 1) * 16) - frame_crop_right_offset * 2 - frame_crop_left_offset * 2`
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub frame_crop_left_offset: u64,
-
-    /// The `frame_crop_right_offset` is the the right crop offset which is used to compute the width:
-    ///
-    /// `width = ((pic_width_in_mbs_minus1 + 1) * 16) - frame_crop_right_offset * 2 - frame_crop_left_offset * 2`
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub frame_crop_right_offset: u64,
-
-    /// The `frame_crop_top_offset` is the the top crop offset which is used to compute the height:
-    ///
-    /// `height = ((2 - frame_mbs_only_flag as u64) * (pic_height_in_map_units_minus1 + 1) * 16)
-    /// - frame_crop_bottom_offset * 2 - frame_crop_top_offset * 2`
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub frame_crop_top_offset: u64,
-
-    /// The `frame_crop_bottom_offset` is the the bottom crop offset which is used to compute the height:
-    ///
-    /// `height = ((2 - frame_mbs_only_flag as u64) * (pic_height_in_map_units_minus1 + 1) * 16)
-    /// - frame_crop_bottom_offset * 2 - frame_crop_top_offset * 2`
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// ISO/IEC-14496-10-2022 - 7.4.2.1.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub frame_crop_bottom_offset: u64,
-}
-
-impl FrameCropInfo {
-    /// Parses the fields defined when the `frame_cropping_flag == 1` from a bitstream.
-    /// Returns a `FrameCropInfo` struct.
-    pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
-        let frame_crop_left_offset = reader.read_exp_golomb()?;
-        let frame_crop_right_offset = reader.read_exp_golomb()?;
-        let frame_crop_top_offset = reader.read_exp_golomb()?;
-        let frame_crop_bottom_offset = reader.read_exp_golomb()?;
-
-        Ok(FrameCropInfo {
-            frame_crop_left_offset,
-            frame_crop_right_offset,
-            frame_crop_top_offset,
-            frame_crop_bottom_offset,
-        })
-    }
-}
-
-/// `SarDimensions` contains the fields that are set when `aspect_ratio_info_present_flag == 1`,
-/// and `aspect_ratio_idc == 255`.
-///
-/// This contains the following fields: `sar_width` and `sar_height`.
-#[derive(Debug, Clone, PartialEq)]
-pub struct SarDimensions {
-    /// The `aspect_ratio_idc` is the sample aspect ratio of the luma samples as a u8.
-    ///
-    /// This is a full byte, and defaults to 0.
-    ///
-    /// Refer to the `AspectRatioIdc` nutype enum for more info.
-    ///
-    /// ISO/IEC-14496-10-2022 - E.2.1 Table E-1
-    pub aspect_ratio_idc: AspectRatioIdc,
-
-    /// The `sar_width` is the horizontal size of the aspect ratio as a u16.
-    ///
-    /// This is a full 2 bytes.
-    ///
-    /// The value is supposed to be "relatively prime or equal to 0". If set to 0,
-    /// the sample aspect ratio is considered to be unspecified by ISO/IEC-14496-10-2022.
-    ///
-    /// ISO/IEC-14496-10-2022 - E.2.1
-    pub sar_width: u16,
-
-    /// The `offset_for_non_ref_pic` is the vertical size of the aspect ratio as a u16.
-    ///
-    /// This is a full 2 bytes.
-    ///
-    /// The value is supposed to be "relatively prime or equal to 0". If set to 0,
-    /// the sample aspect ratio is considered to be unspecified by ISO/IEC-14496-10-2022.
-    ///
-    /// The value is supposed to be "relatively prime or equal to 0".
-    ///
-    /// ISO/IEC-14496-10-2022 - E.2.1
-    pub sar_height: u16,
-}
-
-impl SarDimensions {
-    /// Parses the fields defined when the `aspect_ratio_info_present_flag == 1` from a bitstream.
-    /// Returns a `SarDimensions` struct.
-    pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
-        let mut sar_width = 0; // defaults to 0, E.2.1
-        let mut sar_height = 0; // deafults to 0, E.2.1
-
-        let aspect_ratio_idc = reader.read_u8()?;
-        if aspect_ratio_idc == 255 {
-            sar_width = reader.read_bits(16)? as u16;
-            sar_height = reader.read_bits(16)? as u16;
-        }
-
-        Ok(SarDimensions {
-            aspect_ratio_idc: AspectRatioIdc(aspect_ratio_idc),
-            sar_width,
-            sar_height,
-        })
-    }
-}
-
-/// The color config for SPS. ISO/IEC-14496-10-2022 - E.2.1
-#[derive(Debug, Clone, PartialEq)]
-pub struct ColorConfig {
-    /// The `video_format` is comprised of 3 bits stored as a u8.
-    ///
-    /// Refer to the `VideoFormat` nutype enum for more info.
-    ///
-    /// ISO/IEC-14496-10-2022 - E.2.1 Table E-2
-    pub video_format: VideoFormat,
-
-    /// The `video_full_range_flag` is a single bit indicating the black level and range of
-    /// luma and chroma signals.
-    ///
-    /// This field is passed into the `ColorConfig`.
-    /// ISO/IEC-14496-10-2022 - E.2.1
-    pub video_full_range_flag: bool,
-
-    /// The `colour_primaries` byte as a u8. If `color_description_present_flag` is not set,
-    /// the value defaults to 2. ISO/IEC-14496-10-2022 - E.2.1 Table E-3
-    pub color_primaries: u8,
-
-    /// The `transfer_characteristics` byte as a u8. If `color_description_present_flag` is not set,
-    /// the value defaults to 2. ISO/IEC-14496-10-2022 - E.2.1 Table E-4
-    pub transfer_characteristics: u8,
-
-    /// The `matrix_coefficients` byte as a u8. If `color_description_present_flag` is not set,
-    /// the value defaults to 2. ISO/IEC-14496-10-2022 - E.2.1 Table E-5
-    pub matrix_coefficients: u8,
-}
-
-impl ColorConfig {
-    /// Parses the fields defined when the `video_signal_type_present_flag == 1` from a bitstream.
-    /// Returns a `ColorConfig` struct.
-    pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
-        let video_format = reader.read_bits(3)? as u8;
-        let video_full_range_flag = reader.read_bit()?;
-
-        let color_primaries;
-        let transfer_characteristics;
-        let matrix_coefficients;
-
-        let color_description_present_flag = reader.read_bit()?;
-        if color_description_present_flag {
-            color_primaries = reader.read_u8()?;
-            transfer_characteristics = reader.read_u8()?;
-            matrix_coefficients = reader.read_u8()?;
-        } else {
-            color_primaries = 2; // UNSPECIFIED
-            transfer_characteristics = 2; // UNSPECIFIED
-            matrix_coefficients = 2; // UNSPECIFIED
-        }
-
-        Ok(ColorConfig {
-            video_format: VideoFormat(video_format), // defalut value is 5 E.2.1 Table E-2
-            video_full_range_flag,
-            color_primaries,
-            transfer_characteristics,
-            matrix_coefficients,
-        })
-    }
-}
-
-/// `ChromaSampleLoc` contains the fields that are set when `chroma_loc_info_present_flag == 1`,
-///
-/// This contains the following fields: `chroma_sample_loc_type_top_field` and `chroma_sample_loc_type_bottom_field`.
-#[derive(Debug, Clone, PartialEq)]
-pub struct ChromaSampleLoc {
-    /// The `chroma_sample_loc_type_top_field` specifies the location of chroma samples.
-    ///
-    /// The value of this ranges from \[0, 5\]. By default, this value is set to 0.
-    ///
-    /// See ISO/IEC-14496-10-2022 - E.2.1 Figure E-1 for more info.
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// The smallest encoding would be for `0` which is encoded as `1`, which is a single bit.
-    /// The largest encoding would be for `5` which is encoded as `0 0110`, which is 5 bits.
-    /// ISO/IEC-14496-10-2022 - E.2.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub chroma_sample_loc_type_top_field: u8,
-
-    /// The `chroma_sample_loc_type_bottom_field`
-    ///
-    /// The value of this ranges from \[0, 5\]. By default, this value is set to 0.
-    ///
-    /// See ISO/IEC-14496-10-2022 - E.2.1 Figure E-1 for more info.
-    ///
-    /// This is a variable number of bits as it is encoded by an exp golomb (unsigned).
-    /// The smallest encoding would be for `0` which is encoded as `1`, which is a single bit.
-    /// The largest encoding would be for `5` which is encoded as `0 0110`, which is 5 bits.
-    /// ISO/IEC-14496-10-2022 - E.2.1
-    ///
-    /// For more information:
-    ///
-    /// <https://en.wikipedia.org/wiki/Exponential-Golomb_coding>
-    pub chroma_sample_loc_type_bottom_field: u8,
-}
-
-impl ChromaSampleLoc {
-    /// Parses the fields defined when the `chroma_loc_info_present_flag == 1` from a bitstream.
-    /// Returns a `ChromaSampleLoc` struct.
-    pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
-        let chroma_sample_loc_type_top_field = reader.read_exp_golomb()? as u8;
-        let chroma_sample_loc_type_bottom_field = reader.read_exp_golomb()? as u8;
-
-        Ok(ChromaSampleLoc {
-            chroma_sample_loc_type_top_field,
-            chroma_sample_loc_type_bottom_field,
-        })
-    }
-}
-
-/// `TimingInfo` contains the fields that are set when `timing_info_present_flag == 1`.
-///
-/// This contains the following fields: `num_units_in_tick` and `time_scale`.
-///
-/// ISO/IEC-14496-10-2022 - E.2.1
-///
-/// Refer to the direct fields for more information.
-#[derive(Debug, Clone, PartialEq)]
-pub struct TimingInfo {
-    /// The `num_units_in_tick` is the smallest unit used to measure time.
-    ///
-    /// It is used alongside `time_scale` to compute the `frame_rate` as follows:
-    ///
-    /// `frame_rate = time_scale / (2 * num_units_in_tick)`
-    ///
-    /// It must be greater than 0, therefore, it is a `NonZeroU32`. If it isn't provided,
-    /// the value is defaulted to None instead of 0.
-    ///
-    /// ISO/IEC-14496-10-2022 - E.2.1
-    pub num_units_in_tick: NonZeroU32,
-
-    /// The `time_scale` is the number of time units that pass in 1 second (hz).
-    ///
-    /// It is used alongside `num_units_in_tick` to compute the `frame_rate` as follows:
-    ///
-    /// `frame_rate = time_scale / (2 * num_units_in_tick)`
-    ///
-    /// It must be greater than 0, therefore, it is a `NonZeroU32`. If it isn't provided,
-    /// the value is defaulted to None instead of 0.
-    ///
-    /// ISO/IEC-14496-10-2022 - E.2.1
-    pub time_scale: NonZeroU32,
-}
-
-impl TimingInfo {
-    /// Parses the fields defined when the `timing_info_present_flag == 1` from a bitstream.
-    /// Returns a `TimingInfo` struct.
-    pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
-        let num_units_in_tick = NonZeroU32::new(reader.read_u32::<BigEndian>()?)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "num_units_in_tick cannot be 0"))?;
-
-        let time_scale = NonZeroU32::new(reader.read_u32::<BigEndian>()?)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "time_scale cannot be 0"))?;
-
-        Ok(TimingInfo {
-            num_units_in_tick,
-            time_scale,
-        })
+    pub fn frame_rate(&self) -> Option<f64> {
+        self.timing_info.as_ref().map(|timing| timing.frame_rate())
     }
 }
 
@@ -1136,26 +739,9 @@ mod tests {
     use std::io;
 
     use scuffle_bytes_util::BitWriter;
-    use scuffle_expgolomb::BitWriterExpGolombExt;
+    use scuffle_expgolomb::{BitWriterExpGolombExt, size_of_exp_golomb, size_of_signed_exp_golomb};
 
     use crate::sps::Sps;
-
-    #[test]
-    fn test_parse_sps_insufficient_bytes_() {
-        let mut sps = Vec::new();
-        let mut writer = BitWriter::new(&mut sps);
-
-        writer.write_bit(true).unwrap(); // only write 1 bit
-        writer.finish().unwrap();
-
-        let result = Sps::parse(&sps);
-
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-
-        assert_eq!(err.kind(), io::ErrorKind::InvalidData);
-        assert_eq!(err.to_string(), "Insufficient data: SPS must be at least 4 bytes long");
-    }
 
     #[test]
     fn test_parse_sps_set_forbidden_bit() {
@@ -1163,12 +749,9 @@ mod tests {
         let mut writer = BitWriter::new(&mut sps);
 
         writer.write_bit(true).unwrap(); // sets the forbidden bit
-        writer.write_bits(0x00, 8).unwrap(); // ensure length > 3 bytes
-        writer.write_bits(0x00, 8).unwrap(); // ensure length > 3 bytes
-        writer.write_bits(0x00, 8).unwrap(); // ensure length > 3 bytes
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps);
+        let result = Sps::parse(std::io::Cursor::new(sps));
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -1185,13 +768,9 @@ mod tests {
         writer.write_bit(false).unwrap(); // forbidden zero bit must be unset
         writer.write_bits(0b00, 2).unwrap(); // nal_ref_idc is 00
         writer.write_bits(0b000, 3).unwrap(); // set nal_unit_type to something that isn't 7
-
-        writer.write_bits(0x00, 8).unwrap(); // ensure length > 3 bytes
-        writer.write_bits(0x00, 8).unwrap(); // ensure length > 3 bytes
-        writer.write_bits(0x00, 8).unwrap(); // ensure length > 3 bytes
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps);
+        let result = Sps::parse(std::io::Cursor::new(sps));
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -1201,7 +780,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_sps_4k_144fps() {
+    fn test_parse_build_sps_4k_144fps() {
         let mut sps = Vec::new();
         let mut writer = BitWriter::new(&mut sps);
 
@@ -1303,11 +882,10 @@ mod tests {
         writer.write_bits(28800, 32).unwrap();
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps).unwrap();
+        let result = Sps::parse(std::io::Cursor::new(sps)).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
-            forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 100,
@@ -1326,7 +904,7 @@ mod tests {
                     bit_depth_luma_minus8: 0,
                     bit_depth_chroma_minus8: 0,
                     qpprime_y_zero_transform_bypass_flag: false,
-                    seq_scaling_matrix_present_flag: false,
+                    scaling_matrix: [],
                 },
             ),
             log2_max_frame_num_minus4: 0,
@@ -1363,13 +941,40 @@ mod tests {
         }
         ");
 
-        assert_eq!(144.0, result.frame_rate());
+        assert_eq!(Some(144.0), result.frame_rate());
         assert_eq!(3840, result.width());
         assert_eq!(2160, result.height());
+
+        // create a writer for the builder
+        let mut buf = Vec::new();
+        let mut writer2 = BitWriter::new(&mut buf);
+
+        // build from the example sps
+        result.build(&mut writer2).unwrap();
+        writer2.finish().unwrap();
+
+        // sometimes bits can get lost because we save
+        // some space with how the SPS is rebuilt.
+        // so we can just confirm that they're the same
+        // by rebuilding it.
+        let reduced = Sps::parse(std::io::Cursor::new(&buf)).unwrap(); // <- this is where things break
+        assert_eq!(reduced, result);
+
+        // now we can check that the bitstream from
+        // the reduced version should be the same
+        let mut reduced_buf = Vec::new();
+        let mut writer3 = BitWriter::new(&mut reduced_buf);
+
+        reduced.build(&mut writer3).unwrap();
+        writer3.finish().unwrap();
+        assert_eq!(reduced_buf, buf);
+
+        // now we can check the size:
+        assert_eq!(reduced.size(), result.size());
     }
 
     #[test]
-    fn test_parse_sps_1080_480fps_scaling_matrix() {
+    fn test_parse_build_sps_1080_480fps_scaling_matrix() {
         let mut sps = Vec::new();
         let mut writer = BitWriter::new(&mut sps);
 
@@ -1532,11 +1137,10 @@ mod tests {
         writer.write_bits(960000, 32).unwrap();
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps).unwrap();
+        let result = Sps::parse(std::io::Cursor::new(&sps)).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
-            forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 44,
@@ -1555,7 +1159,23 @@ mod tests {
                     bit_depth_luma_minus8: 0,
                     bit_depth_chroma_minus8: 0,
                     qpprime_y_zero_transform_bypass_flag: false,
-                    seq_scaling_matrix_present_flag: true,
+                    scaling_matrix: [
+                        [
+                            4,
+                            -12,
+                        ],
+                        [],
+                        [],
+                        [],
+                        [],
+                        [],
+                        [],
+                        [],
+                        [],
+                        [],
+                        [],
+                        [],
+                    ],
                 },
             ),
             log2_max_frame_num_minus4: 0,
@@ -1615,13 +1235,19 @@ mod tests {
         }
         ");
 
-        assert_eq!(480.0, result.frame_rate());
+        assert_eq!(Some(480.0), result.frame_rate());
         assert_eq!(1920, result.width());
         assert_eq!(1080, result.height());
+
+        // create a writer for the builder
+        let mut buf = Vec::new();
+        result.build(&mut buf).unwrap();
+
+        assert_eq!(buf, sps);
     }
 
     #[test]
-    fn test_parse_sps_1280x800_0fps() {
+    fn test_parse_build_sps_1280x800_0fps() {
         let mut sps = Vec::new();
         let mut writer = BitWriter::new(&mut sps);
 
@@ -1702,13 +1328,15 @@ mod tests {
         writer.write_exp_golomb(2).unwrap();
         // chroma_sample_loc_type_bottom_field is expg
         writer.write_exp_golomb(2).unwrap();
+
+        // timing_info_present_flag
+        writer.write_bit(false).unwrap();
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps).unwrap();
+        let result = Sps::parse(std::io::Cursor::new(&sps)).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
-            forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 77,
@@ -1755,9 +1383,110 @@ mod tests {
         }
         ");
 
-        assert_eq!(0.0, result.frame_rate());
+        assert_eq!(None, result.frame_rate());
         assert_eq!(1280, result.width());
         assert_eq!(800, result.height());
+
+        // create a writer for the builder
+        let mut buf = Vec::new();
+        result.build(&mut buf).unwrap();
+
+        assert_eq!(buf, sps);
+    }
+
+    #[test]
+    fn test_parse_build_sps_pic_order_cnt_type_2() {
+        let mut sps = Vec::new();
+        let mut writer = BitWriter::new(&mut sps);
+
+        // forbidden zero bit must be unset
+        writer.write_bit(false).unwrap();
+        // nal_ref_idc is 0
+        writer.write_bits(0, 2).unwrap();
+        // nal_unit_type must be 7
+        writer.write_bits(7, 5).unwrap();
+
+        // profile_idc = 77
+        writer.write_bits(77, 8).unwrap();
+        // constraint_setn_flags all false
+        writer.write_bits(0, 8).unwrap();
+        // level_idc = 0
+        writer.write_bits(0, 8).unwrap();
+
+        // seq_parameter_set_id is expg
+        writer.write_exp_golomb(0).unwrap();
+
+        // profile_idc = 77 means we skip the sps_ext
+        // log2_max_frame_num_minus4 is expg
+        writer.write_exp_golomb(0).unwrap();
+        // pic_order_cnt_type is expg
+        writer.write_exp_golomb(2).unwrap();
+        // log2_max_pic_order_cnt_lsb_minus4
+        writer.write_exp_golomb(0).unwrap();
+
+        // max_num_ref_frames is expg
+        writer.write_exp_golomb(0).unwrap();
+        // gaps_in_frame_num_value_allowed_flag
+        writer.write_bit(false).unwrap();
+        writer.write_exp_golomb(1).unwrap();
+        writer.write_exp_golomb(2).unwrap();
+
+        // frame_mbs_only_flag
+        writer.write_bit(true).unwrap();
+
+        // direct_8x8_inference_flag
+        writer.write_bit(false).unwrap();
+        // frame_cropping_flag
+        writer.write_bit(false).unwrap();
+
+        // enter vui to set redundant parameters so they get reduced
+        // vui_parameters_present_flag
+        writer.write_bit(false).unwrap();
+        writer.finish().unwrap();
+
+        let result = Sps::parse(std::io::Cursor::new(&sps)).unwrap();
+
+        insta::assert_debug_snapshot!(result, @r"
+        Sps {
+            nal_ref_idc: 0,
+            nal_unit_type: NALUnitType::SPS,
+            profile_idc: 77,
+            constraint_set0_flag: false,
+            constraint_set1_flag: false,
+            constraint_set2_flag: false,
+            constraint_set3_flag: false,
+            constraint_set4_flag: false,
+            constraint_set5_flag: false,
+            level_idc: 0,
+            seq_parameter_set_id: 0,
+            ext: None,
+            log2_max_frame_num_minus4: 0,
+            pic_order_cnt_type: 2,
+            log2_max_pic_order_cnt_lsb_minus4: None,
+            pic_order_cnt_type1: None,
+            max_num_ref_frames: 0,
+            gaps_in_frame_num_value_allowed_flag: true,
+            pic_width_in_mbs_minus1: 3,
+            pic_height_in_map_units_minus1: 0,
+            mb_adaptive_frame_field_flag: None,
+            direct_8x8_inference_flag: true,
+            frame_crop_info: None,
+            sample_aspect_ratio: None,
+            overscan_appropriate_flag: None,
+            color_config: None,
+            chroma_sample_loc: None,
+            timing_info: None,
+        }
+        ");
+
+        assert_eq!(None, result.frame_rate());
+        assert_eq!(result.size(), 7);
+
+        // create a writer for the builder
+        let mut buf = Vec::new();
+        result.build_with_emulation_prevention(&mut buf).unwrap();
+
+        assert_eq!(buf, sps);
     }
 
     #[test]
@@ -1854,7 +1583,7 @@ mod tests {
         writer.write_bit(true).unwrap();
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps);
+        let result = Sps::parse(std::io::Cursor::new(&sps));
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -1964,7 +1693,7 @@ mod tests {
         writer.write_bits(0, 32).unwrap();
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps);
+        let result = Sps::parse(std::io::Cursor::new(&sps));
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -2071,7 +1800,7 @@ mod tests {
         writer.write_bits(0, 32).unwrap();
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps);
+        let result = Sps::parse(std::io::Cursor::new(&sps));
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -2080,7 +1809,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_sps_no_vui() {
+    fn test_parse_build_sps_no_vui() {
         let mut sps = Vec::new();
         let mut writer = BitWriter::new(&mut sps);
 
@@ -2099,13 +1828,13 @@ mod tests {
         writer.write_bits(0, 8).unwrap();
 
         // seq_parameter_set_id is expg so 0b1 (true) = false
-        writer.write_bit(true).unwrap();
+        writer.write_exp_golomb(0).unwrap();
 
         // skip sps ext since profile_idc = 77
         // log2_max_frame_num_minus4 is expg so 0b1 (true) = false
-        writer.write_bit(true).unwrap();
-        // we can try setting pic_order_cnt_type to 2
-        writer.write_exp_golomb(2).unwrap();
+        writer.write_exp_golomb(0).unwrap();
+        // we can try setting pic_order_cnt_type to 1
+        writer.write_exp_golomb(1).unwrap();
 
         // delta_pic_order_always_zero_flag
         writer.write_bit(false).unwrap();
@@ -2131,7 +1860,7 @@ mod tests {
         // p = 120
         // pic_width_in_mbs_minus1 is expg so:
         // 0 0000 0111 1001
-        writer.write_bits(0b0000001111001, 13).unwrap();
+        writer.write_exp_golomb(999).unwrap();
         // we want 1080 height:
         // 1080 = ((2 - m) * (p + 1) * 16) - 2 * offset1 - 2 * offset2
         // we set offset1 and offset2 to both be 2 later
@@ -2141,7 +1870,7 @@ mod tests {
         // p = 33
         // pic_height_in_map_units_minus1 is expg so:
         // 000 0010 0010
-        writer.write_bits(0b00000100010, 11).unwrap();
+        writer.write_exp_golomb(899).unwrap();
 
         // frame_mbs_only_flag
         writer.write_bit(false).unwrap();
@@ -2154,23 +1883,22 @@ mod tests {
         writer.write_bit(true).unwrap();
 
         // frame_crop_left_offset is expg
-        writer.write_bits(0b00101, 5).unwrap();
+        writer.write_exp_golomb(100).unwrap();
         // frame_crop_right_offset is expg
-        writer.write_bits(0b00101, 5).unwrap();
+        writer.write_exp_golomb(200).unwrap();
         // frame_crop_top_offset is expg
-        writer.write_bits(0b011, 3).unwrap();
+        writer.write_exp_golomb(300).unwrap();
         // frame_crop_bottom_offset is expg
-        writer.write_bits(0b011, 3).unwrap();
+        writer.write_exp_golomb(400).unwrap();
 
         // vui_parameters_present_flag
         writer.write_bit(false).unwrap();
         writer.finish().unwrap();
 
-        let result = Sps::parse(&sps).unwrap();
+        let result = Sps::parse(std::io::Cursor::new(&sps)).unwrap();
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
-            forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 77,
@@ -2184,16 +1912,495 @@ mod tests {
             seq_parameter_set_id: 0,
             ext: None,
             log2_max_frame_num_minus4: 0,
-            pic_order_cnt_type: 2,
+            pic_order_cnt_type: 1,
             log2_max_pic_order_cnt_lsb_minus4: None,
-            pic_order_cnt_type1: None,
-            max_num_ref_frames: 2,
+            pic_order_cnt_type1: Some(
+                PicOrderCountType1 {
+                    delta_pic_order_always_zero_flag: false,
+                    offset_for_non_ref_pic: 0,
+                    offset_for_top_to_bottom_field: 0,
+                    num_ref_frames_in_pic_order_cnt_cycle: 1,
+                    offset_for_ref_frame: [
+                        0,
+                    ],
+                },
+            ),
+            max_num_ref_frames: 0,
             gaps_in_frame_num_value_allowed_flag: false,
-            pic_width_in_mbs_minus1: 0,
-            pic_height_in_map_units_minus1: 2,
+            pic_width_in_mbs_minus1: 999,
+            pic_height_in_map_units_minus1: 899,
             mb_adaptive_frame_field_flag: Some(
                 false,
             ),
+            direct_8x8_inference_flag: false,
+            frame_crop_info: Some(
+                FrameCropInfo {
+                    frame_crop_left_offset: 100,
+                    frame_crop_right_offset: 200,
+                    frame_crop_top_offset: 300,
+                    frame_crop_bottom_offset: 400,
+                },
+            ),
+            sample_aspect_ratio: None,
+            overscan_appropriate_flag: None,
+            color_config: None,
+            chroma_sample_loc: None,
+            timing_info: None,
+        }
+        ");
+
+        // create a writer for the builder
+        let mut buf = Vec::new();
+        // build from the example sps
+        result.build(&mut buf).unwrap();
+
+        assert_eq!(buf, sps);
+    }
+
+    #[test]
+    fn test_size_sps() {
+        let mut bit_count = 0;
+        let mut sps = Vec::new();
+        let mut writer = BitWriter::new(&mut sps);
+
+        // forbidden zero bit must be unset
+        writer.write_bit(false).unwrap();
+        bit_count += 1;
+        // nal_ref_idc is 0
+        writer.write_bits(0, 2).unwrap();
+        bit_count += 2;
+        // nal_unit_type must be 7
+        writer.write_bits(7, 5).unwrap();
+        bit_count += 5;
+
+        // profile_idc = 44
+        writer.write_bits(44, 8).unwrap();
+        bit_count += 8;
+        // constraint_setn_flags all false
+        writer.write_bits(0, 8).unwrap();
+        bit_count += 8;
+        // level_idc = 0
+        writer.write_bits(0, 8).unwrap();
+        bit_count += 8;
+        // seq_parameter_set_id is expg
+        writer.write_exp_golomb(0).unwrap();
+        bit_count += size_of_exp_golomb(0);
+
+        // sps ext
+        // we want to try out chroma_format_idc = 3
+        // chroma_format_idc is expg
+        writer.write_exp_golomb(3).unwrap();
+        bit_count += size_of_exp_golomb(3);
+        // separate_color_plane_flag
+        writer.write_bit(false).unwrap();
+        bit_count += 1;
+        // bit_depth_luma_minus8 is expg
+        writer.write_exp_golomb(0).unwrap();
+        bit_count += size_of_exp_golomb(0);
+        // bit_depth_chroma_minus8 is expg
+        writer.write_exp_golomb(0).unwrap();
+        bit_count += size_of_exp_golomb(0);
+        // qpprime
+        writer.write_bit(false).unwrap();
+        bit_count += 1;
+        // we want to simulate a scaling matrix
+        // seq_scaling_matrix_present_flag
+        writer.write_bit(true).unwrap();
+        bit_count += 1;
+
+        // enter scaling matrix, we loop 12 times since
+        // chroma_format_idc = 3.
+        // loop 1 of 12
+        // true to enter if statement
+        writer.write_bit(true).unwrap();
+        bit_count += 1;
+        // i < 6, so size is 16, so we loop 16 times
+        // sub-loop 1 of 16
+        // delta_scale is a SIGNED expg so we can try out
+        // entering -4 so next_scale becomes 8 + 4 = 12
+        writer.write_signed_exp_golomb(4).unwrap();
+        bit_count += size_of_signed_exp_golomb(4);
+        // sub-loop 2 of 16
+        // delta_scale is a SIGNED expg so we can try out
+        // entering -12 so next scale becomes 12 - 12 = 0
+        writer.write_signed_exp_golomb(-12).unwrap();
+        bit_count += size_of_signed_exp_golomb(-12);
+        // at this point next_scale is 0, which means we break
+        // loop 2 through 12
+        // we don't need to try anything else so we can just skip through them by writing `0` bit 11 times.
+        writer.write_bits(0, 11).unwrap();
+        bit_count += 11;
+
+        // back to sps
+        // log2_max_frame_num_minus4 is expg
+        writer.write_exp_golomb(0).unwrap();
+        bit_count += size_of_exp_golomb(0);
+        // we can try setting pic_order_cnt_type to 1
+        // pic_order_cnt_type is expg
+        writer.write_exp_golomb(1).unwrap();
+        bit_count += size_of_exp_golomb(1);
+
+        // delta_pic_order_always_zero_flag
+        writer.write_bit(false).unwrap();
+        bit_count += 1;
+        // offset_for_non_ref_pic
+        writer.write_bit(true).unwrap();
+        bit_count += 1;
+        // offset_for_top_to_bottom_field
+        writer.write_bit(true).unwrap();
+        bit_count += 1;
+        // num_ref_frames_in_pic_order_cnt_cycle is expg
+        writer.write_exp_golomb(1).unwrap();
+        bit_count += size_of_exp_golomb(1);
+        // loop num_ref_frames_in_pic_order_cnt_cycle times (1)
+        // offset_for_ref_frame is expg
+        writer.write_exp_golomb(0).unwrap();
+        bit_count += size_of_exp_golomb(0);
+
+        // max_num_ref_frames is expg
+        writer.write_exp_golomb(0).unwrap();
+        bit_count += size_of_exp_golomb(0);
+        // gaps_in_frame_num_value_allowed_flag
+        writer.write_bit(false).unwrap();
+        bit_count += 1;
+        // 1920 width:
+        // 1920 = (p + 1) * 16 - 2 * offset1 - 2 * offset2
+        // we set offset1 and offset2 to both be 4 later
+        // 1920 = (p + 1) * 16 - 2 * 4 - 2 * 4
+        // 1920 = (p + 1) * 16 - 16
+        // p = 120
+        // pic_width_in_mbs_minus1 is expg
+        writer.write_exp_golomb(120).unwrap();
+        bit_count += size_of_exp_golomb(120);
+        // we want 1080 height:
+        // 1080 = ((2 - m) * (p + 1) * 16) - 2 * offset1 - 2 * offset2
+        // we set offset1 and offset2 to both be 2 later
+        // m is frame_mbs_only_flag which we set to 0 later
+        // 1080 = (2 - 0) * (p + 1) * 16 - 2 * 2 - 2 * 2
+        // 1080 = 2 * (p + 1) * 16 - 8
+        // p = 33
+        // pic_height_in_map_units_minus1 is expg
+        writer.write_exp_golomb(33).unwrap();
+        bit_count += size_of_exp_golomb(33);
+
+        // frame_mbs_only_flag
+        writer.write_bit(false).unwrap();
+        bit_count += 1;
+        // mb_adaptive_frame_field_flag
+        writer.write_bit(false).unwrap();
+        bit_count += 1;
+
+        // direct_8x8_inference_flag
+        writer.write_bit(false).unwrap();
+        bit_count += 1;
+        // frame_cropping_flag
+        writer.write_bit(true).unwrap();
+        bit_count += 1;
+
+        // frame_crop_left_offset is expg
+        writer.write_exp_golomb(4).unwrap();
+        bit_count += size_of_exp_golomb(4);
+        // frame_crop_left_offset is expg
+        writer.write_exp_golomb(4).unwrap();
+        bit_count += size_of_exp_golomb(4);
+        // frame_crop_left_offset is expg
+        writer.write_exp_golomb(2).unwrap();
+        bit_count += size_of_exp_golomb(2);
+        // frame_crop_left_offset is expg
+        writer.write_exp_golomb(2).unwrap();
+        bit_count += size_of_exp_golomb(2);
+
+        // vui_parameters_present_flag
+        writer.write_bit(true).unwrap();
+        bit_count += 1;
+
+        // enter vui to set the framerate
+        // aspect_ratio_info_present_flag
+        writer.write_bit(true).unwrap();
+        bit_count += 1;
+        // we can try 255 to set the sar_width and sar_height
+        // aspect_ratio_idc
+        writer.write_bits(255, 8).unwrap();
+        bit_count += 8;
+        // sar_width
+        writer.write_bits(0, 16).unwrap();
+        bit_count += 16;
+        // sar_height
+        writer.write_bits(0, 16).unwrap();
+        bit_count += 16;
+
+        // overscan_info_present_flag
+        writer.write_bit(false).unwrap();
+        bit_count += 1;
+
+        // video_signal_type_present_flag
+        writer.write_bit(true).unwrap();
+        bit_count += 1;
+        // video_format
+        writer.write_bits(0, 3).unwrap();
+        bit_count += 3;
+        // video_full_range_flag
+        writer.write_bit(false).unwrap();
+        bit_count += 1;
+        // color_description_present_flag
+        writer.write_bit(true).unwrap();
+        bit_count += 1;
+        // color_primaries
+        writer.write_bits(1, 8).unwrap();
+        bit_count += 8;
+        // transfer_characteristics
+        writer.write_bits(1, 8).unwrap();
+        bit_count += 8;
+        // matrix_coefficients
+        writer.write_bits(1, 8).unwrap();
+        bit_count += 8;
+
+        // chroma_loc_info_present_flag
+        writer.write_bit(false).unwrap();
+        bit_count += 1;
+
+        // timing_info_present_flag
+        writer.write_bit(true).unwrap();
+        bit_count += 1;
+        // we can set this to 1000 for example
+        // num_units_in_tick is a u32
+        writer.write_bits(1000, 32).unwrap();
+        bit_count += 32;
+        // fps = time_scale / (2 * num_units_in_tick)
+        // since we want 480 fps:
+        // 480 = time_scale / (2 * 1000)
+        // 960 000 = time_scale
+        // time_scale is a u32
+        writer.write_bits(960000, 32).unwrap();
+        bit_count += 32;
+        writer.finish().unwrap();
+
+        let result = Sps::parse(std::io::Cursor::new(&sps)).unwrap();
+
+        // now we can check the size:
+        assert_eq!(result.size(), bit_count.div_ceil(8));
+    }
+
+    #[test]
+    fn test_reduce_color_config() {
+        let mut sps = Vec::new();
+        let mut writer = BitWriter::new(&mut sps);
+
+        // forbidden zero bit must be unset
+        writer.write_bit(false).unwrap();
+        // nal_ref_idc is 0
+        writer.write_bits(0, 2).unwrap();
+        // nal_unit_type must be 7
+        writer.write_bits(7, 5).unwrap();
+
+        // profile_idc = 100
+        writer.write_bits(100, 8).unwrap();
+        // constraint_setn_flags all false
+        writer.write_bits(0, 8).unwrap();
+        // level_idc = 0
+        writer.write_bits(0, 8).unwrap();
+
+        // seq_parameter_set_id is expg
+        writer.write_exp_golomb(0).unwrap();
+
+        // sps ext
+        // chroma_format_idc is expg
+        writer.write_exp_golomb(0).unwrap();
+        // bit_depth_luma_minus8 is expg
+        writer.write_exp_golomb(0).unwrap();
+        // bit_depth_chroma_minus8 is expg
+        writer.write_exp_golomb(0).unwrap();
+        // qpprime
+        writer.write_bit(false).unwrap();
+        // seq_scaling_matrix_present_flag
+        writer.write_bit(false).unwrap();
+
+        // back to sps
+        // log2_max_frame_num_minus4 is expg
+        writer.write_exp_golomb(0).unwrap();
+        // pic_order_cnt_type is expg
+        writer.write_exp_golomb(0).unwrap();
+        // log2_max_pic_order_cnt_lsb_minus4 is expg
+        writer.write_exp_golomb(0).unwrap();
+
+        // max_num_ref_frames is expg
+        writer.write_exp_golomb(0).unwrap();
+        // gaps_in_frame_num_value_allowed_flag
+        writer.write_bit(false).unwrap();
+        // width
+        writer.write_exp_golomb(0).unwrap();
+        // height
+        writer.write_exp_golomb(0).unwrap();
+
+        // frame_mbs_only_flag
+        writer.write_bit(true).unwrap();
+
+        // direct_8x8_inference_flag
+        writer.write_bit(false).unwrap();
+        // frame_cropping_flag
+        writer.write_bit(false).unwrap();
+
+        // vui_parameters_present_flag
+        writer.write_bit(true).unwrap();
+
+        // aspect_ratio_info_present_flag
+        writer.write_bit(false).unwrap();
+
+        // overscan_info_present_flag
+        writer.write_bit(false).unwrap();
+
+        // we want to change the color_config
+        // video_signal_type_present_flag
+        writer.write_bit(true).unwrap();
+
+        // video_format
+        writer.write_bits(1, 3).unwrap();
+        // video_full_range_flag
+        writer.write_bit(false).unwrap();
+        // color_description_present_flag: we want this to be true
+        writer.write_bit(true).unwrap();
+
+        // now we set these to redundant values (each should be 2)
+        writer.write_bits(2, 8).unwrap();
+        writer.write_bits(2, 8).unwrap();
+        writer.write_bits(2, 8).unwrap();
+
+        // chroma_loc_info_present_flag
+        writer.write_bit(false).unwrap();
+
+        // timing_info_present_flag
+        writer.write_bit(false).unwrap();
+        writer.finish().unwrap();
+
+        let reduced_sps = Sps::parse(std::io::Cursor::new(&sps)).unwrap();
+
+        let mut reduced_buf = Vec::new();
+        reduced_sps.build(&mut reduced_buf).unwrap();
+
+        assert_ne!(sps, reduced_buf);
+    }
+
+    #[test]
+    fn test_reduce_vui() {
+        let mut sps = Vec::new();
+        let mut writer = BitWriter::new(&mut sps);
+
+        // forbidden zero bit must be unset
+        writer.write_bit(false).unwrap();
+        // nal_ref_idc is 0
+        writer.write_bits(0, 2).unwrap();
+        // nal_unit_type must be 7
+        writer.write_bits(7, 5).unwrap();
+
+        // profile_idc = 100
+        writer.write_bits(100, 8).unwrap();
+        // constraint_setn_flags all false
+        writer.write_bits(0, 8).unwrap();
+        // level_idc = 0
+        writer.write_bits(0, 8).unwrap();
+
+        // seq_parameter_set_id is expg
+        writer.write_exp_golomb(0).unwrap();
+
+        // sps ext
+        // chroma_format_idc is expg
+        writer.write_exp_golomb(0).unwrap();
+        // bit_depth_luma_minus8 is expg
+        writer.write_exp_golomb(0).unwrap();
+        // bit_depth_chroma_minus8 is expg
+        writer.write_exp_golomb(0).unwrap();
+        // qpprime
+        writer.write_bit(false).unwrap();
+        // seq_scaling_matrix_present_flag
+        writer.write_bit(false).unwrap();
+
+        // back to sps
+        // log2_max_frame_num_minus4 is expg
+        writer.write_exp_golomb(0).unwrap();
+        // pic_order_cnt_type is expg
+        writer.write_exp_golomb(0).unwrap();
+        // log2_max_pic_order_cnt_lsb_minus4 is expg
+        writer.write_exp_golomb(0).unwrap();
+
+        // max_num_ref_frames is expg
+        writer.write_exp_golomb(0).unwrap();
+        // gaps_in_frame_num_value_allowed_flag
+        writer.write_bit(false).unwrap();
+        // width
+        writer.write_exp_golomb(0).unwrap();
+        // height
+        writer.write_exp_golomb(0).unwrap();
+
+        // frame_mbs_only_flag
+        writer.write_bit(true).unwrap();
+
+        // direct_8x8_inference_flag
+        writer.write_bit(false).unwrap();
+        // frame_cropping_flag
+        writer.write_bit(false).unwrap();
+
+        // we want to set this flag to be true and all subsequent flags to be false.
+        // vui_parameters_present_flag
+        writer.write_bit(true).unwrap();
+
+        // aspect_ratio_info_present_flag
+        writer.write_bit(false).unwrap();
+
+        // overscan_info_present_flag
+        writer.write_bit(false).unwrap();
+
+        // video_signal_type_present_flag
+        writer.write_bit(false).unwrap();
+
+        // chroma_loc_info_present_flag
+        writer.write_bit(false).unwrap();
+
+        // timing_info_present_flag
+        writer.write_bit(false).unwrap();
+        writer.finish().unwrap();
+
+        let result = Sps::parse(std::io::Cursor::new(&sps)).unwrap();
+
+        let mut reduced_buf = Vec::new();
+        result.build(&mut reduced_buf).unwrap();
+
+        let reduced_result = Sps::parse(std::io::Cursor::new(&reduced_buf)).unwrap();
+        assert_eq!(result.size(), reduced_result.size());
+
+        insta::assert_debug_snapshot!(reduced_result, @r"
+        Sps {
+            nal_ref_idc: 0,
+            nal_unit_type: NALUnitType::SPS,
+            profile_idc: 100,
+            constraint_set0_flag: false,
+            constraint_set1_flag: false,
+            constraint_set2_flag: false,
+            constraint_set3_flag: false,
+            constraint_set4_flag: false,
+            constraint_set5_flag: false,
+            level_idc: 0,
+            seq_parameter_set_id: 0,
+            ext: Some(
+                SpsExtended {
+                    chroma_format_idc: 0,
+                    separate_color_plane_flag: false,
+                    bit_depth_luma_minus8: 0,
+                    bit_depth_chroma_minus8: 0,
+                    qpprime_y_zero_transform_bypass_flag: false,
+                    scaling_matrix: [],
+                },
+            ),
+            log2_max_frame_num_minus4: 0,
+            pic_order_cnt_type: 0,
+            log2_max_pic_order_cnt_lsb_minus4: Some(
+                0,
+            ),
+            pic_order_cnt_type1: None,
+            max_num_ref_frames: 0,
+            gaps_in_frame_num_value_allowed_flag: false,
+            pic_width_in_mbs_minus1: 0,
+            pic_height_in_map_units_minus1: 0,
+            mb_adaptive_frame_field_flag: None,
             direct_8x8_inference_flag: false,
             frame_crop_info: None,
             sample_aspect_ratio: None,

@@ -280,7 +280,7 @@ fn test_demux_avc_aac() {
                                 length_size_minus_one: 3,
                                 profile_compatibility: 0,
                                 extended_config: None,
-                                sps: vec![Bytes::from(vec![
+                                sps: vec![Bytes::from_static(&[
                                     103, 100, 0, 51, 172, 202, 80, 15, 0, 16, 251, 1, 16, 0, 0, 3, 0, 16, 0, 0, 7, 136, 241,
                                     131, 25, 96
                                 ])],
