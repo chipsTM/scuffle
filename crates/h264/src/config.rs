@@ -309,7 +309,7 @@ mod tests {
 
         let sps = &result.sps[0];
 
-        insta::assert_debug_snapshot!(sps, @r#"b"gd\0\x1f\xac\xd9A\xe0m\xf9\xe6\xa0  (\0\0\x03\0\x08\0\0\x03\x01\xe0x\xc1\x8c\xb0""#);
+        assert_eq!(**sps, *sample_sps);
     }
 
     #[test]

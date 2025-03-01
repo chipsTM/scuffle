@@ -19,8 +19,8 @@ pub struct TimingInfo {
     ///
     /// `frame_rate = time_scale / (2 * num_units_in_tick)`
     ///
-    /// It must be greater than 0, therefore, it is a `NonZeroU32`. If it isn't provided,
-    /// the value is defaulted to None instead of 0.
+    /// It must be greater than 0, therefore, it is a `NonZeroU32`.
+    /// If it is 0, it will fail to parse.
     ///
     /// ISO/IEC-14496-10-2022 - E.2.1
     pub num_units_in_tick: NonZeroU32,
@@ -31,8 +31,8 @@ pub struct TimingInfo {
     ///
     /// `frame_rate = time_scale / (2 * num_units_in_tick)`
     ///
-    /// It must be greater than 0, therefore, it is a `NonZeroU32`. If it isn't provided,
-    /// the value is defaulted to None instead of 0.
+    /// It must be greater than 0, therefore, it is a `NonZeroU32`.
+    /// If it is 0, it will fail to parse.
     ///
     /// ISO/IEC-14496-10-2022 - E.2.1
     pub time_scale: NonZeroU32,

@@ -31,7 +31,7 @@
 //! # let bytes = Bytes::from(b"\x01d\0\x1f\xff\xe1\0\x17\x67\x64\x00\x1F\xAC\xD9\x41\xE0\x6D\xF9\xE6\xA0\x20\x20\x28\x00\x00\x00\x08\x00\x00\x01\xE0\x01\0\x06h\xeb\xe3\xcb\"\xc0\xfd\xf8\xf8\0".to_vec());
 //!
 //! // Parsing
-//! let result = AVCDecoderConfigurationRecord::parse(&mut io::Cursor::new(bytes.into())).unwrap();
+//! let result = AVCDecoderConfigurationRecord::parse(&mut io::Cursor::new(bytes)).unwrap();
 //!
 //! // Do something with it!
 //!

@@ -30,10 +30,6 @@ use crate::{EmulationPreventionIo, NALUnitType};
 /// ISO/IEC-14496-10-2022 - 7.3.2
 #[derive(Debug, Clone, PartialEq)]
 pub struct Sps {
-    /// The `forbidden_zero_bit` is a single bit that must be set to 0. Otherwise
-    /// `parse()` will return an error. ISO/IEC-14496-10-2022 - 7.4.1
-    pub forbidden_zero_bit: bool,
-
     /// The `nal_ref_idc` is comprised of 2 bits.
     ///
     /// A nonzero value means the NAL unit has any of the following: SPS, SPS extension,
@@ -512,7 +508,6 @@ impl Sps {
         }
 
         Ok(Sps {
-            forbidden_zero_bit,
             nal_ref_idc,
             nal_unit_type: NALUnitType(nal_unit_type),
             profile_idc,
@@ -551,7 +546,7 @@ impl Sps {
 
         bit_writer.write_bit(false)?;
         bit_writer.write_bits(self.nal_ref_idc as u64, 2)?;
-        bit_writer.write_bits(self.nal_unit_type.into(), 5)?;
+        bit_writer.write_bits(self.nal_unit_type.0 as u64, 5)?;
         bit_writer.write_bits(self.profile_idc as u64, 8)?;
 
         bit_writer.write_bit(self.constraint_set0_flag)?;
@@ -585,20 +580,16 @@ impl Sps {
         bit_writer.write_exp_golomb(self.pic_width_in_mbs_minus1)?;
         bit_writer.write_exp_golomb(self.pic_height_in_map_units_minus1)?;
 
+        bit_writer.write_bit(self.mb_adaptive_frame_field_flag.is_some())?;
         if let Some(flag) = self.mb_adaptive_frame_field_flag {
-            bit_writer.write_bit(false)?;
             bit_writer.write_bit(flag)?;
-        } else {
-            bit_writer.write_bit(true)?;
         }
 
         bit_writer.write_bit(self.direct_8x8_inference_flag)?;
 
+        bit_writer.write_bit(self.frame_crop_info.is_some())?;
         if let Some(frame_crop_info) = &self.frame_crop_info {
-            bit_writer.write_bit(true)?;
             frame_crop_info.build(&mut bit_writer)?;
-        } else {
-            bit_writer.write_bit(false)?;
         }
 
         match (
@@ -616,43 +607,33 @@ impl Sps {
                 bit_writer.write_bit(true)?;
 
                 // aspect_ratio_info_present_flag
+                bit_writer.write_bit(self.sample_aspect_ratio.is_some())?;
                 if let Some(sar) = &self.sample_aspect_ratio {
-                    bit_writer.write_bit(true)?;
                     sar.build(&mut bit_writer)?;
-                } else {
-                    bit_writer.write_bit(false)?;
                 }
 
                 // overscan_info_present_flag
-                if let Some(overscan) = self.overscan_appropriate_flag {
-                    bit_writer.write_bit(true)?;
-                    bit_writer.write_bit(overscan)?;
-                } else {
-                    bit_writer.write_bit(false)?;
+                bit_writer.write_bit(self.overscan_appropriate_flag.is_some())?;
+                if let Some(overscan) = &self.overscan_appropriate_flag {
+                    bit_writer.write_bit(*overscan)?;
                 }
 
                 // video_signal_type_prsent_flag
+                bit_writer.write_bit(self.color_config.is_some())?;
                 if let Some(color) = &self.color_config {
-                    bit_writer.write_bit(true)?;
                     color.build(&mut bit_writer)?;
-                } else {
-                    bit_writer.write_bit(false)?;
                 }
 
                 // chroma_log_info_present_flag
+                bit_writer.write_bit(self.chroma_sample_loc.is_some())?;
                 if let Some(chroma) = &self.chroma_sample_loc {
-                    bit_writer.write_bit(true)?;
                     chroma.build(&mut bit_writer)?;
-                } else {
-                    bit_writer.write_bit(false)?;
                 }
 
                 // timing_info_present_flag
+                bit_writer.write_bit(self.timing_info.is_some())?;
                 if let Some(timing) = &self.timing_info {
-                    bit_writer.write_bit(true)?;
                     timing.build(&mut bit_writer)?;
-                } else {
-                    bit_writer.write_bit(false)?;
                 }
             }
         }
@@ -905,7 +886,6 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
-            forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 100,
@@ -1161,7 +1141,6 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
-            forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 44,
@@ -1358,7 +1337,6 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
-            forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 77,
@@ -1470,7 +1448,6 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
-            forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 77,
@@ -1922,7 +1899,6 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
-            forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 77,
@@ -2393,7 +2369,6 @@ mod tests {
 
         insta::assert_debug_snapshot!(reduced_result, @r"
         Sps {
-            forbidden_zero_bit: false,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 100,
@@ -2425,7 +2400,9 @@ mod tests {
             gaps_in_frame_num_value_allowed_flag: false,
             pic_width_in_mbs_minus1: 0,
             pic_height_in_map_units_minus1: 0,
-            mb_adaptive_frame_field_flag: None,
+            mb_adaptive_frame_field_flag: Some(
+                false,
+            ),
             direct_8x8_inference_flag: false,
             frame_crop_info: None,
             sample_aspect_ratio: None,

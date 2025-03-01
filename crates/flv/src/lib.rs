@@ -47,6 +47,7 @@ mod tests {
     use scuffle_amf0::Amf0Value;
     use scuffle_av1::ObuHeader;
     use scuffle_av1::seq::SequenceHeaderObu;
+    use scuffle_h264::Sps;
 
     use crate::aac::AacPacket;
     use crate::audio::{AudioData, AudioDataBody, SoundRate, SoundSize, SoundType};
@@ -236,9 +237,62 @@ mod tests {
             assert_eq!(avc_decoder_configuration_record.pps.len(), 1);
             assert_eq!(avc_decoder_configuration_record.extended_config, None);
 
-            let sps = &avc_decoder_configuration_record.sps[0];
+            let sps = Sps::parse(&mut std::io::Cursor::new(&avc_decoder_configuration_record.sps[0])).expect("expected sequence parameter set");
 
-            insta::assert_debug_snapshot!(sps, @r#"b"gd\03\xac\xcaP\x0f\0\x10\xfb\x01\x10\0\0\x03\0\x10\0\0\x07\x88\xf1\x83\x19`""#);
+            insta::assert_debug_snapshot!(sps, @r"
+            Sps {
+                nal_ref_idc: 3,
+                nal_unit_type: NALUnitType::SPS,
+                profile_idc: 100,
+                constraint_set0_flag: false,
+                constraint_set1_flag: false,
+                constraint_set2_flag: false,
+                constraint_set3_flag: false,
+                constraint_set4_flag: false,
+                constraint_set5_flag: false,
+                level_idc: 51,
+                seq_parameter_set_id: 0,
+                ext: Some(
+                    SpsExtended {
+                        chroma_format_idc: 1,
+                        separate_color_plane_flag: false,
+                        bit_depth_luma_minus8: 0,
+                        bit_depth_chroma_minus8: 0,
+                        qpprime_y_zero_transform_bypass_flag: false,
+                        scaling_matrix: [],
+                    },
+                ),
+                log2_max_frame_num_minus4: 0,
+                pic_order_cnt_type: 0,
+                log2_max_pic_order_cnt_lsb_minus4: Some(
+                    4,
+                ),
+                pic_order_cnt_type1: None,
+                max_num_ref_frames: 4,
+                gaps_in_frame_num_value_allowed_flag: false,
+                pic_width_in_mbs_minus1: 239,
+                pic_height_in_map_units_minus1: 134,
+                mb_adaptive_frame_field_flag: None,
+                direct_8x8_inference_flag: true,
+                frame_crop_info: None,
+                sample_aspect_ratio: Some(
+                    SarDimensions {
+                        aspect_ratio_idc: AspectRatioIdc::Square,
+                        sar_width: 0,
+                        sar_height: 0,
+                    },
+                ),
+                overscan_appropriate_flag: None,
+                color_config: None,
+                chroma_sample_loc: None,
+                timing_info: Some(
+                    TimingInfo {
+                        num_units_in_tick: 48,
+                        time_scale: 16777216,
+                    },
+                ),
+            }
+            ");
         }
 
         // Audio Sequence Header Tag

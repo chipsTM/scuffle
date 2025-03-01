@@ -69,7 +69,7 @@ impl ColorConfig {
     /// Builds the ColorConfig struct into a byte stream.
     /// Returns a built byte stream.
     pub fn build<T: io::Write>(&self, writer: &mut BitWriter<T>) -> io::Result<()> {
-        writer.write_bits(self.video_format.into(), 3)?;
+        writer.write_bits(self.video_format.0 as u64, 3)?;
         writer.write_bit(self.video_full_range_flag)?;
 
         match (self.color_primaries, self.transfer_characteristics, self.matrix_coefficients) {

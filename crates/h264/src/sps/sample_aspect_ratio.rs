@@ -64,7 +64,7 @@ impl SarDimensions {
     /// Builds the SarDimensions struct into a byte stream.
     /// Returns a built byte stream.
     pub fn build<T: io::Write>(&self, writer: &mut BitWriter<T>) -> io::Result<()> {
-        writer.write_bits(self.aspect_ratio_idc.into(), 8)?;
+        writer.write_bits(self.aspect_ratio_idc.0 as u64, 8)?;
 
         if self.aspect_ratio_idc == AspectRatioIdc(255) {
             writer.write_bits(self.sar_width as u64, 16)?;
