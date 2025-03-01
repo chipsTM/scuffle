@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use opentelemetry::{Array, StringValue, Value};
 
-#[doc(hidden)]
 /// A compiler trick to create a specialization for a type.
 /// Its particularly useful when we using macros so that we can at compile time
 /// specialize for an arbitrary input type. We want to specialize for specific
@@ -11,6 +10,7 @@ use opentelemetry::{Array, StringValue, Value};
 /// `Into<Value>` trait. Or if the type implements `std::fmt::Display` or
 /// `std::fmt::Debug` we use that to convert to a `String` and then to a
 /// `Value`.
+#[doc(hidden)]
 pub struct SpecializeValue<T>(Option<T>);
 
 impl<T> SpecializeValue<T> {
@@ -19,9 +19,8 @@ impl<T> SpecializeValue<T> {
     }
 
     #[inline]
-    pub fn take(&mut self) -> T {
-        // Safety: `self` is a `Some` value
-        unsafe { self.0.take().unwrap_unchecked() }
+    fn take(&mut self) -> T {
+        self.0.take().expect("value is not Some")
     }
 }
 
@@ -304,6 +303,7 @@ macro_rules! to_value {
 }
 
 #[cfg(test)]
+#[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
     use super::*;
 
@@ -316,13 +316,11 @@ mod tests {
     #[test]
     fn test_specialization_display() {
         struct Displayable(i64);
-
         impl std::fmt::Display for Displayable {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "{}", self.0)
             }
         }
-
         let value = to_value!(Displayable(1));
         assert_eq!(value, Some(Value::String("1".into())));
     }
@@ -330,13 +328,11 @@ mod tests {
     #[test]
     fn test_specialization_into() {
         struct Intoable(i64);
-
         impl From<Intoable> for Value {
             fn from(val: Intoable) -> Self {
                 Value::I64(val.0)
             }
         }
-
         let value = to_value!(Intoable(1));
         assert_eq!(value, Some(Value::I64(1)));
     }
@@ -381,5 +377,194 @@ mod tests {
     fn test_some_str() {
         let value = to_value!("hello");
         assert_eq!(value, Some(Value::String("hello".into())));
+    }
+
+    #[test]
+    fn test_specialization_i32() {
+        let value = to_value!(1i32);
+        assert_eq!(value, Some(Value::I64(1)));
+    }
+
+    #[test]
+    fn test_specialization_u32() {
+        let value = to_value!(1u32);
+        assert_eq!(value, Some(Value::I64(1)));
+    }
+
+    #[test]
+    fn test_specialization_i16() {
+        let value = to_value!(1i16);
+        assert_eq!(value, Some(Value::I64(1)));
+    }
+
+    #[test]
+    fn test_specialization_u16() {
+        let value = to_value!(1u16);
+        assert_eq!(value, Some(Value::I64(1)));
+    }
+
+    #[test]
+    fn test_specialization_i8() {
+        let value = to_value!(1i8);
+        assert_eq!(value, Some(Value::I64(1)));
+    }
+
+    #[test]
+    fn test_specialization_u8() {
+        let value = to_value!(1u8);
+        assert_eq!(value, Some(Value::I64(1)));
+    }
+
+    #[test]
+    fn test_specialization_f32() {
+        let value = to_value!(1.0f32);
+        assert_eq!(value, Some(Value::F64(1.0)));
+    }
+
+    #[test]
+    fn test_specialization_bool() {
+        let value = to_value!(true);
+        assert_eq!(value, Some(Value::Bool(true)));
+    }
+
+    #[test]
+    fn test_specialization_string() {
+        let value = to_value!("hello".to_string());
+        assert_eq!(value, Some(Value::String("hello".into())));
+    }
+
+    #[test]
+    fn test_specialization_arc_str() {
+        let arc_str = Arc::from("hello");
+        let value = to_value!(arc_str);
+        assert_eq!(value, Some(Value::String("hello".into())));
+    }
+
+    #[test]
+    fn test_specialization_cow_str() {
+        let cow_str: Cow<'static, str> = Cow::Borrowed("hello");
+        let value = to_value!(cow_str);
+        assert_eq!(value, Some(Value::String("hello".into())));
+    }
+
+    #[test]
+    fn test_specialization_value() {
+        let val = Value::I64(42);
+        let value = to_value!(val);
+        assert_eq!(value, Some(Value::I64(42)));
+    }
+
+    #[test]
+    fn test_specialization_array_direct() {
+        let arr = Array::I64(vec![1, 2, 3]);
+        let value = to_value!(arr);
+        assert_eq!(value, Some(Value::Array(Array::I64(vec![1, 2, 3]))));
+    }
+
+    #[test]
+    fn test_specialization_vec_bool() {
+        let vec = vec![true, false, true];
+        let value = to_value!(vec);
+        assert_eq!(value, Some(Value::Array(Array::Bool(vec![true, false, true]))));
+    }
+
+    #[test]
+    fn test_specialization_vec_str() {
+        let vec = vec!["a", "b", "c"];
+        let value = to_value!(vec);
+        assert_eq!(
+            value,
+            Some(Value::Array(Array::String(vec!["a".into(), "b".into(), "c".into()])))
+        );
+    }
+
+    #[test]
+    fn test_specialization_vec_string() {
+        let vec = vec!["a".to_string(), "b".to_string(), "c".to_string()];
+        let value = to_value!(vec);
+        assert_eq!(
+            value,
+            Some(Value::Array(Array::String(vec!["a".into(), "b".into(), "c".into()])))
+        );
+    }
+
+    #[test]
+    fn test_specialization_vec_arc_str() {
+        let vec = vec![Arc::from("a"), Arc::from("b"), Arc::from("c")];
+        let value = to_value!(vec);
+        assert_eq!(
+            value,
+            Some(Value::Array(Array::String(vec!["a".into(), "b".into(), "c".into()])))
+        );
+    }
+
+    #[test]
+    fn test_specialization_vec_cow_str() {
+        let vec = vec![Cow::Borrowed("a"), Cow::Borrowed("b"), Cow::Borrowed("c")];
+        let value = to_value!(vec);
+        assert_eq!(
+            value,
+            Some(Value::Array(Array::String(vec!["a".into(), "b".into(), "c".into()])))
+        );
+    }
+
+    #[test]
+    fn test_specialization_option_i32_some() {
+        let value = to_value!(Some(1i32));
+        assert_eq!(value, Some(Value::I64(1)));
+    }
+
+    #[test]
+    fn test_specialization_option_i32_none() {
+        let value = to_value!(None::<i32>);
+        assert_eq!(value, None);
+    }
+
+    #[test]
+    fn test_specialization_option_f64_some() {
+        let value = to_value!(Some(1.0f64));
+        assert_eq!(value, Some(Value::F64(1.0)));
+    }
+
+    #[test]
+    fn test_specialization_option_f63_none() {
+        let value = to_value!(None::<f64>);
+        assert_eq!(value, None);
+    }
+
+    #[test]
+    fn test_specialization_option_string_some() {
+        let value = to_value!(Some("hello".to_string()));
+        assert_eq!(value, Some(Value::String("hello".into())));
+    }
+
+    #[test]
+    fn test_specialization_option_string_none() {
+        let value = to_value!(None::<String>);
+        assert_eq!(value, None);
+    }
+
+    #[test]
+    fn test_specialization_option_string_value_some() {
+        let value = to_value!(Some(StringValue::from("hello")));
+        assert_eq!(value, Some(Value::String("hello".into())));
+    }
+
+    #[test]
+    fn test_specialization_option_string_value_none() {
+        let value = to_value!(None::<StringValue>);
+        assert_eq!(value, None);
+    }
+
+    #[test]
+    fn test_specialization_option_vec_string_value_some() {
+        let value = to_value!(Some(vec![StringValue::from("a"), StringValue::from("b")]));
+        assert_eq!(value, Some(Value::Array(Array::String(vec!["a".into(), "b".into()]))));
+    }
+
+    #[test]
+    fn test_specialization_option_vec_string_value_none() {
+        let value = to_value!(None::<Vec<StringValue>>);
+        assert_eq!(value, None);
     }
 }

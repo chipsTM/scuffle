@@ -161,3 +161,27 @@
    fun:_ZN17opentelemetry_sdk8resource8Resource5merge*
    ...
 }
+{
+   ignore collector::tests::test_metric_with_zero_values
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN17opentelemetry_sdk7metrics8internal9aggregate25AggregateBuilder$LT$T$GT$10last_value*
+   ...
+}
+{
+   ignore collector::tests::test_metric_with_string_attribute
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN15scuffle_metrics9collector5tests33test_metric_with_string_attribute28_*
+   ...
+}
+{
+   ignore collector::tests::test_histogram_metric
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN17opentelemetry_sdk7metrics8internal9aggregate25AggregateBuilder$LT$T$GT$25explicit_bucket_histogram*
+   ...
+}
