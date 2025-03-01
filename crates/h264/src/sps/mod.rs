@@ -580,7 +580,7 @@ impl Sps {
         bit_writer.write_exp_golomb(self.pic_width_in_mbs_minus1)?;
         bit_writer.write_exp_golomb(self.pic_height_in_map_units_minus1)?;
 
-        bit_writer.write_bit(self.mb_adaptive_frame_field_flag.is_some())?;
+        bit_writer.write_bit(self.mb_adaptive_frame_field_flag.is_none())?;
         if let Some(flag) = self.mb_adaptive_frame_field_flag {
             bit_writer.write_bit(flag)?;
         }
@@ -2400,9 +2400,7 @@ mod tests {
             gaps_in_frame_num_value_allowed_flag: false,
             pic_width_in_mbs_minus1: 0,
             pic_height_in_map_units_minus1: 0,
-            mb_adaptive_frame_field_flag: Some(
-                false,
-            ),
+            mb_adaptive_frame_field_flag: None,
             direct_8x8_inference_flag: false,
             frame_crop_info: None,
             sample_aspect_ratio: None,
