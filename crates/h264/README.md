@@ -45,7 +45,7 @@ let result = AVCDecoderConfigurationRecord::parse(&mut io::Cursor::new(data.into
 // Do something with it!
 
 // You can also access the sps bytestream and parse it:
-let sps = Sps::parse(&result.sps[0]).unwrap();
+let sps = Sps::parse_with_emulation_prevention(&result.sps[0]).unwrap();
 ```
 
 For more examples, check out the tests in the source code for the parse function.

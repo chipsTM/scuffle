@@ -237,8 +237,9 @@ mod tests {
             assert_eq!(avc_decoder_configuration_record.pps.len(), 1);
             assert_eq!(avc_decoder_configuration_record.extended_config, None);
 
-            let sps = Sps::parse(&mut std::io::Cursor::new(&avc_decoder_configuration_record.sps[0]))
-                .expect("expected sequence parameter set");
+            let sps =
+                Sps::parse_with_emulation_prevention(&mut std::io::Cursor::new(&avc_decoder_configuration_record.sps[0]))
+                    .expect("expected sequence parameter set");
 
             insta::assert_debug_snapshot!(sps, @r"
             Sps {
@@ -288,8 +289,8 @@ mod tests {
                 chroma_sample_loc: None,
                 timing_info: Some(
                     TimingInfo {
-                        num_units_in_tick: 48,
-                        time_scale: 16777216,
+                        num_units_in_tick: 1,
+                        time_scale: 120,
                     },
                 ),
             }
