@@ -1,4 +1,9 @@
 //! Types related to the batcher and batch executor.
+//!
+//! The [`Batcher`] is used to batch requests to a [`BatchExecutor`].
+//!
+//! This shouldn't be used to fetch data.
+//! Please refer to the [`dataloader`](crate::dataloader) module for that.
 
 use std::future::Future;
 use std::sync::Arc;
