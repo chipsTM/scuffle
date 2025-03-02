@@ -47,7 +47,6 @@ This repository houses a collection of crates, purpose-built libraries designed 
 - 📦 **[scuffle-bytes-util](./crates/bytes-util)**:  Some helpful utilities for working with bits and bytes.
 - 🧭 **[scuffle-context](./crates/context)**:  Go-like context utilities for Rust.
 - ⌛ **[scuffle-future-ext](./crates/future-ext)**:  Extensions for working with futures.
-- 📡 **[scuffle-h3-webtransport](./crates/h3-webtransport)**:  Enhanced fork of the [h3-webtransport](https://crates.io/crates/h3-webtransport) crate tailored for Scuffle.
 - 🦈 **[scuffle-http](./crates/http)**:  A high-performance HTTP server supporting HTTP/1.1, HTTP/2, and HTTP/3.
 - 📊 **[scuffle-metrics](./crates/metrics)**:  Helper crate to instrument your code with metrics.
   - 🔧 **[scuffle-metrics-derive](./crates/metrics/derive)**:  Derive macros for `scuffle-metrics`.
