@@ -63,11 +63,6 @@ category = "docs"
 description = "improved documentation"
 authors = ["@lennartkloock"]
 
-[[scuffle-h3-webtransport]]
-category = "docs"
-description = "improved documentation"
-authors = ["@lennartkloock"]
-
 [[scuffle-http]]
 category = "docs"
 description = "improved documentation"
