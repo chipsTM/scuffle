@@ -9,11 +9,11 @@ use scuffle_bytes_util::{BitReader, BitWriter, BytesCursorExt};
 /// <https://aomediacodec.github.io/av1-mpeg2-ts/#av1-video-descriptor>
 #[derive(Debug, Clone, PartialEq)]
 pub struct AV1VideoDescriptor {
-    /// `descriptor_tag`
+    /// This value shall be set to `0x80`.
     ///
     /// 8 bits
     pub tag: u8,
-    /// `descriptor_length`
+    /// This value shall be set to 4.
     ///
     /// 8 bits
     pub length: u8,
@@ -50,53 +50,68 @@ impl AV1VideoDescriptor {
 ///
 /// <https://aomediacodec.github.io/av1-isobmff/#av1codecconfigurationbox-syntax>
 pub struct AV1CodecConfigurationRecord {
-    /// `seq_profile`
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf).
     ///
     /// 3 bits
     pub seq_profile: u8,
-    /// `seq_level_idx_0`
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf).
     ///
     /// 5 bits
     pub seq_level_idx_0: u8,
-    /// `seq_tier_0`
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf), when present.
+    /// If they are not present, they will be coded using the value inferred by the semantics.
     ///
     /// 1 bit
     pub seq_tier_0: bool,
-    /// `high_bitdepth`
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf).
     ///
     /// 1 bit
     pub high_bitdepth: bool,
-    /// `twelve_bit`
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf), when present.
+    /// If they are not present, they will be coded using the value inferred by the semantics.
     ///
     /// 1 bit
     pub twelve_bit: bool,
-    /// `monochrome`
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf), when present.
+    /// If they are not present, they will be coded using the value inferred by the semantics.
     ///
     /// 1 bit
     pub monochrome: bool,
-    /// `chroma_subsampling_x`
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf), when present.
+    /// If they are not present, they will be coded using the value inferred by the semantics.
     ///
     /// 1 bit
     pub chroma_subsampling_x: bool,
-    /// `chroma_subsampling_y`
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf), when present.
+    /// If they are not present, they will be coded using the value inferred by the semantics.
     ///
     /// 1 bit
     pub chroma_subsampling_y: bool,
-    /// `chroma_sample_position`
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf), when present.
+    /// If they are not present, they will be coded using the value inferred by the semantics.
     ///
     /// 2 bits
     pub chroma_sample_position: u8,
-    /// `hdr_wcg_idc`
+    /// The value of this syntax element indicates the presence or absence of high dynamic range (HDR) and/or
+    /// wide color gamut (WCG) video components in the associated PID according to the table below.
+    ///
+    /// | HDR/WCG IDC | Description   |
+    /// |-------------|---------------|
+    /// | 0           | SDR           |
+    /// | 1           | WCG only      |
+    /// | 2           | HDR and WCG   |
+    /// | 3           | No indication |
     ///
     /// 2 bits
     ///
     /// From a newer spec: <https://aomediacodec.github.io/av1-mpeg2-ts/#av1-video-descriptor>
     pub hdr_wcg_idc: u8,
-    /// `initial_presentation_delay_minus_one`
+    /// Ignored for [MPEG-2 TS](https://www.iso.org/standard/83239.html) use,
+    /// included only to aid conversion to/from ISOBMFF.
     ///
     /// 4 bits
     pub initial_presentation_delay_minus_one: Option<u8>,
-    /// `configOBUs[]`
+    /// Zero or more OBUs. Refer to the linked specification for details.
     ///
     /// 8 bits
     pub config_obu: Bytes,
