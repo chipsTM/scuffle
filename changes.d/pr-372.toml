@@ -68,16 +68,6 @@ category = "docs"
 description = "improved documentation"
 authors = ["@lennartkloock"]
 
-[[scuffle-h264]]
-category = "docs"
-description = "improved documentation"
-authors = ["@lennartkloock"]
-
-[[scuffle-h265]]
-category = "docs"
-description = "improved documentation"
-authors = ["@lennartkloock"]
-
 [[scuffle-http]]
 category = "docs"
 description = "improved documentation"
@@ -93,11 +83,6 @@ category = "docs"
 description = "improved documentation"
 authors = ["@lennartkloock"]
 
-[[scuffle-mp4]]
-category = "docs"
-description = "improved documentation"
-authors = ["@lennartkloock"]
-
 [[nutype-enum]]
 category = "docs"
 description = "improved documentation"
@@ -109,11 +94,6 @@ description = "improved documentation"
 authors = ["@lennartkloock"]
 
 [[scuffle-pprof]]
-category = "docs"
-description = "improved documentation"
-authors = ["@lennartkloock"]
-
-[[scuffle-rtmp]]
 category = "docs"
 description = "improved documentation"
 authors = ["@lennartkloock"]
