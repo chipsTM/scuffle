@@ -67,10 +67,6 @@ component_management:
       name: scuffle-future-ext
       paths:
         - crates/future-ext/**
-    - component_id: scuffle-h3-webtransport
-      name: scuffle-h3-webtransport
-      paths:
-        - crates/h3-webtransport/**
     - component_id: nutype-enum
       name: nutype-enum
       paths:

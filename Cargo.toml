@@ -16,7 +16,6 @@ members = [
     "crates/ffmpeg",
     "crates/flv",
     "crates/future-ext",
-    "crates/h3-webtransport",
     "crates/h264",
     "crates/h265",
     "crates/http",
@@ -54,7 +53,6 @@ scuffle-expgolomb = { path = "crates/expgolomb", version = "0.1.1" }
 scuffle-ffmpeg = { path = "crates/ffmpeg", version = "0.2.0" }
 scuffle-flv = { path = "crates/flv", version = "0.1.1" }
 scuffle-future-ext = { path = "crates/future-ext", version = "0.1.1" }
-scuffle-h3-webtransport = { path = "crates/h3-webtransport", version = "0.1.1" }
 scuffle-http = { path = "crates/http", version = "0.2.0" }
 scuffle-metrics = { path = "crates/metrics", version = "0.1.1" }
 scuffle-metrics-derive = { path = "crates/metrics/derive", version = "0.1.1" }

@@ -3007,19 +3007,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "scuffle-h3-webtransport"
-version = "0.1.1"
-dependencies = [
- "bytes",
- "futures-util",
- "h3",
- "http",
- "pin-project-lite",
- "scuffle-workspace-hack",
- "tokio",
-]
-
-[[package]]
 name = "scuffle-http"
 version = "0.2.0"
 dependencies = [
