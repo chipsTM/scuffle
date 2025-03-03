@@ -43,21 +43,6 @@ category = "docs"
 description = "improved documentation"
 authors = ["@lennartkloock"]
 
-[[scuffle-expgolomb]]
-category = "docs"
-description = "improved documentation"
-authors = ["@lennartkloock"]
-
-[[scuffle-ffmpeg]]
-category = "docs"
-description = "improved documentation"
-authors = ["@lennartkloock"]
-
-[[scuffle-flv]]
-category = "docs"
-description = "improved documentation"
-authors = ["@lennartkloock"]
-
 [[scuffle-future-ext]]
 category = "docs"
 description = "improved documentation"
@@ -73,17 +58,7 @@ category = "docs"
 description = "improved documentation"
 authors = ["@lennartkloock"]
 
-[[scuffle-metrics-derive]]
-category = "docs"
-description = "improved documentation"
-authors = ["@lennartkloock"]
-
 [[nutype-enum]]
-category = "docs"
-description = "improved documentation"
-authors = ["@lennartkloock"]
-
-[[postcompile]]
 category = "docs"
 description = "improved documentation"
 authors = ["@lennartkloock"]
