@@ -1,3 +1,7 @@
+//! Types related to the dataloader.
+//!
+//! Dataloaders should only be used for fetching data.
+//! If you need to batch writes, use a [`Batcher`](crate::batch::Batcher) instead.
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::sync::Arc;

@@ -5,15 +5,24 @@ use bytes::Bytes;
 use scuffle_bytes_util::{BitReader, BitWriter, BytesCursorExt};
 
 /// AV1 Video Descriptor
+///
 /// <https://aomediacodec.github.io/av1-mpeg2-ts/#av1-video-descriptor>
 #[derive(Debug, Clone, PartialEq)]
 pub struct AV1VideoDescriptor {
+    /// This value shall be set to `0x80`.
+    ///
+    /// 8 bits
     pub tag: u8,
+    /// This value shall be set to 4.
+    ///
+    /// 8 bits
     pub length: u8,
+    /// AV1 Codec Configuration Record
     pub codec_configuration_record: AV1CodecConfigurationRecord,
 }
 
 impl AV1VideoDescriptor {
+    /// Demuxes the AV1 Video Descriptor from the given reader.
     pub fn demux(reader: &mut io::Cursor<Bytes>) -> io::Result<Self> {
         let tag = reader.read_u8()?;
         if tag != 0x80 {
@@ -38,23 +47,78 @@ impl AV1VideoDescriptor {
 
 #[derive(Debug, Clone, PartialEq)]
 /// AV1 Codec Configuration Record
+///
 /// <https://aomediacodec.github.io/av1-isobmff/#av1codecconfigurationbox-syntax>
 pub struct AV1CodecConfigurationRecord {
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf).
+    ///
+    /// 3 bits
     pub seq_profile: u8,
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf).
+    ///
+    /// 5 bits
     pub seq_level_idx_0: u8,
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf), when present.
+    /// If they are not present, they will be coded using the value inferred by the semantics.
+    ///
+    /// 1 bit
     pub seq_tier_0: bool,
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf).
+    ///
+    /// 1 bit
     pub high_bitdepth: bool,
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf), when present.
+    /// If they are not present, they will be coded using the value inferred by the semantics.
+    ///
+    /// 1 bit
     pub twelve_bit: bool,
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf), when present.
+    /// If they are not present, they will be coded using the value inferred by the semantics.
+    ///
+    /// 1 bit
     pub monochrome: bool,
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf), when present.
+    /// If they are not present, they will be coded using the value inferred by the semantics.
+    ///
+    /// 1 bit
     pub chroma_subsampling_x: bool,
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf), when present.
+    /// If they are not present, they will be coded using the value inferred by the semantics.
+    ///
+    /// 1 bit
     pub chroma_subsampling_y: bool,
+    /// This field shall be coded according to the semantics defined in [AV1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf), when present.
+    /// If they are not present, they will be coded using the value inferred by the semantics.
+    ///
+    /// 2 bits
     pub chroma_sample_position: u8,
+    /// The value of this syntax element indicates the presence or absence of high dynamic range (HDR) and/or
+    /// wide color gamut (WCG) video components in the associated PID according to the table below.
+    ///
+    /// | HDR/WCG IDC | Description   |
+    /// |-------------|---------------|
+    /// | 0           | SDR           |
+    /// | 1           | WCG only      |
+    /// | 2           | HDR and WCG   |
+    /// | 3           | No indication |
+    ///
+    /// 2 bits
+    ///
+    /// From a newer spec: <https://aomediacodec.github.io/av1-mpeg2-ts/#av1-video-descriptor>
     pub hdr_wcg_idc: u8,
+    /// Ignored for [MPEG-2 TS](https://www.iso.org/standard/83239.html) use,
+    /// included only to aid conversion to/from ISOBMFF.
+    ///
+    /// 4 bits
     pub initial_presentation_delay_minus_one: Option<u8>,
+    /// Zero or more OBUs. Refer to the linked specification for details.
+    ///
+    /// 8 bits
     pub config_obu: Bytes,
 }
 
 impl AV1CodecConfigurationRecord {
+    /// Demuxes the AV1 Codec Configuration Record from the given reader.
     pub fn demux(reader: &mut io::Cursor<Bytes>) -> io::Result<Self> {
         let mut bit_reader = BitReader::new(reader);
 
@@ -116,6 +180,7 @@ impl AV1CodecConfigurationRecord {
         })
     }
 
+    /// Returns the size of the AV1 Codec Configuration Record.
     pub fn size(&self) -> u64 {
         1 // marker, version
         + 1 // seq_profile, seq_level_idx_0
@@ -124,6 +189,7 @@ impl AV1CodecConfigurationRecord {
         + self.config_obu.len() as u64
     }
 
+    /// Muxes the AV1 Codec Configuration Record to the given writer.
     pub fn mux<T: io::Write>(&self, writer: &mut T) -> io::Result<()> {
         let mut bit_writer = BitWriter::new(writer);
 
