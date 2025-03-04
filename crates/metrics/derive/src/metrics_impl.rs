@@ -53,7 +53,7 @@ impl Parse for Options {
 }
 
 enum ModuleItem {
-    Other(syn::Item),
+    Other(Box<syn::Item>),
     Function(proc_macro2::TokenStream),
 }
 
@@ -482,12 +482,12 @@ pub fn metrics_impl(args: proc_macro::TokenStream, input: proc_macro::TokenStrea
         .flat_map(|(_, item)| item)
         .map(|item| match item {
             syn::Item::Verbatim(verbatim) => metric_function(verbatim, Some(&module_name), &args).map(ModuleItem::Function),
-            item => Ok(ModuleItem::Other(item)),
+            item => Ok(ModuleItem::Other(Box::new(item))),
         })
         .collect::<syn::Result<Vec<_>>>()?;
 
     let items = items.into_iter().map(|item| match item {
-        ModuleItem::Other(item) => item,
+        ModuleItem::Other(item) => *item,
         ModuleItem::Function(item) => syn::Item::Verbatim(item),
     });
 

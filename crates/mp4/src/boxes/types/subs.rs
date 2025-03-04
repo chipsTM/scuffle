@@ -76,23 +76,22 @@ impl BoxType for Subs {
     fn primitive_size(&self) -> u64 {
         let size = self.header.size();
         let size = size + 4; // entry_count
-        let size = size
-            + self
-                .entries
-                .iter()
-                .map(|e| {
-                    let size = 4; // sample_delta
-                    let size = size + 2; // subsample_count
+        // entries
+        size + self
+            .entries
+            .iter()
+            .map(|e| {
+                let size = 4; // sample_delta
+                let size = size + 2; // subsample_count
 
-                    size + e.subsamples.len() as u64
-                        * if self.header.version == 1 {
-                            4 + 1 + 1 + 4
-                        } else {
-                            2 + 1 + 1 + 4
-                        }
-                })
-                .sum::<u64>(); // entries
-        size
+                size + e.subsamples.len() as u64
+                    * if self.header.version == 1 {
+                        4 + 1 + 1 + 4
+                    } else {
+                        2 + 1 + 1 + 4
+                    }
+            })
+            .sum::<u64>()
     }
 
     fn primitive_mux<T: io::Write>(&self, writer: &mut T) -> io::Result<()> {

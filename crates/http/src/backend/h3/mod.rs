@@ -70,8 +70,7 @@ where
         let socket = std::net::UdpSocket::bind(self.bind)?;
 
         // Runtime for the quinn endpoint
-        let runtime = h3_quinn::quinn::default_runtime()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "no async runtime found"))?;
+        let runtime = h3_quinn::quinn::default_runtime().ok_or_else(|| io::Error::other("no async runtime found"))?;
 
         // Create a child context for the workers so we can shut them down if one of them fails without shutting down the main context
         let (worker_ctx, worker_handler) = self.ctx.new_child();

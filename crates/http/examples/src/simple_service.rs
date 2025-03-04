@@ -40,8 +40,7 @@ pub fn get_tls_config() -> io::Result<rustls::ServerConfig> {
 // Load public certificate from file.
 fn load_certs(filename: &str) -> io::Result<Vec<CertificateDer<'static>>> {
     // Open certificate file.
-    let certfile = fs::File::open(filename)
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("failed to open {}: {}", filename, e)))?;
+    let certfile = fs::File::open(filename).map_err(|e| io::Error::other(format!("failed to open {}: {}", filename, e)))?;
     let mut reader = io::BufReader::new(certfile);
 
     // Load and return certificate.
@@ -51,11 +50,10 @@ fn load_certs(filename: &str) -> io::Result<Vec<CertificateDer<'static>>> {
 // Load private key from file.
 fn load_private_key(filename: &str) -> io::Result<PrivateKeyDer<'static>> {
     // Open keyfile.
-    let keyfile = fs::File::open(filename)
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("failed to open {}: {}", filename, e)))?;
+    let keyfile = fs::File::open(filename).map_err(|e| io::Error::other(format!("failed to open {}: {}", filename, e)))?;
     let mut reader = io::BufReader::new(keyfile);
 
     // Load and return a single private key.
     rustls_pemfile::private_key(&mut reader)?
-        .ok_or_else(|| io::Error::new(io::ErrorKind::Other, format!("no private key found in {}", filename)))
+        .ok_or_else(|| io::Error::other(format!("no private key found in {}", filename)))
 }

@@ -7,7 +7,7 @@ pub enum Stream {
     Tcp(tokio::net::TcpStream),
     #[cfg(feature = "tls-rustls")]
     #[cfg_attr(docsrs, doc(cfg(feature = "tls-rustls")))]
-    Tls(tokio_rustls::server::TlsStream<tokio::net::TcpStream>),
+    Tls(Box<tokio_rustls::server::TlsStream<tokio::net::TcpStream>>),
 }
 
 impl Stream {
@@ -20,7 +20,7 @@ impl Stream {
         match self {
             Stream::Tcp(stream) => {
                 let stream = tls_acceptor.accept(stream).await?;
-                Ok(Self::Tls(stream))
+                Ok(Self::Tls(Box::new(stream)))
             }
             Stream::Tls(_) => Ok(self),
         }

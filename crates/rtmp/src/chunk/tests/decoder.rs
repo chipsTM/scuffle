@@ -5,7 +5,7 @@ use crate::chunk::{ChunkDecodeError, ChunkDecoder};
 
 #[test]
 fn test_decoder_error_display() {
-    let error = ChunkDecodeError::IO(std::io::Error::new(std::io::ErrorKind::Other, "test"));
+    let error = ChunkDecodeError::IO(std::io::Error::other("test"));
     assert_eq!(format!("{}", error), "io error: test");
 
     let error = ChunkDecodeError::InvalidChunkType(123);
