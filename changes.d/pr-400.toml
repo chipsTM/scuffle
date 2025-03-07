@@ -1,0 +1,10 @@
+[[scuffle-bootstrap]]
+category = "fix"
+description = "fixed panic on no service provided"
+authors = ["@lucassshanks"]
+
+[[scuffle-bootstrap-derive]]
+category = "fix"
+description = "fixed panic on no service provided"
+authors = ["@lucassshanks"]
+
