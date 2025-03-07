@@ -193,33 +193,6 @@ enum WindowsSignalValue {
     Mock(SignalKind, Pin<Box<tokio_stream::wrappers::BroadcastStream<SignalKind>>>),
 }
 
-#[cfg(all(windows, test))]
-struct SignalMocker(tokio::sync::broadcast::Sender<SignalKind>);
-
-#[cfg(all(windows, test))]
-impl SignalMocker {
-    fn new() -> Self {
-        println!("new");
-        let (sender, _) = tokio::sync::broadcast::channel(100);
-        Self(sender)
-    }
-
-    fn raise(kind: SignalKind) {
-        println!("raising");
-        SIGNAL_MOCKER.with(|local| local.0.send(kind).unwrap());
-    }
-
-    fn subscribe() -> tokio::sync::broadcast::Receiver<SignalKind> {
-        println!("subscribing");
-        SIGNAL_MOCKER.with(|local| local.0.subscribe())
-    }
-}
-
-#[cfg(all(windows, test))]
-thread_local! {
-    static SIGNAL_MOCKER: SignalMocker = SignalMocker::new();
-}
-
 #[cfg(windows)]
 impl WindowsSignalValue {
     fn poll_recv(&mut self, cx: &mut Context<'_>) -> Poll<Option<()>> {
@@ -385,12 +358,6 @@ impl SignalHandler {
     ///
     /// If the signal is already in the handler, it will not be added again.
     pub fn add_signal(&mut self, kind: impl Into<SignalKind>) -> &mut Self {
-        // Windows handles signals differently from unix.
-        // Windows signals are sent to a "console". Any process that is attached to the console will receive the signal.
-        // It happens that the test harness is attached to the same console as the test process, meaning that
-        // when we raise a signal it will be received by the harness and the test will cancel.
-        // This is a hack to get around that.
-
         let kind = kind.into();
         if self.signals.iter().any(|(k, _)| k == &kind) {
             return self;
@@ -439,6 +406,33 @@ mod test {
     use scuffle_future_ext::FutureExt;
 
     use crate::{SignalHandler, SignalKind};
+
+    #[cfg(windows)]
+    struct SignalMocker(tokio::sync::broadcast::Sender<SignalKind>);
+
+    #[cfg(windows)]
+    impl SignalMocker {
+        fn new() -> Self {
+            println!("new");
+            let (sender, _) = tokio::sync::broadcast::channel(100);
+            Self(sender)
+        }
+
+        fn raise(kind: SignalKind) {
+            println!("raising");
+            SIGNAL_MOCKER.with(|local| local.0.send(kind).unwrap());
+        }
+
+        fn subscribe() -> tokio::sync::broadcast::Receiver<SignalKind> {
+            println!("subscribing");
+            SIGNAL_MOCKER.with(|local| local.0.subscribe())
+        }
+    }
+
+    #[cfg(windows)]
+    thread_local! {
+        static SIGNAL_MOCKER: SignalMocker = SignalMocker::new();
+    }
 
     #[cfg(windows)]
     pub async fn raise_signal(kind: SignalKind) {
