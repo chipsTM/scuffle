@@ -138,7 +138,9 @@ mod tests {
                         .await?;
                     macro_rules! handle_service_exit {
                         ($remaining:ident) => {
-                            { let ((name, result), _, remaining) =
+                            { if $remaining .is_empty() { return
+                            ::scuffle_bootstrap::prelude::anyhow::Ok(()); } let ((name, result),
+                            _, remaining) =
                             ::scuffle_bootstrap::prelude::futures::future::select_all($remaining)
                             . await; let result =
                             ::scuffle_bootstrap::prelude::anyhow::Context::context(::scuffle_bootstrap::prelude::anyhow::Context::context(result,

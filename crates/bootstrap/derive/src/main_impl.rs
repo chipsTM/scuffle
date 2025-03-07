@@ -219,6 +219,8 @@ pub fn impl_main(input: TokenStream) -> Result<TokenStream, syn::Error> {
 
                 macro_rules! handle_service_exit {
                     ($remaining:ident) => {{
+                        if $remaining.is_empty() {return #crate_path::prelude::anyhow::Ok(());}
+
                         let ((name, result), _, remaining) = #crate_path::prelude::futures::future::select_all($remaining).await;
 
                         let result = #crate_path::prelude::anyhow::Context::context(#crate_path::prelude::anyhow::Context::context(result, name)?, name);
