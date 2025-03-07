@@ -5,8 +5,8 @@ import subprocess
 from typing import Optional
 from dataclasses import dataclass, asdict
 
-# The first argument is the github context
-GITHUB_CONTEXT: dict = json.loads(sys.argv[1])
+# Stdin is the github context
+GITHUB_CONTEXT: dict = json.loads(sys.stdin.read())
 
 GITHUB_DEFAULT_RUNNER = "ubuntu-24.04"
 LINUX_X86_64 = "ubicloud-standard-8"
