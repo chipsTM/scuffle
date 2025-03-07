@@ -19,7 +19,7 @@ bitflags = { version = "2", default-features = false, features = ["serde"] }
 byteorder = { version = "1" }
 camino = { version = "1", default-features = false, features = ["serde1"] }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4" }
 clap_builder = { version = "4", default-features = false, features = ["color", "help", "std", "suggestions", "usage"] }
 config = { version = "0.15", default-features = false, features = ["ini", "json", "json5", "ron", "toml", "yaml"] }
 crossbeam-utils = { version = "0.8" }
@@ -76,7 +76,7 @@ bitflags = { version = "2", default-features = false, features = ["serde"] }
 byteorder = { version = "1" }
 camino = { version = "1", default-features = false, features = ["serde1"] }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4" }
 clap_builder = { version = "4", default-features = false, features = ["color", "help", "std", "suggestions", "usage"] }
 config = { version = "0.15", default-features = false, features = ["ini", "json", "json5", "ron", "toml", "yaml"] }
 crossbeam-utils = { version = "0.8" }
