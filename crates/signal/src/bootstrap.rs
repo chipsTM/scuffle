@@ -89,6 +89,7 @@ impl<Global: SignalConfig> Service<Global> for SignalSvc {
 }
 
 #[cfg(test)]
+#[cfg_attr(all(coverage_nightly, test), coverage(off))]
 mod test {
     use scuffle_bootstrap::GlobalWithoutConfig;
     use scuffle_future_ext::FutureExt;
@@ -147,6 +148,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[cfg(not(valgrind))]
     async fn default_bootstrap_service() {
         force_shutdown_two_signals::<TestGlobal>().await;
     }
@@ -171,6 +173,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[cfg(not(valgrind))]
     async fn bootstrap_service_no_timeout() {
         let (ctx, handler) = scuffle_context::Context::new();
         let svc = SignalSvc;
@@ -206,6 +209,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[cfg(not(valgrind))]
     async fn bootstrap_service_force_shutdown() {
         force_shutdown_two_signals::<NoTimeoutTestGlobal>().await;
     }
@@ -271,6 +275,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[cfg(not(valgrind))]
     async fn bootstrap_service_timeout_force_shutdown() {
         let (ctx, handler) = scuffle_context::Context::new();
 
