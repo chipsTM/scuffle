@@ -95,10 +95,10 @@ mod test {
 
     use scuffle_bootstrap::{GlobalWithoutConfig, Service};
     use scuffle_future_ext::FutureExt;
-    use crate::{SignalKind, SignalSvc};
-    use crate::test::raise_signal;
 
     use super::SignalConfig;
+    use crate::test::raise_signal;
+    use crate::{SignalKind, SignalSvc};
 
     async fn force_shutdown_two_signals<Global: GlobalWithoutConfig + SignalConfig>() {
         let (ctx, handler) = scuffle_context::Context::new();
