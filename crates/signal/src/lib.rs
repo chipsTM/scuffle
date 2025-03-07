@@ -570,4 +570,36 @@ mod test {
         // Expected to timeout
         assert!(handler.recv().with_timeout(Duration::from_millis(500)).await.is_err());
     }
+
+    #[cfg(windows)]
+    #[test]
+    fn signal_kind_eq() {
+        use crate::WindowsSignalKind;
+
+        assert_eq!(SignalKind::Interrupt, SignalKind::Windows(WindowsSignalKind::CtrlC));
+        assert_eq!(SignalKind::Terminate, SignalKind::Windows(WindowsSignalKind::CtrlClose));
+        assert_eq!(SignalKind::Windows(WindowsSignalKind::CtrlC), SignalKind::Interrupt);
+        assert_eq!(SignalKind::Windows(WindowsSignalKind::CtrlClose), SignalKind::Terminate);
+        assert_ne!(SignalKind::Interrupt, SignalKind::Terminate);
+        assert_eq!(
+            SignalKind::Windows(WindowsSignalKind::CtrlBreak),
+            SignalKind::Windows(WindowsSignalKind::CtrlBreak)
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn signal_kind_eq() {
+        use crate::UnixSignalKind;
+
+        assert_eq!(SignalKind::Interrupt, SignalKind::Unix(UnixSignalKind::interrupt()));
+        assert_eq!(SignalKind::Terminate, SignalKind::Unix(UnixSignalKind::terminate()));
+        assert_eq!(SignalKind::Unix(UnixSignalKind::interrupt()), SignalKind::Interrupt);
+        assert_eq!(SignalKind::Unix(UnixSignalKind::terminate()), SignalKind::Terminate);
+        assert_ne!(SignalKind::Interrupt, SignalKind::Terminate);
+        assert_eq!(
+            SignalKind::Unix(UnixSignalKind::user_defined1()),
+            SignalKind::Unix(UnixSignalKind::user_defined1())
+        );
+    }
 }
