@@ -91,12 +91,14 @@ impl<Global: SignalConfig> Service<Global> for SignalSvc {
 #[cfg(test)]
 #[cfg_attr(all(coverage_nightly, test), coverage(off))]
 mod test {
-    use scuffle_bootstrap::GlobalWithoutConfig;
-    use scuffle_future_ext::FutureExt;
+    use std::sync::Arc;
 
-    use super::*;
-    use crate::SignalKind;
+    use scuffle_bootstrap::{GlobalWithoutConfig, Service};
+    use scuffle_future_ext::FutureExt;
+    use crate::{SignalKind, SignalSvc};
     use crate::test::raise_signal;
+
+    use super::SignalConfig;
 
     async fn force_shutdown_two_signals<Global: GlobalWithoutConfig + SignalConfig>() {
         let (ctx, handler) = scuffle_context::Context::new();
