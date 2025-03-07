@@ -35,6 +35,9 @@ This crate aims to fill that gap.
 The following example demonstrates how to create a simple HTTP server (without TLS) that responds with "Hello, world!" to all requests on port 3000.
 
 ```rust
+# use scuffle_future_ext::FutureExt;
+# tokio_test::block_on(async {
+# let run = async {
 let service = scuffle_http::service::fn_http_service(|req| async move {
     scuffle_http::Response::builder()
         .status(scuffle_http::http::StatusCode::OK)
@@ -44,13 +47,15 @@ let service = scuffle_http::service::fn_http_service(|req| async move {
 let service_factory = scuffle_http::service::service_clone_factory(service);
 
 scuffle_http::HttpServer::builder()
-    .with_service_factory(service_factory)
+    .service_factory(service_factory)
     .bind("[::]:3000".parse().unwrap())
     .build()
-    .expect("failed to build server")
     .run()
     .await
     .expect("server failed");
+# };
+# run.with_timeout(std::time::Duration::from_secs(1)).await.expect_err("test should have timed out");
+# });
 ```
 
 ## Status
@@ -61,8 +66,6 @@ This crate is currently under development and is not yet stable.
 
 - HTTP/3 webtransport support
 - Upgrading to websocket connections from HTTP/3 connections (this is usually done via HTTP/1.1 anyway)
-
-Unit tests are not yet fully implemented. Use at your own risk.
 
 ## License
 

@@ -53,8 +53,6 @@
 //!
 //! This crate is currently under development and is not yet stable.
 //!
-//! Unit tests are not yet fully implemented. Use at your own risk.
-//!
 //! ### Missing Features
 //!
 //! - HTTP/3 webtransport support
