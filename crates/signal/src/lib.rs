@@ -244,7 +244,7 @@ impl SignalKind {
         if cfg!(test) {
             return Ok(WindowsSignalValue::Mock(
                 *self,
-                Box::pin(tokio_stream::wrappers::BroadcastStream::new(SignalMocker::subscribe())),
+                Box::pin(tokio_stream::wrappers::BroadcastStream::new(test::SignalMocker::subscribe())),
             ));
         }
 
@@ -408,7 +408,7 @@ mod test {
     use crate::{SignalHandler, SignalKind};
 
     #[cfg(windows)]
-    struct SignalMocker(tokio::sync::broadcast::Sender<SignalKind>);
+    pub(crate) struct SignalMocker(tokio::sync::broadcast::Sender<SignalKind>);
 
     #[cfg(windows)]
     impl SignalMocker {
@@ -423,7 +423,7 @@ mod test {
             SIGNAL_MOCKER.with(|local| local.0.send(kind).unwrap());
         }
 
-        fn subscribe() -> tokio::sync::broadcast::Receiver<SignalKind> {
+        pub(crate) fn subscribe() -> tokio::sync::broadcast::Receiver<SignalKind> {
             println!("subscribing");
             SIGNAL_MOCKER.with(|local| local.0.subscribe())
         }
@@ -436,7 +436,7 @@ mod test {
 
     #[cfg(windows)]
     pub async fn raise_signal(kind: SignalKind) {
-        crate::SignalMocker::raise(kind);
+        SignalMocker::raise(kind);
     }
 
     #[cfg(unix)]
