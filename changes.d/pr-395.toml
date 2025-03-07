@@ -1,0 +1,10 @@
+[[scuffle-signal]]
+category = "feat"
+description = "add windows support"
+breaking = true
+authors = ["@SimaoMoreira5228"]
+
+[[scuffle-signal]]
+category = "feat"
+description = "added block_global_shutdown function to bootstrap"
+authors = ["@SimaoMoreira5228"]
