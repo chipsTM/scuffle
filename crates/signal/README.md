@@ -17,28 +17,37 @@ This crate extends that with a more helpful interface allowing the ability to li
 ## Example
 
 ```rust
-use scuffle_signal::SignalHandler;
-use tokio::signal::unix::SignalKind;
+#[cfg(unix)]
+{
+    use scuffle_signal::SignalHandler;
+    use tokio::signal::unix::SignalKind;
 
-let mut handler = SignalHandler::new()
-    .with_signal(SignalKind::interrupt())
-    .with_signal(SignalKind::terminate());
+    tokio_test::block_on(async {
+        let mut handler = SignalHandler::new()
+            .with_signal(SignalKind::interrupt())
+            .with_signal(SignalKind::terminate());
 
-// Wait for a signal to be received
-let signal = handler.await;
+        // Safety: This is a test, and we control the process.
+        unsafe {
+            libc::raise(SignalKind::interrupt().as_raw_value());
+        }
+        // Wait for a signal to be received
+        let signal = handler.await;
 
-// Handle the signal
-let user_defined1 = SignalKind::interrupt();
-let terminate = SignalKind::terminate();
-match signal {
-    interrupt => {
-        // Handle SIGINT
-        println!("received SIGINT");
-    },
-    terminate => {
-        // Handle SIGTERM
-        println!("received SIGTERM");
-    },
+        // Handle the signal
+        let interrupt = SignalKind::interrupt();
+        let terminate = SignalKind::terminate();
+        match signal {
+            interrupt => {
+                // Handle SIGINT
+                println!("received SIGINT");
+            }
+            terminate => {
+                // Handle SIGTERM
+                println!("received SIGTERM");
+            }
+        }
+    });
 }
 ```
 

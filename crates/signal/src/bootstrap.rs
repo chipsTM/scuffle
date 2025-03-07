@@ -41,7 +41,9 @@ pub trait SignalConfig: Global {
         std::future::ready(Err(err))
     }
 
-    /// The global shutdown future.
+    /// Waits for the global shutdown to complete after a signal cancels the local context.
+    /// Defaults to the global context’s shutdown ([`scuffle_context::Handler::global().shutdown()`]).
+    /// Override to use a custom context or condition for shutdown completion.
     fn block_global_shutdown(&self) -> impl std::future::Future<Output = ()> + Send {
         scuffle_context::Handler::global().shutdown()
     }
