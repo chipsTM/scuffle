@@ -36,6 +36,7 @@ futures-task = { version = "0.3", default-features = false, features = ["std"] }
 futures-util = { version = "0.3", default-features = false, features = ["async-await-macro", "channel", "io", "sink"] }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 h3 = { version = "0.0.6", default-features = false, features = ["i-implement-a-third-party-backend-and-opt-into-breaking-changes", "tracing"] }
+hashbrown = { version = "0.15", default-features = false, features = ["default-hasher", "inline-more"] }
 hyper = { version = "1", features = ["http1", "http2", "server"] }
 hyper-util = { version = "0.1", features = ["http1", "http2", "server", "service", "tokio"] }
 insta = { version = "1", features = ["filters"] }
@@ -69,7 +70,6 @@ tracing = { version = "0.1", features = ["log"] }
 tracing-core = { version = "0.1" }
 tracing-log = { version = "0.2", default-features = false, features = ["log-tracer", "std"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-zerocopy = { version = "0.7", features = ["derive", "simd"] }
 
 [build-dependencies]
 axum = { version = "0.8", features = ["macros", "ws"] }
@@ -94,6 +94,7 @@ futures-task = { version = "0.3", default-features = false, features = ["std"] }
 futures-util = { version = "0.3", default-features = false, features = ["async-await-macro", "channel", "io", "sink"] }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 h3 = { version = "0.0.6", default-features = false, features = ["i-implement-a-third-party-backend-and-opt-into-breaking-changes", "tracing"] }
+hashbrown = { version = "0.15", default-features = false, features = ["default-hasher", "inline-more"] }
 hyper = { version = "1", features = ["http1", "http2", "server"] }
 hyper-util = { version = "0.1", features = ["http1", "http2", "server", "service", "tokio"] }
 insta = { version = "1", features = ["filters"] }
@@ -127,7 +128,6 @@ tracing = { version = "0.1", features = ["log"] }
 tracing-core = { version = "0.1" }
 tracing-log = { version = "0.2", default-features = false, features = ["log-tracer", "std"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-zerocopy = { version = "0.7", features = ["derive", "simd"] }
 
 [target.x86_64-unknown-linux-gnu.dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
@@ -137,7 +137,6 @@ h3-quinn = { version = "0.0.7", default-features = false, features = ["tracing"]
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 libc = { version = "0.2", default-features = false, features = ["extra_traits"] }
-once_cell = { version = "1" }
 quinn = { version = "0.11", default-features = false, features = ["futures-io", "log", "platform-verifier", "runtime-tokio", "rustls", "rustls-aws-lc-rs"] }
 quinn-proto = { version = "0.11", default-features = false, features = ["log", "platform-verifier", "rustls-aws-lc-rs", "rustls-ring"] }
 quinn-udp = { version = "0.5", default-features = false, features = ["log"] }
@@ -157,7 +156,6 @@ h3-quinn = { version = "0.0.7", default-features = false, features = ["tracing"]
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 libc = { version = "0.2", default-features = false, features = ["extra_traits"] }
-once_cell = { version = "1" }
 quinn = { version = "0.11", default-features = false, features = ["futures-io", "log", "platform-verifier", "runtime-tokio", "rustls", "rustls-aws-lc-rs"] }
 quinn-proto = { version = "0.11", default-features = false, features = ["log", "platform-verifier", "rustls-aws-lc-rs", "rustls-ring"] }
 quinn-udp = { version = "0.5", default-features = false, features = ["log"] }
@@ -176,7 +174,6 @@ h3-quinn = { version = "0.0.7", default-features = false, features = ["tracing"]
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 libc = { version = "0.2", default-features = false, features = ["extra_traits"] }
-once_cell = { version = "1" }
 quinn = { version = "0.11", default-features = false, features = ["futures-io", "log", "platform-verifier", "runtime-tokio", "rustls", "rustls-aws-lc-rs"] }
 quinn-proto = { version = "0.11", default-features = false, features = ["log", "platform-verifier", "rustls-aws-lc-rs", "rustls-ring"] }
 quinn-udp = { version = "0.5", default-features = false, features = ["log"] }
@@ -196,7 +193,6 @@ h3-quinn = { version = "0.0.7", default-features = false, features = ["tracing"]
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 libc = { version = "0.2", default-features = false, features = ["extra_traits"] }
-once_cell = { version = "1" }
 quinn = { version = "0.11", default-features = false, features = ["futures-io", "log", "platform-verifier", "runtime-tokio", "rustls", "rustls-aws-lc-rs"] }
 quinn-proto = { version = "0.11", default-features = false, features = ["log", "platform-verifier", "rustls-aws-lc-rs", "rustls-ring"] }
 quinn-udp = { version = "0.5", default-features = false, features = ["log"] }
@@ -216,7 +212,6 @@ hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 libc = { version = "0.2", default-features = false, features = ["extra_traits"] }
 num-traits = { version = "0.2", default-features = false, features = ["i128"] }
-once_cell = { version = "1" }
 quinn = { version = "0.11", default-features = false, features = ["futures-io", "log", "platform-verifier", "runtime-tokio", "rustls", "rustls-aws-lc-rs"] }
 quinn-proto = { version = "0.11", default-features = false, features = ["log", "platform-verifier", "rustls-aws-lc-rs", "rustls-ring"] }
 quinn-udp = { version = "0.5", default-features = false, features = ["log"] }
@@ -237,7 +232,6 @@ hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 libc = { version = "0.2", default-features = false, features = ["extra_traits"] }
 num-traits = { version = "0.2", default-features = false, features = ["i128"] }
-once_cell = { version = "1" }
 quinn = { version = "0.11", default-features = false, features = ["futures-io", "log", "platform-verifier", "runtime-tokio", "rustls", "rustls-aws-lc-rs"] }
 quinn-proto = { version = "0.11", default-features = false, features = ["log", "platform-verifier", "rustls-aws-lc-rs", "rustls-ring"] }
 quinn-udp = { version = "0.5", default-features = false, features = ["log"] }
@@ -257,7 +251,6 @@ hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 libc = { version = "0.2", default-features = false, features = ["extra_traits"] }
 num-traits = { version = "0.2", default-features = false, features = ["i128"] }
-once_cell = { version = "1" }
 quinn = { version = "0.11", default-features = false, features = ["futures-io", "log", "platform-verifier", "runtime-tokio", "rustls", "rustls-aws-lc-rs"] }
 quinn-proto = { version = "0.11", default-features = false, features = ["log", "platform-verifier", "rustls-aws-lc-rs", "rustls-ring"] }
 quinn-udp = { version = "0.5", default-features = false, features = ["log"] }
@@ -278,7 +271,6 @@ hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 libc = { version = "0.2", default-features = false, features = ["extra_traits"] }
 num-traits = { version = "0.2", default-features = false, features = ["i128"] }
-once_cell = { version = "1" }
 quinn = { version = "0.11", default-features = false, features = ["futures-io", "log", "platform-verifier", "runtime-tokio", "rustls", "rustls-aws-lc-rs"] }
 quinn-proto = { version = "0.11", default-features = false, features = ["log", "platform-verifier", "rustls-aws-lc-rs", "rustls-ring"] }
 quinn-udp = { version = "0.5", default-features = false, features = ["log"] }
