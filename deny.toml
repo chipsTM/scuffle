@@ -34,3 +34,9 @@ ignore = [
 
 [bans]
 multiple-versions = "allow"
+deny = [
+    # AI Fork of serde_yaml
+    "serde_yml",
+    # AI Fork of paste
+    "pastey",
+]
