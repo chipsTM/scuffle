@@ -469,7 +469,7 @@ mod tests {
             .expect("Failed to set input for the filter graph");
 
         assert!(
-            input_parser.graph.as_ptr() == filter_graph.as_ptr(),
+            std::ptr::eq(input_parser.graph.as_ptr(), filter_graph.as_ptr()),
             "Input parser should belong to the same filter graph"
         );
     }
@@ -486,7 +486,7 @@ mod tests {
             .expect("Failed to set output for the filter graph");
 
         assert!(
-            output_parser.graph.as_ptr() == filter_graph.as_ptr(),
+            std::ptr::eq(output_parser.graph.as_ptr(), filter_graph.as_ptr()),
             "Output parser should belong to the same filter graph"
         );
     }
