@@ -2,8 +2,7 @@ use std::io::{self, Cursor};
 
 use byteorder::{BigEndian, ReadBytesExt};
 
-use super::ProtocolControlMessageWindowAcknowledgementSize;
-use super::define::ProtocolControlMessageSetChunkSize;
+use super::{ProtocolControlMessageSetChunkSize, ProtocolControlMessageWindowAcknowledgementSize};
 
 impl ProtocolControlMessageSetChunkSize {
     pub fn read(data: &[u8]) -> io::Result<Self> {

@@ -2,9 +2,10 @@ use std::io;
 
 use bytes::Bytes;
 
-use super::define::CommandResultLevel;
-use super::{Command, CommandError, CommandType};
-use crate::chunk::{Chunk, ChunkStreamId, ChunkWriter};
+use super::error::CommandError;
+use super::{Command, CommandResultLevel, CommandType};
+use crate::chunk::writer::ChunkWriter;
+use crate::chunk::{Chunk, ChunkStreamId};
 use crate::error::RtmpError;
 use crate::messages::MessageType;
 
@@ -72,9 +73,10 @@ impl Command<'_> {
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
     use super::super::{Command, CommandResultLevel};
-    use crate::chunk::ChunkWriter;
+    use crate::chunk::writer::ChunkWriter;
+    use crate::command_messages::CommandType;
+    use crate::command_messages::error::CommandError;
     use crate::command_messages::netstream::NetStreamCommand;
-    use crate::command_messages::{CommandError, CommandType};
     use crate::error::RtmpError;
 
     #[test]

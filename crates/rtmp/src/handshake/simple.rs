@@ -5,8 +5,7 @@ use bytes::Bytes;
 use rand::Rng;
 use scuffle_bytes_util::BytesCursorExt;
 
-use super::current_time;
-use super::define::{self, RtmpVersion, ServerHandshakeState};
+use super::{RTMP_HANDSHAKE_SIZE, RtmpVersion, ServerHandshakeState, TIME_VERSION_LENGTH, current_time};
 
 /// Simple Handshake Server
 /// RTMP Spec 1.0 - 5.2
@@ -86,7 +85,7 @@ impl SimpleHandshakeServer {
         //  initiated by its peer,this data SHOULD send something sufficiently
         //  random. But there is no need for cryptographically-secure
         //  randomness, or even dynamic values.
-        self.c1_bytes = input.extract_bytes(define::RTMP_HANDSHAKE_SIZE - define::TIME_VERSION_LENGTH)?;
+        self.c1_bytes = input.extract_bytes(RTMP_HANDSHAKE_SIZE - TIME_VERSION_LENGTH)?;
 
         Ok(())
     }
@@ -99,7 +98,7 @@ impl SimpleHandshakeServer {
         //  data is the same as the one we sent in S2, but we don't care.
         //  Some clients are not strict to spec and send different data.
         // We can just ignore it and not be super strict.
-        input.seek_relative(define::RTMP_HANDSHAKE_SIZE as i64)?;
+        input.seek_relative(RTMP_HANDSHAKE_SIZE as i64)?;
 
         Ok(())
     }

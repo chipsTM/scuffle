@@ -1,4 +1,4 @@
-use super::define::{MessageData, MessageType};
+use super::{MessageData, MessageType};
 use crate::chunk::Chunk;
 use crate::command_messages::Command;
 use crate::protocol_control_messages::{

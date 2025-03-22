@@ -1,7 +1,6 @@
 use scuffle_amf0::{Amf0Decoder, Amf0Value};
 
-use super::NetConnectionCommand;
-use super::define::{CapsExMask, NetConnectionCommandConnect};
+use super::{CapsExMask, NetConnectionCommand, NetConnectionCommandConnect};
 use crate::command_messages::error::CommandError;
 
 impl<'a> NetConnectionCommand<'a> {
@@ -54,7 +53,7 @@ mod tests {
     use scuffle_amf0::{Amf0Decoder, Amf0Encoder};
 
     use super::NetConnectionCommand;
-    use crate::command_messages::CommandError;
+    use crate::command_messages::error::CommandError;
 
     #[test]
     fn test_read_no_app() {

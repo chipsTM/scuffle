@@ -1,4 +1,31 @@
-mod define;
-mod reader;
+use std::borrow::Cow;
 
-pub use define::*;
+pub mod reader;
+
+/// NetStream commands as defined in 7.2.2.
+#[derive(Debug, Clone, PartialEq)]
+pub enum NetStreamCommand<'a> {
+    Play,
+    Play2,
+    DeleteStream {
+        stream_id: f64,
+    },
+    CloseStream,
+    ReceiveAudio,
+    ReceiveVideo,
+    Publish {
+        publishing_name: Cow<'a, str>,
+        publishing_type: NetStreamCommandPublishPublishingType,
+    },
+    Seek,
+    Pause,
+}
+
+/// NetStream command publish publishing type
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NetStreamCommandPublishPublishingType {
+    Live,
+    Record,
+    Append,
+    Unknown(String),
+}

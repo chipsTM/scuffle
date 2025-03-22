@@ -2,8 +2,9 @@ use std::io;
 
 use byteorder::{BigEndian, WriteBytesExt};
 
-use super::define::{EventMessageStreamBegin, EventType};
-use crate::chunk::{Chunk, ChunkWriter};
+use super::{EventMessageStreamBegin, EventType};
+use crate::chunk::Chunk;
+use crate::chunk::writer::ChunkWriter;
 use crate::messages::MessageType;
 
 impl EventMessageStreamBegin {
@@ -24,9 +25,9 @@ impl EventMessageStreamBegin {
 mod tests {
     use bytes::{BufMut, Bytes, BytesMut};
 
-    use super::*;
-    use crate::chunk::ChunkReader;
-    use crate::user_control_messages::define::EventMessageStreamBegin;
+    use crate::chunk::reader::ChunkReader;
+    use crate::chunk::writer::ChunkWriter;
+    use crate::user_control_messages::EventMessageStreamBegin;
 
     #[test]
     fn test_write_stream_begin() {

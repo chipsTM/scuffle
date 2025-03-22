@@ -22,20 +22,18 @@
 //!
 //! `SPDX-License-Identifier: MIT OR Apache-2.0`
 #![cfg_attr(all(coverage_nightly, test), feature(coverage_attribute))]
-#![deny(missing_docs)]
+// #![deny(missing_docs)]
 #![deny(unsafe_code)]
 #![deny(unreachable_pub)]
 
-mod chunk;
-mod command_messages;
-mod error;
-mod handshake;
-mod messages;
-mod protocol_control_messages;
-mod session;
-mod user_control_messages;
-
-pub use session::{Session, SessionData, SessionError, SessionHandler};
+pub mod chunk;
+pub mod command_messages;
+pub mod error;
+pub mod handshake;
+pub mod messages;
+pub mod protocol_control_messages;
+pub mod session;
+pub mod user_control_messages;
 
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
@@ -47,8 +45,9 @@ mod tests {
     use tokio::process::Command;
     use tokio::sync::{mpsc, oneshot};
 
-    use crate::session::{SessionData, SessionHandler};
-    use crate::{Session, SessionError};
+    use crate::session::ServerSession;
+    use crate::session::error::SessionError;
+    use crate::session::handler::{SessionData, SessionHandler};
 
     enum Event {
         Publish {
@@ -149,7 +148,7 @@ mod tests {
 
         let (ffmpeg_handle, mut ffmpeg_event_reciever) = {
             let (ffmpeg_event_producer, ffmpeg_event_reciever) = mpsc::channel(1);
-            let session = Session::new(ffmpeg_stream, Handler(ffmpeg_event_producer));
+            let session = ServerSession::new(ffmpeg_stream, Handler(ffmpeg_event_producer));
 
             (
                 tokio::spawn(async move {
@@ -283,7 +282,7 @@ mod tests {
 
         let (ffmpeg_handle, mut ffmpeg_event_reciever) = {
             let (ffmpeg_event_producer, ffmpeg_event_reciever) = mpsc::channel(1);
-            let session = Session::new(ffmpeg_stream, Handler(ffmpeg_event_producer));
+            let session = ServerSession::new(ffmpeg_stream, Handler(ffmpeg_event_producer));
 
             (
                 tokio::spawn(async move {

@@ -6,8 +6,8 @@ use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use bytes::BytesMut;
 use num_traits::FromPrimitive;
 
-use super::define::{Chunk, ChunkBasicHeader, ChunkMessageHeader, ChunkType, INIT_CHUNK_SIZE, MAX_CHUNK_SIZE};
 use super::error::ChunkReadError;
+use super::{Chunk, ChunkBasicHeader, ChunkMessageHeader, ChunkType, INIT_CHUNK_SIZE, MAX_CHUNK_SIZE};
 use crate::messages::MessageType;
 
 // These constants are used to limit the amount of memory we use for partial

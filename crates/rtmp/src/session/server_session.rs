@@ -6,10 +6,11 @@ use scuffle_context::ContextFutExt;
 use scuffle_future_ext::FutureExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-use super::SessionHandler;
 use super::error::SessionError;
-use super::handler::SessionData;
-use crate::chunk::{CHUNK_SIZE, ChunkReader, ChunkWriter};
+use super::handler::{SessionData, SessionHandler};
+use crate::chunk::CHUNK_SIZE;
+use crate::chunk::reader::ChunkReader;
+use crate::chunk::writer::ChunkWriter;
 use crate::command_messages::netconnection::{CapsExMask, NetConnectionCommand, NetConnectionCommandConnect};
 use crate::command_messages::netstream::{NetStreamCommand, NetStreamCommandPublishPublishingType};
 use crate::command_messages::on_status::OnStatus;
@@ -33,7 +34,7 @@ use crate::user_control_messages::EventMessageStreamBegin;
 const DEFAULT_ACKNOWLEDGEMENT_WINDOW_SIZE: u32 = 2_500_000; // 2.5 MB
 
 /// A RTMP server session that is used to communicate with a client.
-pub struct Session<S, H> {
+pub struct ServerSession<S, H> {
     /// The context of the session
     /// A reconnect request will be sent if this context gets cancelled.
     ctx: Option<scuffle_context::Context>,
@@ -75,7 +76,7 @@ pub struct Session<S, H> {
     publishing_stream_ids: Vec<u32>,
 }
 
-impl<S, H> Session<S, H> {
+impl<S, H> ServerSession<S, H> {
     /// Create a new session.
     pub fn new(io: S, handler: H) -> Self {
         Self {
@@ -103,7 +104,7 @@ impl<S, H> Session<S, H> {
     }
 }
 
-impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler> Session<S, H> {
+impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler> ServerSession<S, H> {
     /// Run the session to completion
     /// The result of the return value will be true if all publishers have
     /// disconnected If any publishers are still connected, the result will be
@@ -160,7 +161,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
     /// If the handshake is not complete yet, this function should be called again.
     async fn drive_handshake(&mut self, handshaker: &mut HandshakeServer) -> Result<bool, crate::error::RtmpError> {
         // Read the handshake data + 1 byte for the version
-        const READ_SIZE: usize = handshake::define::RTMP_HANDSHAKE_SIZE + 1;
+        const READ_SIZE: usize = handshake::RTMP_HANDSHAKE_SIZE + 1;
         self.read_buf.reserve(READ_SIZE);
 
         let mut bytes_read = 0;

@@ -3,8 +3,7 @@ use std::str::FromStr;
 
 use scuffle_amf0::{Amf0Decoder, Amf0Marker, Amf0Value};
 
-use super::NetStreamCommand;
-use super::define::NetStreamCommandPublishPublishingType;
+use super::{NetStreamCommand, NetStreamCommandPublishPublishingType};
 use crate::command_messages::error::CommandError;
 
 impl<'a> NetStreamCommand<'a> {

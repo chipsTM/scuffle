@@ -2,7 +2,7 @@ use std::io;
 
 use byteorder::{BigEndian, LittleEndian, WriteBytesExt};
 
-use super::define::{Chunk, ChunkMessageHeader, ChunkType, INIT_CHUNK_SIZE};
+use super::{Chunk, ChunkMessageHeader, ChunkType, INIT_CHUNK_SIZE};
 
 /// A chunk writer.
 ///

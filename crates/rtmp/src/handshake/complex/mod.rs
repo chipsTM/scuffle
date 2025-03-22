@@ -6,12 +6,37 @@ use digest::DigestProcessor;
 use rand::Rng;
 use scuffle_bytes_util::BytesCursorExt;
 
-use super::current_time;
-use super::define::{self, RtmpVersion, ServerHandshakeState};
-use crate::handshake::define::SchemaVersion;
+use super::{RTMP_HANDSHAKE_SIZE, RtmpVersion, SchemaVersion, ServerHandshakeState, TIME_VERSION_LENGTH, current_time};
 
 pub mod digest;
 pub mod error;
+
+/// This is some magic number, I do not know why its 0x04050001 however, the
+/// reference implementation uses this value. https://blog.csdn.net/win_lin/article/details/13006803
+pub const RTMP_SERVER_VERSION: u32 = 0x04050001;
+
+/// This is the length of the digest.
+/// There is a lot of random data before and after the digest, however, the
+/// digest is always 32 bytes.
+pub const RTMP_DIGEST_LENGTH: usize = 32;
+
+/// This is the first half of the server key.
+/// Defined https://blog.csdn.net/win_lin/article/details/13006803
+pub const RTMP_SERVER_KEY_FIRST_HALF: &[u8] = b"Genuine Adobe Flash Media Server 001";
+
+/// This is the first half of the client key.
+/// Defined https://blog.csdn.net/win_lin/article/details/13006803
+pub const RTMP_CLIENT_KEY_FIRST_HALF: &[u8] = b"Genuine Adobe Flash Player 001";
+
+/// This is the second half of the server/client key.
+/// Used for the complex handshake.
+/// Defined https://blog.csdn.net/win_lin/article/details/13006803
+pub const RTMP_SERVER_KEY: &[u8] = &[
+    0x47, 0x65, 0x6e, 0x75, 0x69, 0x6e, 0x65, 0x20, 0x41, 0x64, 0x6f, 0x62, 0x65, 0x20, 0x46, 0x6c, 0x61, 0x73, 0x68, 0x20,
+    0x4d, 0x65, 0x64, 0x69, 0x61, 0x20, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x20, 0x30, 0x30, 0x31, 0xf0, 0xee, 0xc2, 0x4a,
+    0x80, 0x68, 0xbe, 0xe8, 0x2e, 0x00, 0xd0, 0xd1, 0x02, 0x9e, 0x7e, 0x57, 0x6e, 0xec, 0x5d, 0x2d, 0x29, 0x80, 0x6f, 0xab,
+    0x93, 0xb8, 0xe6, 0x36, 0xcf, 0xeb, 0x31, 0xae,
+];
 
 /// Complex Handshake Server
 /// Unfortunately there doesn't seem to be a good spec sheet for this.
@@ -79,7 +104,7 @@ impl ComplexHandshakeServer {
     }
 
     fn read_c1(&mut self, input: &mut io::Cursor<Bytes>) -> Result<(), crate::error::RtmpError> {
-        let c1_bytes = input.extract_bytes(define::RTMP_HANDSHAKE_SIZE)?;
+        let c1_bytes = input.extract_bytes(RTMP_HANDSHAKE_SIZE)?;
 
         //  The first 4 bytes of C1 are the timestamp.
         self.c1_timestamp = (&c1_bytes[0..4]).read_u32::<BigEndian>()?;
@@ -88,7 +113,7 @@ impl ComplexHandshakeServer {
         self.c1_version = (&c1_bytes[4..8]).read_u32::<BigEndian>()?;
 
         // The following 764 bytes are either the digest or the key.
-        let data_digest = DigestProcessor::new(c1_bytes, define::RTMP_CLIENT_KEY_FIRST_HALF);
+        let data_digest = DigestProcessor::new(c1_bytes, RTMP_CLIENT_KEY_FIRST_HALF);
 
         let (c1_digest_data, schema_version) = data_digest.read_digest()?;
 
@@ -101,7 +126,7 @@ impl ComplexHandshakeServer {
     fn read_c2(&mut self, input: &mut io::Cursor<Bytes>) -> Result<(), crate::error::RtmpError> {
         // We don't care too much about the data in C2, so we just read it
         //  and discard it.
-        input.seek_relative(define::RTMP_HANDSHAKE_SIZE as i64)?;
+        input.seek_relative(RTMP_HANDSHAKE_SIZE as i64)?;
 
         Ok(())
     }
@@ -121,17 +146,17 @@ impl ComplexHandshakeServer {
         writer.write_u32::<BigEndian>(current_time())?;
 
         // The next 4 bytes are a version number.
-        writer.write_u32::<BigEndian>(define::RTMP_SERVER_VERSION)?;
+        writer.write_u32::<BigEndian>(RTMP_SERVER_VERSION)?;
 
         // We then write 1528 bytes of random data. (764 bytes for digest, 764 bytes for
         // key)
         let mut rng = rand::rng();
-        for _ in 0..define::RTMP_HANDSHAKE_SIZE - define::TIME_VERSION_LENGTH {
+        for _ in 0..RTMP_HANDSHAKE_SIZE - TIME_VERSION_LENGTH {
             writer.write_u8(rng.random())?;
         }
 
         // The digest is loaded with the data that we just generated.
-        let data_digest = DigestProcessor::new(writer.into_inner().freeze(), define::RTMP_SERVER_KEY_FIRST_HALF);
+        let data_digest = DigestProcessor::new(writer.into_inner().freeze(), RTMP_SERVER_KEY_FIRST_HALF);
 
         // We use the same schema version as the client and then write the result of the digest to the main writer.
         data_digest.generate_and_fill_digest(self.schema_version)?.write_to(output)?;
@@ -152,15 +177,15 @@ impl ComplexHandshakeServer {
         // key)
         let mut rng = rand::rng();
 
-        // define::RTMP_HANDSHAKE_SIZE - define::TIME_VERSION_LENGTH because we already
+        // RTMP_HANDSHAKE_SIZE - TIME_VERSION_LENGTH because we already
         // wrote 8 bytes. (timestamp and c1 timestamp)
-        for _ in 0..define::RTMP_HANDSHAKE_SIZE - define::RTMP_DIGEST_LENGTH - define::TIME_VERSION_LENGTH {
+        for _ in 0..RTMP_HANDSHAKE_SIZE - RTMP_DIGEST_LENGTH - TIME_VERSION_LENGTH {
             output.write_u8(rng.random())?;
         }
 
         // The digest is loaded with the data that we just generated.
         // This digest is used to generate the key. (digest of c1)
-        let key_digest = DigestProcessor::new(Bytes::new(), define::RTMP_SERVER_KEY);
+        let key_digest = DigestProcessor::new(Bytes::new(), RTMP_SERVER_KEY);
 
         // Create a digest of the random data using a key generated from the digest of
         // C1.
@@ -169,12 +194,9 @@ impl ComplexHandshakeServer {
 
         // We then generate a digest using the key and the random data
         // We then extract the first 1504 bytes of the data.
-        // define::RTMP_HANDSHAKE_SIZE - 32 = 1504
+        // RTMP_HANDSHAKE_SIZE - 32 = 1504
         // 32 is the size of the digest. for C2S2
-        let digest = data_digest.make_digest(
-            &output[start..start + define::RTMP_HANDSHAKE_SIZE - define::RTMP_DIGEST_LENGTH],
-            &[],
-        )?;
+        let digest = data_digest.make_digest(&output[start..start + RTMP_HANDSHAKE_SIZE - RTMP_DIGEST_LENGTH], &[])?;
 
         // Write the random data  to the main writer.
         // Total Write = 1536 bytes (1504 + 32)

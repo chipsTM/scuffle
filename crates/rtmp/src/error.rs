@@ -1,7 +1,7 @@
-use crate::SessionError;
-use crate::chunk::ChunkReadError;
-use crate::command_messages::CommandError;
-use crate::handshake::ComplexHandshakeError;
+use crate::chunk::error::ChunkReadError;
+use crate::command_messages::error::CommandError;
+use crate::handshake::complex::error::ComplexHandshakeError;
+use crate::session::error::SessionError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RtmpError {
@@ -39,8 +39,8 @@ mod tests {
     use std::io::ErrorKind;
     use std::time::Duration;
 
-    use crate::SessionError;
     use crate::error::RtmpError;
+    use crate::session::error::SessionError;
 
     #[tokio::test]
     async fn test_is_client_closed() {

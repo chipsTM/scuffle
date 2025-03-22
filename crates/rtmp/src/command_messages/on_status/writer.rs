@@ -3,7 +3,7 @@ use std::io;
 use scuffle_amf0::{Amf0Encoder, Amf0Value};
 
 use super::OnStatus;
-use crate::command_messages::CommandError;
+use crate::command_messages::error::CommandError;
 
 impl OnStatus<'_> {
     pub fn write(self, buf: &mut impl io::Write, transaction_id: f64) -> Result<(), CommandError> {

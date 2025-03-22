@@ -5,11 +5,8 @@ use bytes::Bytes;
 use complex::ComplexHandshakeServer;
 use simple::SimpleHandshakeServer;
 
-mod complex;
-pub mod define;
-mod simple;
-
-pub use complex::error::ComplexHandshakeError;
+pub mod complex;
+pub mod simple;
 
 // Order of messages:
 // Client -> C0 -> Server
@@ -18,6 +15,48 @@ pub use complex::error::ComplexHandshakeError;
 // Client <- S1 <- Server
 // Client <- S2 <- Server
 // Client -> C2 -> Server
+
+/// This is the total size of the C1/S1 C2/S2 packets.
+pub const RTMP_HANDSHAKE_SIZE: usize = 1536;
+
+/// This is the length of the time and version.
+/// The time is 4 bytes and the version is 4 bytes.
+pub const TIME_VERSION_LENGTH: usize = 8;
+
+/// This is the length of the chunk.
+/// The chunk is 764 bytes. or (1536 - 8) / 2 = 764
+pub const CHUNK_LENGTH: usize = (RTMP_HANDSHAKE_SIZE - TIME_VERSION_LENGTH) / 2;
+
+/// The schema version.
+/// For the complex handshake the schema is either 0 or 1.
+/// A chunk is 764 bytes. (1536 - 8) / 2 = 764
+/// A schema of 0 means the digest is after the key, thus the digest is at
+/// offset 776 bytes (768 + 8). A schema of 1 means the digest is before the key
+/// thus the offset is at offset 8 bytes (0 + 8). Where 8 bytes is the time and
+/// version. (4 bytes each) The schema is determined by the client.
+/// The server will always use the schema the client uses.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum SchemaVersion {
+    Schema0,
+    Schema1,
+}
+
+nutype_enum::nutype_enum! {
+    /// The RTMP version.
+    /// We only support version 3.
+    pub enum RtmpVersion(u8) {
+        Version3 = 0x3,
+    }
+}
+
+/// The state of the handshake.
+/// This is used to determine what the next step is.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ServerHandshakeState {
+    ReadC0C1,
+    ReadC2,
+    Finish,
+}
 
 pub enum HandshakeServer {
     Simple(SimpleHandshakeServer),
@@ -84,10 +123,13 @@ mod tests {
     use std::io::{Read, Write};
 
     use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+    use bytes::Bytes;
 
-    use super::*;
     use crate::handshake::complex::digest::DigestProcessor;
-    use crate::handshake::define::{self, SchemaVersion};
+    use crate::handshake::complex::{
+        RTMP_CLIENT_KEY_FIRST_HALF, RTMP_SERVER_KEY, RTMP_SERVER_KEY_FIRST_HALF, RTMP_SERVER_VERSION,
+    };
+    use crate::handshake::{HandshakeServer, SchemaVersion};
 
     #[test]
     fn test_simple_handshake() {
@@ -155,7 +197,7 @@ mod tests {
             c0c1.write_u8((i % 256) as u8).unwrap();
         }
 
-        let data_digest = DigestProcessor::new(Bytes::from(c0c1), define::RTMP_CLIENT_KEY_FIRST_HALF);
+        let data_digest = DigestProcessor::new(Bytes::from(c0c1), RTMP_CLIENT_KEY_FIRST_HALF);
 
         let res = data_digest.generate_and_fill_digest(SchemaVersion::Schema1).unwrap();
 
@@ -172,9 +214,9 @@ mod tests {
 
         assert_eq!(s0[0], 3); // version
         assert_ne!((&s1[..4]).read_u32::<BigEndian>().unwrap(), 0); // timestamp should not be zero
-        assert_eq!((&s1[4..8]).read_u32::<BigEndian>().unwrap(), define::RTMP_SERVER_VERSION); // RTMP version
+        assert_eq!((&s1[4..8]).read_u32::<BigEndian>().unwrap(), RTMP_SERVER_VERSION); // RTMP version
 
-        let data_digest = DigestProcessor::new(Bytes::copy_from_slice(s1), define::RTMP_SERVER_KEY_FIRST_HALF);
+        let data_digest = DigestProcessor::new(Bytes::copy_from_slice(s1), RTMP_SERVER_KEY_FIRST_HALF);
 
         let (digest, schema) = data_digest.read_digest().unwrap();
         assert_eq!(schema, SchemaVersion::Schema1);
@@ -182,7 +224,7 @@ mod tests {
         assert_ne!((&s2[..4]).read_u32::<BigEndian>().unwrap(), 0); // timestamp should not be zero
         assert_eq!((&s2[4..8]).read_u32::<BigEndian>().unwrap(), 123); // our timestamp
 
-        let key_digest = DigestProcessor::new(Bytes::new(), define::RTMP_SERVER_KEY);
+        let key_digest = DigestProcessor::new(Bytes::new(), RTMP_SERVER_KEY);
 
         let key = key_digest.make_digest(&res.digest, &[]).unwrap();
         let data_digest = DigestProcessor::new(Bytes::new(), &key);

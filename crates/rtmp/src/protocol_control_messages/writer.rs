@@ -3,11 +3,12 @@ use std::io;
 use byteorder::{BigEndian, WriteBytesExt};
 use bytes::Bytes;
 
-use super::define::{
+use super::{
     ProtocolControlMessageAcknowledgement, ProtocolControlMessageSetChunkSize, ProtocolControlMessageSetPeerBandwidth,
     ProtocolControlMessageWindowAcknowledgementSize,
 };
-use crate::chunk::{Chunk, ChunkWriter};
+use crate::chunk::Chunk;
+use crate::chunk::writer::ChunkWriter;
 use crate::messages::MessageType;
 
 impl ProtocolControlMessageSetChunkSize {
@@ -92,7 +93,7 @@ mod tests {
     use bytes::{BufMut, BytesMut};
 
     use super::*;
-    use crate::chunk::ChunkReader;
+    use crate::chunk::reader::ChunkReader;
     use crate::protocol_control_messages::ProtocolControlMessageSetPeerBandwidthLimitType;
 
     #[test]

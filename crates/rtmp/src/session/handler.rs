@@ -1,6 +1,6 @@
 use bytes::Bytes;
 
-use super::SessionError;
+use super::error::SessionError;
 
 /// Data received from a session.
 #[derive(Debug, Clone)]

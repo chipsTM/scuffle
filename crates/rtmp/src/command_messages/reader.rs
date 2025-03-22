@@ -5,10 +5,10 @@ use std::str::FromStr;
 use bytes::Bytes;
 use scuffle_amf0::{Amf0Decoder, Amf0Marker, Amf0Value};
 
-use super::define::{Command, CommandResultLevel, CommandType};
 use super::error::CommandError;
 use super::netconnection::NetConnectionCommand;
 use super::netstream::NetStreamCommand;
+use super::{Command, CommandResultLevel, CommandType};
 
 impl<'a> Command<'a> {
     pub fn read(payload: &'a Bytes) -> Result<Self, CommandError> {

@@ -4,9 +4,9 @@ use bytes::Bytes;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
-use super::define;
-use super::define::SchemaVersion;
 use super::error::ComplexHandshakeError;
+use super::{RTMP_DIGEST_LENGTH, SchemaVersion};
+use crate::handshake::{CHUNK_LENGTH, TIME_VERSION_LENGTH};
 
 /// A digest processor.
 ///
@@ -81,8 +81,8 @@ impl<'a> DigestProcessor<'a> {
         // in schema 0 the digest is after the key (which is after the time and version)
         // in schema 1 the digest is after the time and version
         let schema_offset = match version {
-            SchemaVersion::Schema0 => define::CHUNK_LENGTH + define::TIME_VERSION_LENGTH,
-            SchemaVersion::Schema1 => define::TIME_VERSION_LENGTH,
+            SchemaVersion::Schema0 => CHUNK_LENGTH + TIME_VERSION_LENGTH,
+            SchemaVersion::Schema1 => TIME_VERSION_LENGTH,
         };
 
         // No idea why this isn't a be u32.
@@ -93,7 +93,7 @@ impl<'a> DigestProcessor<'a> {
             + *self.data.get(schema_offset + 1).unwrap() as usize
             + *self.data.get(schema_offset + 2).unwrap() as usize
             + *self.data.get(schema_offset + 3).unwrap() as usize)
-            % (define::CHUNK_LENGTH - define::RTMP_DIGEST_LENGTH - OFFSET_LENGTH)
+            % (CHUNK_LENGTH - RTMP_DIGEST_LENGTH - OFFSET_LENGTH)
             + schema_offset
             + OFFSET_LENGTH)
     }
@@ -111,8 +111,8 @@ impl<'a> DigestProcessor<'a> {
 
         // Slice is a O(1) operation and does not copy the memory.
         let left_part = self.data.slice(0..digest_offset);
-        let digest_data = self.data.slice(digest_offset..digest_offset + define::RTMP_DIGEST_LENGTH);
-        let right_part = self.data.slice(digest_offset + define::RTMP_DIGEST_LENGTH..);
+        let digest_data = self.data.slice(digest_offset..digest_offset + RTMP_DIGEST_LENGTH);
+        let right_part = self.data.slice(digest_offset + RTMP_DIGEST_LENGTH..);
 
         Ok((left_part, digest_data, right_part))
     }
@@ -127,7 +127,7 @@ impl<'a> DigestProcessor<'a> {
 
         // Finalize the hmac and get the digest
         let result = mac.finalize().into_bytes();
-        if result.len() != define::RTMP_DIGEST_LENGTH {
+        if result.len() != RTMP_DIGEST_LENGTH {
             return Err(ComplexHandshakeError::DigestLengthNotCorrect);
         }
 

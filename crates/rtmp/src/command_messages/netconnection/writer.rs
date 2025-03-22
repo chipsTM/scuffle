@@ -3,7 +3,7 @@ use std::io;
 use scuffle_amf0::{Amf0Encoder, Amf0Value};
 
 use super::NetConnectionCommand;
-use crate::command_messages::CommandError;
+use crate::command_messages::error::CommandError;
 
 impl NetConnectionCommand<'_> {
     pub fn write(self, buf: &mut impl io::Write, transaction_id: f64) -> Result<(), CommandError> {
@@ -59,7 +59,7 @@ mod tests {
     use scuffle_amf0::Amf0Decoder;
 
     use super::*;
-    use crate::command_messages::define::CommandResultLevel;
+    use crate::command_messages::CommandResultLevel;
 
     #[test]
     fn test_netconnection_connect_response() {
