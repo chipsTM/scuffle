@@ -5,7 +5,7 @@ use bytes::Bytes;
 use super::define::CommandResultLevel;
 use super::{Command, CommandError, CommandType};
 use crate::chunk::{Chunk, ChunkStreamId, ChunkWriter};
-use crate::error::Error;
+use crate::error::RtmpError;
 use crate::messages::MessageType;
 
 impl CommandResultLevel {
@@ -45,7 +45,7 @@ impl Command<'_> {
     // - SRS does not support AMF3 (https://github.com/ossrs/srs/blob/dcd02fe69cdbd7f401a7b8d139d95b522deb55b1/trunk/src/protocol/srs_protocol_rtmp_stack.cpp#L599)
     // However, the new enhanced-rtmp-v1 spec from YouTube does encourage the use of AMF3 over AMF0 (https://github.com/veovera/enhanced-rtmp)
     // We will eventually support this spec but for now we will stick to AMF0
-    pub fn write(self, io: &mut impl io::Write, writer: &ChunkWriter) -> Result<(), Error> {
+    pub fn write(self, io: &mut impl io::Write, writer: &ChunkWriter) -> Result<(), RtmpError> {
         let mut buf = Vec::new();
 
         match self.command_type {
@@ -53,7 +53,7 @@ impl Command<'_> {
                 command.write(&mut buf, self.transaction_id)?;
             }
             CommandType::NetStream(_) => {
-                return Err(Error::from(CommandError::NoClientImplementation));
+                return Err(RtmpError::from(CommandError::NoClientImplementation));
             }
             CommandType::OnStatus(command) => {
                 command.write(&mut buf, self.transaction_id)?;
@@ -75,7 +75,7 @@ mod tests {
     use crate::chunk::ChunkWriter;
     use crate::command_messages::netstream::NetStreamCommand;
     use crate::command_messages::{CommandError, CommandType};
-    use crate::error::Error;
+    use crate::error::RtmpError;
 
     #[test]
     fn command_result_level_to_str() {
@@ -105,6 +105,6 @@ mod tests {
         .write(&mut buf, &writer)
         .unwrap_err();
 
-        assert!(matches!(err, Error::Command(CommandError::NoClientImplementation)));
+        assert!(matches!(err, RtmpError::Command(CommandError::NoClientImplementation)));
     }
 }

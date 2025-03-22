@@ -7,7 +7,7 @@ use enhanced::ExVideoTagBody;
 use legacy::LegacyVideoTagBody;
 
 use super::header::{VideoTagHeader, VideoTagHeaderData};
-use crate::error::Error;
+use crate::error::FlvError;
 
 pub mod enhanced;
 pub mod legacy;
@@ -35,7 +35,7 @@ impl VideoTagBody {
     /// and demux it accordingly.
     ///
     /// The reader will be entirely consumed.
-    pub fn demux(header: &VideoTagHeader, reader: &mut io::Cursor<Bytes>) -> Result<Self, Error> {
+    pub fn demux(header: &VideoTagHeader, reader: &mut io::Cursor<Bytes>) -> Result<Self, FlvError> {
         match &header.data {
             VideoTagHeaderData::Legacy(header) => Ok(Self::Legacy(LegacyVideoTagBody::demux(header, reader)?)),
             VideoTagHeaderData::Enhanced(header) => ExVideoTagBody::demux(header, reader).map(Self::Enhanced),

@@ -9,7 +9,7 @@ use scuffle_bytes_util::BytesCursorExt;
 
 use super::VideoFrameType;
 use crate::common::AvMultitrackType;
-use crate::error::Error;
+use crate::error::FlvError;
 use crate::video::header::VideoCommand;
 
 nutype_enum! {
@@ -66,7 +66,7 @@ impl VideoPacketModEx {
     /// Demux a [`VideoPacketModEx`] from the given reader.
     ///
     /// Returns the demuxed [`VideoPacketModEx`] and the next [`VideoPacketType`], if successful.
-    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<(Self, VideoPacketType), Error> {
+    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<(Self, VideoPacketType), FlvError> {
         let mut mod_ex_data_size = reader.read_u8()? as usize + 1;
         if mod_ex_data_size == 256 {
             mod_ex_data_size = reader.read_u16::<BigEndian>()? as usize + 1;
@@ -81,7 +81,7 @@ impl VideoPacketModEx {
         if video_packet_mod_ex_type == VideoPacketModExType::TimestampOffsetNano {
             if mod_ex_data_size < 3 {
                 // too few data bytes for the timestamp offset
-                return Err(Error::InvalidModExData { expected_bytes: 3 });
+                return Err(FlvError::InvalidModExData { expected_bytes: 3 });
             }
 
             let mod_ex_data = &mut io::Cursor::new(mod_ex_data);
@@ -167,7 +167,7 @@ impl ExVideoTagHeader {
     ///
     /// This is implemented as per Enhanced RTMP spec, page 27-28, ExVideoTagHeader.
     #[allow(clippy::unusual_byte_groupings)]
-    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, Error> {
+    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, FlvError> {
         let byte = reader.read_u8()?;
         let video_frame_type = VideoFrameType::from((byte & 0b0_111_0000) >> 4);
         let mut video_packet_type = VideoPacketType::from(byte & 0b0000_1111);
@@ -191,7 +191,7 @@ impl ExVideoTagHeader {
 
             if video_packet_type == VideoPacketType::Multitrack {
                 // nested multitracks are not allowed
-                return Err(Error::NestedMultitracks);
+                return Err(FlvError::NestedMultitracks);
             }
 
             let mut video_four_cc = [0; 4];
@@ -230,7 +230,7 @@ mod tests {
     use bytes::Bytes;
 
     use crate::common::AvMultitrackType;
-    use crate::error::Error;
+    use crate::error::FlvError;
     use crate::video::header::VideoCommand;
     use crate::video::header::enhanced::{
         ExVideoTagHeader, ExVideoTagHeaderContent, VideoFourCc, VideoPacketModEx, VideoPacketModExType, VideoPacketType,
@@ -311,7 +311,7 @@ mod tests {
 
         let err = VideoPacketModEx::demux(&mut std::io::Cursor::new(Bytes::from_static(data))).unwrap_err();
 
-        assert!(matches!(err, Error::InvalidModExData { expected_bytes: 3 },));
+        assert!(matches!(err, FlvError::InvalidModExData { expected_bytes: 3 },));
     }
 
     #[test]
@@ -445,7 +445,7 @@ mod tests {
         ];
 
         let err = ExVideoTagHeader::demux(&mut std::io::Cursor::new(Bytes::from_static(data))).unwrap_err();
-        assert!(matches!(err, Error::NestedMultitracks));
+        assert!(matches!(err, FlvError::NestedMultitracks));
     }
 
     #[test]

@@ -74,7 +74,7 @@ impl ChunkReader {
     ///
     /// - [`Chunk`]
     /// - [`ChunkReadError`]
-    pub fn read_chunk(&mut self, buffer: &mut BytesMut) -> Result<Option<Chunk>, crate::error::Error> {
+    pub fn read_chunk(&mut self, buffer: &mut BytesMut) -> Result<Option<Chunk>, crate::error::RtmpError> {
         // We do this in a loop because we may have multiple chunks in the buffer,
         // And those chunks may be partial chunks thus we need to keep reading until we
         // have a full chunk or we run out of data.
@@ -94,7 +94,7 @@ impl ChunkReader {
                 Err(Some(err)) => {
                     // This is an error that we can't recover from, so we return it.
                     // The connection will be closed.
-                    return Err(crate::error::Error::Io(err));
+                    return Err(crate::error::RtmpError::Io(err));
                 }
             };
 
@@ -159,7 +159,9 @@ impl ChunkReader {
             // memory. And the client is probably trying to DoS us.
             // We return an error and the connection will be closed.
             if count > MAX_PREVIOUS_CHUNK_HEADERS {
-                return Err(crate::error::Error::ChunkRead(ChunkReadError::TooManyPreviousChunkHeaders));
+                return Err(crate::error::RtmpError::ChunkRead(
+                    ChunkReadError::TooManyPreviousChunkHeaders,
+                ));
             }
 
             // We insert the chunk header into our map.
@@ -192,7 +194,7 @@ impl ChunkReader {
                         // Since the client is probably trying to DoS us.
                         // The connection will be closed.
                         if self.partial_chunks.len() >= MAX_PARTIAL_CHUNK_COUNT {
-                            return Err(crate::error::Error::ChunkRead(ChunkReadError::TooManyPartialChunks));
+                            return Err(crate::error::RtmpError::ChunkRead(ChunkReadError::TooManyPartialChunks));
                         }
 
                         // Insert a new empty BytesMut into the map.
@@ -208,7 +210,7 @@ impl ChunkReader {
                     // If the length of a single chunk is larger than the max partial chunk size
                     // we return an error. The client is probably trying to DoS us.
                     if partial_chunk.len() + payload.len() > MAX_PARTIAL_CHUNK_SIZE {
-                        return Err(crate::error::Error::ChunkRead(ChunkReadError::PartialChunkTooLarge(
+                        return Err(crate::error::RtmpError::ChunkRead(ChunkReadError::PartialChunkTooLarge(
                             partial_chunk.len() + payload.len(),
                         )));
                     }
@@ -288,7 +290,7 @@ impl ChunkReader {
         &self,
         header: &ChunkBasicHeader,
         cursor: &mut Cursor<&[u8]>,
-    ) -> Result<ChunkMessageHeader, Option<crate::error::Error>> {
+    ) -> Result<ChunkMessageHeader, Option<crate::error::RtmpError>> {
         // Each format has a different message header length.
         match header.format {
             // Type0 headers have the most information and can be compared to keyframes in video.
@@ -298,21 +300,24 @@ impl ChunkReader {
                 let timestamp = cursor
                     .read_u24::<BigEndian>()
                     .eof_to_none()
-                    .map_err(|e| e.map(crate::error::Error::Io))?;
+                    .map_err(|e| e.map(crate::error::RtmpError::Io))?;
                 // Followed by a 3 byte message length. (this is the length of the entire
                 // payload not just this chunk)
                 let msg_length = cursor
                     .read_u24::<BigEndian>()
                     .eof_to_none()
-                    .map_err(|e| e.map(crate::error::Error::Io))?;
+                    .map_err(|e| e.map(crate::error::RtmpError::Io))?;
                 if msg_length as usize > MAX_PARTIAL_CHUNK_SIZE {
-                    return Err(Some(crate::error::Error::ChunkRead(ChunkReadError::PartialChunkTooLarge(
-                        msg_length as usize,
-                    ))));
+                    return Err(Some(crate::error::RtmpError::ChunkRead(
+                        ChunkReadError::PartialChunkTooLarge(msg_length as usize),
+                    )));
                 }
 
                 // We then have a 1 byte message type id.
-                let msg_type_id = cursor.read_u8().eof_to_none().map_err(|e| e.map(crate::error::Error::Io))?;
+                let msg_type_id = cursor
+                    .read_u8()
+                    .eof_to_none()
+                    .map_err(|e| e.map(crate::error::RtmpError::Io))?;
                 let msg_type_id = MessageType::from(msg_type_id);
 
                 // We then read the message stream id. (According to spec this is stored in
@@ -320,7 +325,7 @@ impl ChunkReader {
                 let msg_stream_id = cursor
                     .read_u32::<LittleEndian>()
                     .eof_to_none()
-                    .map_err(|e| e.map(crate::error::Error::Io))?;
+                    .map_err(|e| e.map(crate::error::RtmpError::Io))?;
 
                 // Sometimes the timestamp is larger than 3 bytes.
                 // If the timestamp is 0xFFFFFF we read the next 4 bytes as the timestamp.
@@ -335,7 +340,7 @@ impl ChunkReader {
                         cursor
                             .read_u32::<BigEndian>()
                             .eof_to_none()
-                            .map_err(|e| e.map(crate::error::Error::Io))?,
+                            .map_err(|e| e.map(crate::error::RtmpError::Io))?,
                         true,
                     )
                 } else {
@@ -357,21 +362,24 @@ impl ChunkReader {
                 let timestamp_delta = cursor
                     .read_u24::<BigEndian>()
                     .eof_to_none()
-                    .map_err(|e| e.map(crate::error::Error::Io))?;
+                    .map_err(|e| e.map(crate::error::RtmpError::Io))?;
                 // Followed by a 3 byte message length. (this is the length of the entire
                 // payload not just this chunk)
                 let msg_length = cursor
                     .read_u24::<BigEndian>()
                     .eof_to_none()
-                    .map_err(|e| e.map(crate::error::Error::Io))?;
+                    .map_err(|e| e.map(crate::error::RtmpError::Io))?;
                 if msg_length as usize > MAX_PARTIAL_CHUNK_SIZE {
-                    return Err(Some(crate::error::Error::ChunkRead(ChunkReadError::PartialChunkTooLarge(
-                        msg_length as usize,
-                    ))));
+                    return Err(Some(crate::error::RtmpError::ChunkRead(
+                        ChunkReadError::PartialChunkTooLarge(msg_length as usize),
+                    )));
                 }
 
                 // We then have a 1 byte message type id.
-                let msg_type_id = cursor.read_u8().eof_to_none().map_err(|e| e.map(crate::error::Error::Io))?;
+                let msg_type_id = cursor
+                    .read_u8()
+                    .eof_to_none()
+                    .map_err(|e| e.map(crate::error::RtmpError::Io))?;
                 let msg_type_id = MessageType::from(msg_type_id);
 
                 // Again as mentioned above we sometimes have a delta timestamp larger than 3
@@ -381,7 +389,7 @@ impl ChunkReader {
                         cursor
                             .read_u32::<BigEndian>()
                             .eof_to_none()
-                            .map_err(|e| e.map(crate::error::Error::Io))?,
+                            .map_err(|e| e.map(crate::error::RtmpError::Io))?,
                         true,
                     )
                 } else {
@@ -394,9 +402,9 @@ impl ChunkReader {
                 let previous_header =
                     self.previous_chunk_headers
                         .get(&header.chunk_stream_id)
-                        .ok_or(crate::error::Error::ChunkRead(ChunkReadError::MissingPreviousChunkHeader(
-                            header.chunk_stream_id,
-                        )))?;
+                        .ok_or(crate::error::RtmpError::ChunkRead(
+                            ChunkReadError::MissingPreviousChunkHeader(header.chunk_stream_id),
+                        ))?;
 
                 // We calculate the timestamp by adding the delta timestamp to the previous
                 // timestamp. We need to make sure this does not overflow.
@@ -427,7 +435,7 @@ impl ChunkReader {
                 let timestamp_delta = cursor
                     .read_u24::<BigEndian>()
                     .eof_to_none()
-                    .map_err(|e| e.map(crate::error::Error::Io))?;
+                    .map_err(|e| e.map(crate::error::RtmpError::Io))?;
 
                 // Again if the delta timestamp is larger than 3 bytes we read the next 4 bytes
                 // as the timestamp.
@@ -436,7 +444,7 @@ impl ChunkReader {
                         cursor
                             .read_u32::<BigEndian>()
                             .eof_to_none()
-                            .map_err(|e| e.map(crate::error::Error::Io))?,
+                            .map_err(|e| e.map(crate::error::RtmpError::Io))?,
                         true,
                     )
                 } else {
@@ -449,9 +457,9 @@ impl ChunkReader {
                 let previous_header =
                     self.previous_chunk_headers
                         .get(&header.chunk_stream_id)
-                        .ok_or(crate::error::Error::ChunkRead(ChunkReadError::MissingPreviousChunkHeader(
-                            header.chunk_stream_id,
-                        )))?;
+                        .ok_or(crate::error::RtmpError::ChunkRead(
+                            ChunkReadError::MissingPreviousChunkHeader(header.chunk_stream_id),
+                        ))?;
 
                 // We calculate the timestamp by adding the delta timestamp to the previous
                 // timestamp.
@@ -473,9 +481,9 @@ impl ChunkReader {
                 let previous_header = self
                     .previous_chunk_headers
                     .get(&header.chunk_stream_id)
-                    .ok_or(crate::error::Error::ChunkRead(ChunkReadError::MissingPreviousChunkHeader(
-                        header.chunk_stream_id,
-                    )))?
+                    .ok_or(crate::error::RtmpError::ChunkRead(
+                        ChunkReadError::MissingPreviousChunkHeader(header.chunk_stream_id),
+                    ))?
                     .clone();
 
                 // Now this is truely stupid.
@@ -489,7 +497,7 @@ impl ChunkReader {
                     cursor
                         .read_u32::<BigEndian>()
                         .eof_to_none()
-                        .map_err(|e| e.map(crate::error::Error::Io))?;
+                        .map_err(|e| e.map(crate::error::RtmpError::Io))?;
                 }
 
                 Ok(previous_header)
@@ -503,7 +511,7 @@ impl ChunkReader {
         header: &ChunkBasicHeader,
         message_header: &ChunkMessageHeader,
         cursor: &mut Cursor<&'_ [u8]>,
-    ) -> Result<(usize, usize), Option<crate::error::Error>> {
+    ) -> Result<(usize, usize), Option<crate::error::RtmpError>> {
         // We find out if the chunk is a partial chunk (and if we have already read some
         // of it).
         let key = (header.chunk_stream_id, message_header.msg_stream_id);
@@ -524,7 +532,7 @@ impl ChunkReader {
         cursor
             .seek(SeekFrom::Current(need_read_length as i64))
             .eof_to_none()
-            .map_err(|e| e.map(crate::error::Error::Io))?;
+            .map_err(|e| e.map(crate::error::RtmpError::Io))?;
 
         // We then return the range of the payload.
         // Which would be the pos to the pos + need_read_length.
@@ -908,7 +916,7 @@ mod tests {
         let mut unpacker = ChunkReader::default();
         let err = unpacker.read_chunk(&mut buf).unwrap_err();
         match err {
-            crate::error::Error::ChunkRead(ChunkReadError::MissingPreviousChunkHeader(3)) => {}
+            crate::error::RtmpError::ChunkRead(ChunkReadError::MissingPreviousChunkHeader(3)) => {}
             _ => panic!("Unexpected error: {:?}", err),
         }
     }
@@ -932,7 +940,7 @@ mod tests {
 
         let err = unpacker.read_chunk(&mut buf).unwrap_err();
         match err {
-            crate::error::Error::ChunkRead(ChunkReadError::PartialChunkTooLarge(16777215)) => {}
+            crate::error::RtmpError::ChunkRead(ChunkReadError::PartialChunkTooLarge(16777215)) => {}
             _ => panic!("Unexpected error: {:?}", err),
         }
     }
@@ -985,7 +993,7 @@ mod tests {
 
         let err = unpacker.read_chunk(&mut buf).unwrap_err();
         match err {
-            crate::error::Error::ChunkRead(ChunkReadError::TooManyPartialChunks) => {}
+            crate::error::RtmpError::ChunkRead(ChunkReadError::TooManyPartialChunks) => {}
             _ => panic!("Unexpected error: {:?}", err),
         }
     }
@@ -1031,7 +1039,7 @@ mod tests {
 
         let err = unpacker.read_chunk(&mut buf).unwrap_err();
         match err {
-            crate::error::Error::ChunkRead(ChunkReadError::TooManyPreviousChunkHeaders) => {}
+            crate::error::RtmpError::ChunkRead(ChunkReadError::TooManyPreviousChunkHeaders) => {}
             _ => panic!("Unexpected error: {:?}", err),
         }
     }

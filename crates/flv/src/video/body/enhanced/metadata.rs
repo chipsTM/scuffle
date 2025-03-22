@@ -2,7 +2,7 @@
 
 use scuffle_amf0::{Amf0Decoder, Amf0Marker, Amf0Object, Amf0Value};
 
-use crate::error::Error;
+use crate::error::FlvError;
 
 /// Color configuration metadata.
 ///
@@ -119,7 +119,7 @@ pub struct MetadataColorInfo {
 // We should maybe implement serde support in the amf0 crate
 
 impl TryFrom<Amf0Object<'_>> for MetadataColorInfo {
-    type Error = Error;
+    type Error = FlvError;
 
     fn try_from(value: Amf0Object<'_>) -> Result<Self, Self::Error> {
         let mut color_config = None;
@@ -274,7 +274,7 @@ pub enum VideoPacketMetadataEntry {
 
 impl VideoPacketMetadataEntry {
     /// Read a video packet metadata entry from the given [`Amf0Decoder`].
-    pub fn read(reader: &mut Amf0Decoder<'_>) -> Result<Self, Error> {
+    pub fn read(reader: &mut Amf0Decoder<'_>) -> Result<Self, FlvError> {
         let Amf0Value::String(key) = reader.decode_with_type(Amf0Marker::String)? else {
             unreachable!()
         };

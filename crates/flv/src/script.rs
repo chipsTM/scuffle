@@ -9,7 +9,7 @@ use scuffle_bytes_util::BytesCursorExt;
 
 use crate::audio::header::enhanced::AudioFourCc;
 use crate::audio::header::legacy::SoundFormat;
-use crate::error::Error;
+use crate::error::FlvError;
 use crate::video::header::enhanced::VideoFourCc;
 use crate::video::header::legacy::VideoCodecId;
 
@@ -27,7 +27,7 @@ pub enum OnMetaDataAudioCodecId {
 
 impl OnMetaDataAudioCodecId {
     /// Read the audio codec ID from the given AMF0 value.
-    fn from_amf0(value: &Amf0Value<'_>) -> Result<Self, Error> {
+    fn from_amf0(value: &Amf0Value<'_>) -> Result<Self, FlvError> {
         let n = value.as_number()? as u32;
 
         // Since SoundFormat is a u8, we can be sure that the number represents an AudioFourCc if it is greater
@@ -56,7 +56,7 @@ pub enum OnMetaDataVideoCodecId {
 
 impl OnMetaDataVideoCodecId {
     /// Read the video codec ID from the given AMF0 value.
-    fn from_amf0(value: &Amf0Value<'_>) -> Result<Self, Error> {
+    fn from_amf0(value: &Amf0Value<'_>) -> Result<Self, FlvError> {
         let n = value.as_number()? as u32;
 
         // Since VideoCodecId is a u8, we can be sure that the number represents an VideoFourCc if it is greater
@@ -150,7 +150,7 @@ pub struct OnMetaData {
 // We should maybe implement serde support in the amf0 crate
 
 impl TryFrom<Amf0Object<'_>> for OnMetaData {
-    type Error = Error;
+    type Error = FlvError;
 
     fn try_from(value: Amf0Object) -> Result<Self, Self::Error> {
         let mut other = HashMap::new();
@@ -254,7 +254,7 @@ pub struct OnXmpData {
 }
 
 impl TryFrom<Amf0Object<'_>> for OnXmpData {
-    type Error = Error;
+    type Error = FlvError;
 
     fn try_from(value: Amf0Object<'_>) -> Result<Self, Self::Error> {
         let mut other = HashMap::new();
@@ -296,7 +296,7 @@ pub enum ScriptData {
 
 impl ScriptData {
     /// Demux the [`ScriptData`] from the given reader.
-    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, Error> {
+    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, FlvError> {
         let buf = reader.extract_remaining();
         let mut amf0_reader = Amf0Decoder::new(&buf);
 

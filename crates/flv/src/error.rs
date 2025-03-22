@@ -2,7 +2,7 @@
 
 /// Error type for FLV processing.
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub enum FlvError {
     /// IO error.
     #[error("io: {0}")]
     Io(#[from] std::io::Error),

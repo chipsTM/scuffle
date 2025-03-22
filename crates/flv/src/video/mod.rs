@@ -8,7 +8,7 @@ use body::VideoTagBody;
 use bytes::Bytes;
 use header::VideoTagHeader;
 
-use crate::error::Error;
+use crate::error::FlvError;
 
 pub mod body;
 pub mod header;
@@ -36,7 +36,7 @@ impl VideoData {
     ///
     /// Returns a new instance of [`VideoData`] if successful.
     #[allow(clippy::unusual_byte_groupings)]
-    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, Error> {
+    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, FlvError> {
         let header = VideoTagHeader::demux(reader)?;
         let body = VideoTagBody::demux(&header, reader)?;
 

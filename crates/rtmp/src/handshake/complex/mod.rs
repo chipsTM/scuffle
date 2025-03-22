@@ -46,7 +46,7 @@ impl ComplexHandshakeServer {
         self.state == ServerHandshakeState::Finish
     }
 
-    pub fn handshake(&mut self, input: &mut io::Cursor<Bytes>, output: &mut Vec<u8>) -> Result<(), crate::error::Error> {
+    pub fn handshake(&mut self, input: &mut io::Cursor<Bytes>, output: &mut Vec<u8>) -> Result<(), crate::error::RtmpError> {
         match self.state {
             ServerHandshakeState::ReadC0C1 => {
                 self.read_c0(input)?;
@@ -66,7 +66,7 @@ impl ComplexHandshakeServer {
         Ok(())
     }
 
-    fn read_c0(&mut self, input: &mut io::Cursor<Bytes>) -> Result<(), crate::error::Error> {
+    fn read_c0(&mut self, input: &mut io::Cursor<Bytes>) -> Result<(), crate::error::RtmpError> {
         // Version (8 bits): In C0, this field identifies the RTMP version
         //  requested by the client.
         self.requested_version = RtmpVersion(input.read_u8()?);
@@ -78,7 +78,7 @@ impl ComplexHandshakeServer {
         Ok(())
     }
 
-    fn read_c1(&mut self, input: &mut io::Cursor<Bytes>) -> Result<(), crate::error::Error> {
+    fn read_c1(&mut self, input: &mut io::Cursor<Bytes>) -> Result<(), crate::error::RtmpError> {
         let c1_bytes = input.extract_bytes(define::RTMP_HANDSHAKE_SIZE)?;
 
         //  The first 4 bytes of C1 are the timestamp.
@@ -98,7 +98,7 @@ impl ComplexHandshakeServer {
         Ok(())
     }
 
-    fn read_c2(&mut self, input: &mut io::Cursor<Bytes>) -> Result<(), crate::error::Error> {
+    fn read_c2(&mut self, input: &mut io::Cursor<Bytes>) -> Result<(), crate::error::RtmpError> {
         // We don't care too much about the data in C2, so we just read it
         //  and discard it.
         input.seek_relative(define::RTMP_HANDSHAKE_SIZE as i64)?;
@@ -106,7 +106,7 @@ impl ComplexHandshakeServer {
         Ok(())
     }
 
-    fn write_s0(&mut self, output: &mut Vec<u8>) -> Result<(), crate::error::Error> {
+    fn write_s0(&mut self, output: &mut Vec<u8>) -> Result<(), crate::error::RtmpError> {
         // The version of the protocol used in the handshake.
         // This server is using version 3 of the protocol.
         output.write_u8(self.version.0)?; // 8 bits version
@@ -114,7 +114,7 @@ impl ComplexHandshakeServer {
         Ok(())
     }
 
-    fn write_s1(&self, output: &mut Vec<u8>) -> Result<(), crate::error::Error> {
+    fn write_s1(&self, output: &mut Vec<u8>) -> Result<(), crate::error::RtmpError> {
         let mut writer = BytesMut::new().writer();
 
         // The first 4 bytes of S1 are the timestamp.
@@ -139,7 +139,7 @@ impl ComplexHandshakeServer {
         Ok(())
     }
 
-    fn write_s2(&self, output: &mut Vec<u8>) -> Result<(), crate::error::Error> {
+    fn write_s2(&self, output: &mut Vec<u8>) -> Result<(), crate::error::RtmpError> {
         let start = output.len();
 
         // We write the current time to the first 4 bytes.

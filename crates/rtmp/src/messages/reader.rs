@@ -6,7 +6,7 @@ use crate::protocol_control_messages::{
 };
 
 impl<'a> MessageData<'a> {
-    pub fn read(chunk: &'a Chunk) -> Result<Self, crate::error::Error> {
+    pub fn read(chunk: &'a Chunk) -> Result<Self, crate::error::RtmpError> {
         match chunk.message_header.msg_type_id {
             // Protocol Control Messages
             MessageType::SetChunkSize => {

@@ -6,7 +6,7 @@ use byteorder::ReadBytesExt;
 use bytes::Bytes;
 use nutype_enum::nutype_enum;
 
-use crate::error::Error;
+use crate::error::FlvError;
 
 pub mod enhanced;
 pub mod legacy;
@@ -78,7 +78,7 @@ impl VideoTagHeader {
     /// This function will automatically determine whether the given data represents a legacy or an enhanced video tag header
     /// and demux it accordingly.
     #[allow(clippy::unusual_byte_groupings)]
-    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, Error> {
+    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, FlvError> {
         let byte = reader.read_u8()?;
         // seek back one byte so that the codec id can be read again
         reader.seek_relative(-1)?;

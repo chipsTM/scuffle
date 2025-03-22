@@ -40,7 +40,7 @@ impl HandshakeServer {
     }
 
     /// Perform the handshake.
-    pub fn handshake(&mut self, input: &mut io::Cursor<Bytes>, writer: &mut Vec<u8>) -> Result<(), crate::error::Error> {
+    pub fn handshake(&mut self, input: &mut io::Cursor<Bytes>, writer: &mut Vec<u8>) -> Result<(), crate::error::RtmpError> {
         match self {
             HandshakeServer::Complex(handshaker) => {
                 // We need to be able to go back if the handshake isn't complex.

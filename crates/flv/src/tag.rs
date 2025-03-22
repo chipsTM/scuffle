@@ -8,7 +8,7 @@ use scuffle_bytes_util::BytesCursorExt;
 use super::audio::AudioData;
 use super::script::ScriptData;
 use super::video::VideoData;
-use crate::error::Error;
+use crate::error::FlvError;
 
 /// An FLV Tag
 ///
@@ -38,7 +38,7 @@ impl FlvTag {
     ///
     /// The reader needs to be a [`std::io::Cursor`] with a [`Bytes`] buffer because we
     /// take advantage of zero-copy reading.
-    pub fn demux(reader: &mut std::io::Cursor<Bytes>) -> Result<Self, Error> {
+    pub fn demux(reader: &mut std::io::Cursor<Bytes>) -> Result<Self, FlvError> {
         let first_byte = reader.read_u8()?;
 
         // encrypted
@@ -88,7 +88,6 @@ nutype_enum! {
     /// - Audio(8)
     /// - Video(9)
     /// - ScriptData(18)
-    ///
     pub enum FlvTagType(u8) {
         /// [`AudioData`]
         Audio = 8,
@@ -150,7 +149,7 @@ impl FlvTagData {
     ///
     /// The reader needs to be a [`std::io::Cursor`] with a [`Bytes`] buffer because we
     /// take advantage of zero-copy reading.
-    pub fn demux(tag_type: FlvTagType, reader: &mut std::io::Cursor<Bytes>) -> Result<Self, Error> {
+    pub fn demux(tag_type: FlvTagType, reader: &mut std::io::Cursor<Bytes>) -> Result<Self, FlvError> {
         match tag_type {
             FlvTagType::Audio => Ok(FlvTagData::Audio(AudioData::demux(reader)?)),
             FlvTagType::Video => Ok(FlvTagData::Video(VideoData::demux(reader)?)),

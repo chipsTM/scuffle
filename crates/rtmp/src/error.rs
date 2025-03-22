@@ -4,7 +4,7 @@ use crate::command_messages::CommandError;
 use crate::handshake::ComplexHandshakeError;
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub enum RtmpError {
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
     #[error("chunk read error: {0}")]
@@ -17,7 +17,7 @@ pub enum Error {
     Session(#[from] SessionError),
 }
 
-impl Error {
+impl RtmpError {
     pub fn is_client_closed(&self) -> bool {
         match self {
             Self::Io(err) => matches!(
@@ -40,20 +40,20 @@ mod tests {
     use std::time::Duration;
 
     use crate::SessionError;
-    use crate::error::Error;
+    use crate::error::RtmpError;
 
     #[tokio::test]
     async fn test_is_client_closed() {
-        assert!(Error::Io(std::io::Error::new(ErrorKind::ConnectionAborted, "test")).is_client_closed());
-        assert!(Error::Io(std::io::Error::new(ErrorKind::ConnectionReset, "test")).is_client_closed());
-        assert!(Error::Io(std::io::Error::new(ErrorKind::UnexpectedEof, "test")).is_client_closed());
+        assert!(RtmpError::Io(std::io::Error::new(ErrorKind::ConnectionAborted, "test")).is_client_closed());
+        assert!(RtmpError::Io(std::io::Error::new(ErrorKind::ConnectionReset, "test")).is_client_closed());
+        assert!(RtmpError::Io(std::io::Error::new(ErrorKind::UnexpectedEof, "test")).is_client_closed());
 
         let elapsed = tokio::time::timeout(Duration::ZERO, future::pending::<()>())
             .await
             .unwrap_err();
 
-        assert!(Error::Session(SessionError::Timeout(elapsed)).is_client_closed());
+        assert!(RtmpError::Session(SessionError::Timeout(elapsed)).is_client_closed());
 
-        assert!(!Error::Io(std::io::Error::other("test")).is_client_closed());
+        assert!(!RtmpError::Io(std::io::Error::other("test")).is_client_closed());
     }
 }

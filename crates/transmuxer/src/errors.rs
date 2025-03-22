@@ -23,5 +23,5 @@ pub enum TransmuxError {
     #[error("io error: {0}")]
     Io(#[from] io::Error),
     #[error("flv error: {0}")]
-    Flv(#[from] scuffle_flv::error::Error),
+    Flv(#[from] scuffle_flv::error::FlvError),
 }

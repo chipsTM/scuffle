@@ -13,7 +13,7 @@ use scuffle_bytes_util::BytesCursorExt;
 use scuffle_h264::AVCDecoderConfigurationRecord;
 use scuffle_h265::HEVCDecoderConfigurationRecord;
 
-use crate::error::Error;
+use crate::error::FlvError;
 use crate::video::header::enhanced::{ExVideoTagHeader, ExVideoTagHeaderContent, VideoFourCc, VideoPacketType};
 
 pub mod metadata;
@@ -101,7 +101,7 @@ impl VideoPacket {
         header: &ExVideoTagHeader,
         video_four_cc: VideoFourCc,
         reader: &mut io::Cursor<Bytes>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, FlvError> {
         let size_of_video_track = if !matches!(
             header.content,
             ExVideoTagHeaderContent::NoMultiTrack(_) | ExVideoTagHeaderContent::OneTrack(_)
@@ -254,7 +254,7 @@ impl ExVideoTagBody {
     /// Demux an [`ExVideoTagBody`] from the given reader.
     ///
     /// This is implemented as per Enhanced RTMP spec, page 29-31, ExVideoTagBody.
-    pub fn demux(header: &ExVideoTagHeader, reader: &mut io::Cursor<Bytes>) -> Result<Self, Error> {
+    pub fn demux(header: &ExVideoTagHeader, reader: &mut io::Cursor<Bytes>) -> Result<Self, FlvError> {
         let mut tracks = Vec::new();
 
         loop {

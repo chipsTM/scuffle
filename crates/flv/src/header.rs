@@ -6,7 +6,7 @@ use byteorder::{BigEndian, ReadBytesExt};
 use bytes::Bytes;
 use scuffle_bytes_util::BytesCursorExt;
 
-use crate::error::Error;
+use crate::error::FlvError;
 
 /// The FLV header
 /// Whenever a FLV file is read these are the first 9 bytes of the file.
@@ -33,14 +33,14 @@ impl FlvHeader {
     /// Demux the FLV header from the given reader.
     /// The reader will be returned in the position of the start of the data
     /// offset.
-    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, Error> {
+    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, FlvError> {
         let start = reader.position() as usize;
 
         let signature = reader.read_u24::<BigEndian>()?;
 
         // 0 byte at the beginning because we are only reading 3 bytes not 4.
         if signature != u32::from_be_bytes([0, b'F', b'L', b'V']) {
-            return Err(Error::InvalidSignature(signature));
+            return Err(FlvError::InvalidSignature(signature));
         }
 
         let version = reader.read_u8()?;
@@ -54,7 +54,7 @@ impl FlvHeader {
 
         let remaining = (data_offset as usize)
             .checked_sub(size)
-            .ok_or(Error::InvalidDataOffset(data_offset))?;
+            .ok_or(FlvError::InvalidDataOffset(data_offset))?;
 
         let extra = reader.extract_bytes(remaining)?;
 

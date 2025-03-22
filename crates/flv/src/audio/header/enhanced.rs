@@ -8,7 +8,7 @@ use nutype_enum::nutype_enum;
 use scuffle_bytes_util::BytesCursorExt;
 
 use crate::common::AvMultitrackType;
-use crate::error::Error;
+use crate::error::FlvError;
 
 nutype_enum! {
     /// Different types of audio packets.
@@ -60,7 +60,7 @@ impl AudioPacketModEx {
     /// Demux a [`AudioPacketModEx`] from the given reader.
     ///
     /// Returns the demuxed [`AudioPacketModEx`] and the next [`AudioPacketType`], if successful.
-    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<(Self, AudioPacketType), Error> {
+    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<(Self, AudioPacketType), FlvError> {
         let mut mod_ex_data_size = reader.read_u8()? as usize + 1;
         if mod_ex_data_size == 256 {
             mod_ex_data_size = reader.read_u16::<BigEndian>()? as usize + 1;
@@ -75,7 +75,7 @@ impl AudioPacketModEx {
         if audio_packet_mod_ex_type == AudioPacketModExType::TimestampOffsetNano {
             if mod_ex_data_size < 3 {
                 // too few data bytes for the timestamp offset
-                return Err(Error::InvalidModExData { expected_bytes: 3 });
+                return Err(FlvError::InvalidModExData { expected_bytes: 3 });
             }
 
             let mod_ex_data = &mut io::Cursor::new(mod_ex_data);
@@ -171,7 +171,7 @@ impl ExAudioTagHeader {
     /// Demux an [`ExAudioTagHeader`] from the given reader.
     ///
     /// This is implemented as per Enhanced RTMP spec, page 20-21, ExAudioTagHeader.
-    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, Error> {
+    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, FlvError> {
         let mut audio_packet_type = AudioPacketType::from(reader.read_u8()? & 0b0000_1111);
 
         let mut audio_packet_mod_exs = Vec::new();
@@ -189,7 +189,7 @@ impl ExAudioTagHeader {
 
             if audio_packet_type == AudioPacketType::Multitrack {
                 // nested multitracks are not allowed
-                return Err(Error::NestedMultitracks);
+                return Err(FlvError::NestedMultitracks);
             }
 
             let mut audio_four_cc = [0; 4];
@@ -237,7 +237,7 @@ mod tests {
         AudioFourCc, AudioPacketModExType, AudioPacketType, ExAudioTagHeader, ExAudioTagHeaderContent,
     };
     use crate::common::AvMultitrackType;
-    use crate::error::Error;
+    use crate::error::FlvError;
 
     #[test]
     fn small_mod_ex_demux() {
@@ -314,7 +314,7 @@ mod tests {
 
         let err = AudioPacketModEx::demux(&mut std::io::Cursor::new(Bytes::from_static(data))).unwrap_err();
 
-        assert!(matches!(err, Error::InvalidModExData { expected_bytes: 3 },));
+        assert!(matches!(err, FlvError::InvalidModExData { expected_bytes: 3 },));
     }
 
     #[test]
@@ -448,6 +448,6 @@ mod tests {
         ];
 
         let err = ExAudioTagHeader::demux(&mut std::io::Cursor::new(Bytes::from_static(data))).unwrap_err();
-        assert!(matches!(err, Error::NestedMultitracks));
+        assert!(matches!(err, FlvError::NestedMultitracks));
     }
 }

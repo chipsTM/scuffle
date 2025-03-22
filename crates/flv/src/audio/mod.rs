@@ -8,7 +8,7 @@ use body::AudioTagBody;
 use bytes::Bytes;
 use header::AudioTagHeader;
 
-use crate::error::Error;
+use crate::error::FlvError;
 
 pub mod body;
 pub mod header;
@@ -35,7 +35,7 @@ impl AudioData {
     /// and demux it accordingly.
     ///
     /// Returns a new instance of [`AudioData`] if successful.
-    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, Error> {
+    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, FlvError> {
         let header = AudioTagHeader::demux(reader)?;
         let body = AudioTagBody::demux(&header, reader)?;
 

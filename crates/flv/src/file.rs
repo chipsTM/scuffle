@@ -5,7 +5,7 @@ use bytes::{Buf, Bytes};
 
 use super::header::FlvHeader;
 use super::tag::FlvTag;
-use crate::error::Error;
+use crate::error::FlvError;
 
 /// An FLV file is a combination of a [`FlvHeader`] followed by the
 /// FLV File Body (which is a series of [`FlvTag`]s)
@@ -25,7 +25,7 @@ impl FlvFile {
     ///
     /// The reader needs to be a [`std::io::Cursor`] with a [`Bytes`] buffer because we
     /// take advantage of zero-copy reading.
-    pub fn demux(reader: &mut std::io::Cursor<Bytes>) -> Result<Self, Error> {
+    pub fn demux(reader: &mut std::io::Cursor<Bytes>) -> Result<Self, FlvError> {
         let header = FlvHeader::demux(reader)?;
 
         let mut tags = Vec::new();

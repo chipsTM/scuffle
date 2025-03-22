@@ -6,7 +6,7 @@ use byteorder::ReadBytesExt;
 use bytes::Bytes;
 use nutype_enum::nutype_enum;
 
-use crate::error::Error;
+use crate::error::FlvError;
 
 nutype_enum! {
     /// FLV `SoundFormat`
@@ -119,7 +119,7 @@ pub struct LegacyAudioTagHeader {
 impl LegacyAudioTagHeader {
     /// Demux the audio tag header from the given reader.
     #[allow(clippy::unusual_byte_groupings)]
-    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, Error> {
+    pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, FlvError> {
         let byte = reader.read_u8()?;
 
         // SoundFormat is the first 4 bits of the byte
