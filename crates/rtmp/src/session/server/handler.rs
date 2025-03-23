@@ -52,7 +52,7 @@ pub trait SessionHandler {
         message: UnknownMessage,
     ) -> impl std::future::Future<Output = Result<(), ServerSessionError>> + Send {
         async move {
-            tracing::debug!(stream_id = %stream_id, message = ?message, "unknown message");
+            tracing::warn!(stream_id = %stream_id, message = ?message, "unknown message");
             Ok(())
         }
     }
@@ -64,7 +64,7 @@ pub trait SessionHandler {
         command: UnknownCommand,
     ) -> impl std::future::Future<Output = Result<(), ServerSessionError>> + Send {
         async move {
-            tracing::debug!(stream_id = %stream_id, command = ?command, "unknown command");
+            tracing::warn!(stream_id = %stream_id, command = ?command, "unknown command");
             Ok(())
         }
     }
