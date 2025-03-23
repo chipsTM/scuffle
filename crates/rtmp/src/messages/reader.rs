@@ -121,6 +121,27 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_window_acknowledgement_size() {
+        let chunk = Chunk::new(
+            0,
+            0,
+            MessageType::WindowAcknowledgementSize,
+            0,
+            vec![0x00, 0xFF, 0xFF, 0xFF].into(),
+        );
+
+        let message = MessageData::read(&chunk).expect("no errors");
+        match message {
+            MessageData::SetAcknowledgementWindowSize(ProtocolControlMessageWindowAcknowledgementSize {
+                acknowledgement_window_size,
+            }) => {
+                assert_eq!(acknowledgement_window_size, 0x00FFFFFF);
+            }
+            _ => unreachable!("wrong message type"),
+        }
+    }
+
+    #[test]
     fn test_parse_metadata() {
         let mut amf0_writer = Vec::new();
 
