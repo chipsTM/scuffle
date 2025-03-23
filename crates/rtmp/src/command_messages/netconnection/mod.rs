@@ -99,7 +99,12 @@ pub enum NetConnectionCommand<'a> {
     /// Sent from server to client in response to [`NetConnectionCommand::Connect`].
     ConnectResult(NetConnectionCommandConnectResult<'a>),
     /// Call command.
-    Call,
+    Call {
+        /// The command object.
+        command_object: Option<Amf0Object<'a>>,
+        /// Any optional arguments.
+        optional_arguments: Option<Amf0Object<'a>>,
+    },
     /// Close command.
     Close,
     /// Create stream command.

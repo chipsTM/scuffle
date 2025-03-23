@@ -3,6 +3,8 @@
 use bytes::Bytes;
 
 use super::error::ServerSessionError;
+use crate::command_messages::UnknownCommand;
+use crate::messages::UnknownMessage;
 
 /// Data received from a session.
 #[derive(Debug, Clone)]
@@ -42,6 +44,30 @@ pub trait SessionHandler {
 
     /// Called when a stream is unpublished.
     fn on_unpublish(&mut self, stream_id: u32) -> impl std::future::Future<Output = Result<(), ServerSessionError>> + Send;
+
+    /// Called when an unknown/undefined message is received.
+    fn on_unknown_message(
+        &mut self,
+        stream_id: u32,
+        message: UnknownMessage,
+    ) -> impl std::future::Future<Output = Result<(), ServerSessionError>> + Send {
+        async move {
+            tracing::debug!(stream_id = %stream_id, message = ?message, "unknown message");
+            Ok(())
+        }
+    }
+
+    /// Called when an unknown/undefined command is received.
+    fn on_unknown_command(
+        &mut self,
+        stream_id: u32,
+        command: UnknownCommand,
+    ) -> impl std::future::Future<Output = Result<(), ServerSessionError>> + Send {
+        async move {
+            tracing::debug!(stream_id = %stream_id, command = ?command, "unknown command");
+            Ok(())
+        }
+    }
 
     /// Called when data is received.
     fn on_data(

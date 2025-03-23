@@ -14,8 +14,25 @@ impl<'a> NetStreamCommand<'a> {
     /// Returns `Ok(None)` if the `command_name` is not recognized.
     pub fn read(command_name: &str, decoder: &mut Amf0Decoder<'a>) -> Result<Option<Self>, CommandError> {
         match command_name {
-            "play" => Ok(Some(Self::Play)),
-            "play2" => Ok(Some(Self::Play2)),
+            "play" => {
+                // skip command object
+                decoder.decode_with_type(Amf0Marker::Null)?;
+
+                let values = decoder.decode_all()?;
+
+                Ok(Some(Self::Play { values }))
+            }
+            "play2" => {
+                // skip command object
+                decoder.decode_with_type(Amf0Marker::Null)?;
+
+                let Amf0Value::Object(parameters) = decoder.decode_with_type(Amf0Marker::Object)? else {
+                    // TODO: CLOUD-91
+                    unreachable!();
+                };
+
+                Ok(Some(Self::Play2 { parameters }))
+            }
             "deleteStream" => {
                 // skip command object
                 decoder.decode_with_type(Amf0Marker::Null)?;
@@ -28,8 +45,22 @@ impl<'a> NetStreamCommand<'a> {
                 Ok(Some(Self::DeleteStream { stream_id }))
             }
             "closeStream" => Ok(Some(Self::CloseStream)),
-            "receiveAudio" => Ok(Some(Self::ReceiveAudio)),
-            "receiveVideo" => Ok(Some(Self::ReceiveVideo)),
+            "receiveAudio" => {
+                // skip command object
+                decoder.decode_with_type(Amf0Marker::Null)?;
+
+                let receive_audio = decoder.decode_with_type(Amf0Marker::Boolean)?.as_boolean()?;
+
+                Ok(Some(Self::ReceiveAudio { receive_audio }))
+            }
+            "receiveVideo" => {
+                // skip command object
+                decoder.decode_with_type(Amf0Marker::Null)?;
+
+                let receive_video = decoder.decode_with_type(Amf0Marker::Boolean)?.as_boolean()?;
+
+                Ok(Some(Self::ReceiveVideo { receive_video }))
+            }
             "publish" => {
                 // skip command object
                 decoder.decode_with_type(Amf0Marker::Null)?;
@@ -52,8 +83,23 @@ impl<'a> NetStreamCommand<'a> {
                     publishing_type,
                 }))
             }
-            "seek" => Ok(Some(Self::Seek)),
-            "pause" => Ok(Some(Self::Pause)),
+            "seek" => {
+                // skip command object
+                decoder.decode_with_type(Amf0Marker::Null)?;
+
+                let milliseconds = decoder.decode_with_type(Amf0Marker::Number)?.as_number()?;
+
+                Ok(Some(Self::Seek { milliseconds }))
+            }
+            "pause" => {
+                // skip command object
+                decoder.decode_with_type(Amf0Marker::Null)?;
+
+                let pause = decoder.decode_with_type(Amf0Marker::Boolean)?.as_boolean()?;
+                let milliseconds = decoder.decode_with_type(Amf0Marker::Number)?.as_number()?;
+
+                Ok(Some(Self::Pause { pause, milliseconds }))
+            }
             _ => Ok(None),
         }
     }
@@ -84,32 +130,10 @@ mod tests {
 
     #[test]
     fn test_command_no_payload() {
-        let command = NetStreamCommand::read("play", &mut Amf0Decoder::new(&[])).unwrap().unwrap();
-        assert_eq!(command, NetStreamCommand::Play);
-
-        let command = NetStreamCommand::read("play2", &mut Amf0Decoder::new(&[])).unwrap().unwrap();
-        assert_eq!(command, NetStreamCommand::Play2);
-
         let command = NetStreamCommand::read("closeStream", &mut Amf0Decoder::new(&[]))
             .unwrap()
             .unwrap();
         assert_eq!(command, NetStreamCommand::CloseStream);
-
-        let command = NetStreamCommand::read("receiveAudio", &mut Amf0Decoder::new(&[]))
-            .unwrap()
-            .unwrap();
-        assert_eq!(command, NetStreamCommand::ReceiveAudio);
-
-        let command = NetStreamCommand::read("receiveVideo", &mut Amf0Decoder::new(&[]))
-            .unwrap()
-            .unwrap();
-        assert_eq!(command, NetStreamCommand::ReceiveVideo);
-
-        let command = NetStreamCommand::read("seek", &mut Amf0Decoder::new(&[])).unwrap().unwrap();
-        assert_eq!(command, NetStreamCommand::Seek);
-
-        let command = NetStreamCommand::read("pause", &mut Amf0Decoder::new(&[])).unwrap().unwrap();
-        assert_eq!(command, NetStreamCommand::Pause);
     }
 
     #[test]

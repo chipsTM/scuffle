@@ -45,7 +45,22 @@ impl<'a> NetConnectionCommand<'a> {
                     others: command_object.into(),
                 })))
             }
-            "call" => Ok(Some(Self::Call)),
+            "call" => {
+                let command_object = match decoder.decode()? {
+                    Amf0Value::Object(command_object) => Some(command_object),
+                    _ => None,
+                };
+
+                let optional_arguments = match decoder.decode()? {
+                    Amf0Value::Object(optional_arguments) => Some(optional_arguments),
+                    _ => None,
+                };
+
+                Ok(Some(Self::Call {
+                    command_object,
+                    optional_arguments,
+                }))
+            }
             "close" => Ok(Some(Self::Close)),
             "createStream" => Ok(Some(Self::CreateStream)),
             _ => Ok(None),

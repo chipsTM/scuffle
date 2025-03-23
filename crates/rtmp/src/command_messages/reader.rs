@@ -10,7 +10,7 @@ use scuffle_amf0::{Amf0Decoder, Amf0Marker, Amf0Value};
 use super::error::CommandError;
 use super::netconnection::NetConnectionCommand;
 use super::netstream::NetStreamCommand;
-use super::{Command, CommandResultLevel, CommandType};
+use super::{Command, CommandResultLevel, CommandType, UnknownCommand};
 
 impl<'a> Command<'a> {
     /// Reads a [`Command`] from the given payload.
@@ -45,7 +45,8 @@ impl<'a> CommandType<'a> {
             return Ok(Self::NetStream(command));
         }
 
-        Ok(Self::Unknown { command_name })
+        let values = decoder.decode_all()?;
+        Ok(Self::Unknown(UnknownCommand { command_name, values }))
     }
 }
 

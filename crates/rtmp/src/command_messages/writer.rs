@@ -100,7 +100,7 @@ mod tests {
         let writer = ChunkWriter::default();
 
         let err = Command {
-            command_type: CommandType::NetStream(NetStreamCommand::Play),
+            command_type: CommandType::NetStream(NetStreamCommand::CloseStream),
             transaction_id: 1.0,
         }
         .write(&mut buf, &writer)

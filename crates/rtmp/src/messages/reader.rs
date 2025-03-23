@@ -1,6 +1,6 @@
 //! Reading [`MessageData`].
 
-use super::{MessageData, MessageType};
+use super::{MessageData, MessageType, UnknownMessage};
 use crate::chunk::Chunk;
 use crate::command_messages::Command;
 use crate::protocol_control_messages::{
@@ -16,26 +16,35 @@ impl<'a> MessageData<'a> {
                 let data = ProtocolControlMessageSetChunkSize::read(&chunk.payload)?;
                 Ok(Self::SetChunkSize(data))
             }
+            MessageType::Abort => Ok(Self::Abort), // Not implemented
+            MessageType::Acknowledgement => Ok(Self::Acknowledgement), // Not implemented
+            MessageType::UserControlEvent => Ok(Self::UserControlEvent), // Not implemented
             MessageType::WindowAcknowledgementSize => {
                 let data = ProtocolControlMessageWindowAcknowledgementSize::read(&chunk.payload)?;
                 Ok(Self::SetAcknowledgementWindowSize(data))
             }
+            MessageType::SetPeerBandwidth => Ok(Self::SetPeerBandwidth), // Not implemented
             // RTMP Command Messages
-            MessageType::CommandAMF0 => Ok(Self::Amf0Command(Command::read(&chunk.payload)?)),
-            // Metadata
-            MessageType::DataAMF0 => Ok(Self::DataAmf0 {
-                data: chunk.payload.clone(),
-            }),
             MessageType::Audio => Ok(Self::AudioData {
                 data: chunk.payload.clone(),
             }),
             MessageType::Video => Ok(Self::VideoData {
                 data: chunk.payload.clone(),
             }),
-            msg_type_id => Ok(Self::Other {
-                msg_type_id,
+            MessageType::DataAMF3 => Ok(Self::DataAmf3), // Not implemented
+            MessageType::SharedObjAMF3 => Ok(Self::SharedObjAmf3), // Not implemented
+            MessageType::CommandAMF3 => Ok(Self::CommandAmf3), // Not implemented
+            // Metadata
+            MessageType::DataAMF0 => Ok(Self::DataAmf0 {
                 data: chunk.payload.clone(),
             }),
+            MessageType::SharedObjAMF0 => Ok(Self::SharedObjAmf0), // Not implemented
+            MessageType::CommandAMF0 => Ok(Self::Amf0Command(Command::read(&chunk.payload)?)),
+            MessageType::Aggregate => Ok(Self::Aggregate), // Not implemented
+            msg_type_id => Ok(Self::Unknown(UnknownMessage {
+                msg_type_id,
+                data: chunk.payload.clone(),
+            })),
         }
     }
 }
@@ -162,14 +171,14 @@ mod tests {
 
     #[test]
     fn test_unsupported_message_type() {
-        let chunk = Chunk::new(0, 0, MessageType::Aggregate, 0, vec![0x00, 0x00, 0x00, 0x00].into());
+        let chunk = Chunk::new(0, 0, MessageType(42), 0, vec![0x00, 0x00, 0x00, 0x00].into());
 
         assert!(matches!(
             MessageData::read(&chunk).expect("no errors"),
-            MessageData::Other {
-                msg_type_id: MessageType::Aggregate,
+            MessageData::Unknown(UnknownMessage {
+                msg_type_id: MessageType(42),
                 ..
-            }
+            })
         ));
     }
 }

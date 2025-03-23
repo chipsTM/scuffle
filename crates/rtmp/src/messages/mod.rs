@@ -16,25 +16,28 @@ pub mod reader;
 #[derive(Debug)]
 pub enum MessageData<'a> {
     // Protocol Control Messages
-    // The other protocol control messages are not implemented here
-    // because they are not needed in this implementation.
     /// Set Chunk Size message
     SetChunkSize(ProtocolControlMessageSetChunkSize),
+    /// Abort message
+    ///
+    /// Not implemented.
+    Abort,
+    /// Acknowledgement message
+    ///
+    /// Read not implemented.
+    Acknowledgement,
+    /// User Control Event message
+    ///
+    /// Not implemented.
+    UserControlEvent,
     /// Set Acknowledgement Window Size message
     SetAcknowledgementWindowSize(ProtocolControlMessageWindowAcknowledgementSize),
-    /// Command message
+    /// Set Peer Bandwidth message
     ///
-    /// > Command messages carry the AMF-encoded commands between the client and the server.
-    Amf0Command(Command<'a>),
-    /// Metadata message
-    ///
-    /// > The client or the server sends this message to send Metadata or any
-    /// > user data to the peer. Metadata includes details about the
-    /// > data(audio, video etc.) like creation time, duration, theme and so on.
-    DataAmf0 {
-        /// The metadata.
-        data: Bytes,
-    },
+    /// Read not implemented.
+    SetPeerBandwidth,
+
+    // RTMP Command Messages
     /// Audio message
     ///
     /// > The client or the server sends this message to send audio data to the peer.
@@ -53,13 +56,50 @@ pub enum MessageData<'a> {
         /// The video data.
         data: Bytes,
     },
-    /// Any other message that is not implemented.
-    Other {
-        /// The message type ID.
-        msg_type_id: MessageType,
-        /// The message data.
+    /// Amf3 metadata message
+    ///
+    /// Not implemented.
+    DataAmf3,
+    /// Amf3 shared object message
+    ///
+    /// Not implemented.
+    SharedObjAmf3,
+    /// Amf3 command message
+    ///
+    /// Not implemented.
+    CommandAmf3,
+    /// Amf0 metadata message
+    ///
+    /// > The client or the server sends this message to send Metadata or any
+    /// > user data to the peer. Metadata includes details about the
+    /// > data(audio, video etc.) like creation time, duration, theme and so on.
+    DataAmf0 {
+        /// The metadata.
         data: Bytes,
     },
+    /// Amf0 shared object message
+    ///
+    /// Not implemented.
+    SharedObjAmf0,
+    /// Amf0 command message
+    ///
+    /// > Command messages carry the AMF-encoded commands between the client and the server.
+    Amf0Command(Command<'a>),
+    /// Aggregate message
+    ///
+    /// Not implemented.
+    Aggregate,
+    /// Any other undefined messages.
+    Unknown(UnknownMessage),
+}
+
+/// Any undefined message.
+#[derive(Debug)]
+pub struct UnknownMessage {
+    /// The message type ID.
+    pub msg_type_id: MessageType,
+    /// The message data.
+    pub data: Bytes,
 }
 
 nutype_enum::nutype_enum! {

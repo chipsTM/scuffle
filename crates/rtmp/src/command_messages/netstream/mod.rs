@@ -2,36 +2,44 @@
 
 use std::borrow::Cow;
 
+use scuffle_amf0::{Amf0Object, Amf0Value};
+
 pub mod reader;
 
 /// NetStream commands as defined in 7.2.2.
 #[derive(Debug, Clone, PartialEq)]
 pub enum NetStreamCommand<'a> {
     /// Play command.
-    ///
-    /// Command object processing is not implemented for this command.
-    Play,
+    Play {
+        /// All values in the command.
+        ///
+        /// See the legacy RTMP spec for details.
+        values: Vec<Amf0Value<'a>>,
+    },
     /// Play2 command.
-    ///
-    /// Command object processing is not implemented for this command.
-    Play2,
+    Play2 {
+        /// All values in the command.
+        ///
+        /// See the legacy RTMP spec for details.
+        parameters: Amf0Object<'a>,
+    },
     /// Delete stream command.
     DeleteStream {
         /// ID of the stream to delete.
         stream_id: f64,
     },
     /// Close stream command.
-    ///
-    /// Command object processing is not implemented for this command.
     CloseStream,
     /// Receive audio command.
-    ///
-    /// Command object processing is not implemented for this command.
-    ReceiveAudio,
+    ReceiveAudio {
+        /// true or false to indicate whether to receive audio or not.
+        receive_audio: bool,
+    },
     /// Receive video command.
-    ///
-    /// Command object processing is not implemented for this command.
-    ReceiveVideo,
+    ReceiveVideo {
+        /// true or false to indicate whether to receive video or not.
+        receive_video: bool,
+    },
     /// Publish command.
     Publish {
         /// Name with which the stream is published.
@@ -40,13 +48,23 @@ pub enum NetStreamCommand<'a> {
         publishing_type: NetStreamCommandPublishPublishingType,
     },
     /// Seek command.
-    ///
-    /// Command object processing is not implemented for this command.
-    Seek,
+    Seek {
+        /// Number of milliseconds to seek into the playlist.
+        milliseconds: f64,
+    },
     /// Pause command.
-    ///
-    /// Command object processing is not implemented for this command.
-    Pause,
+    Pause {
+        /// true or false, to indicate pausing or resuming play.
+        pause: bool,
+        /// Number of milliseconds at which the
+        /// the stream is paused or play resumed.
+        /// This is the current stream time at the
+        /// Client when stream was paused. When the
+        /// playback is resumed, the server will
+        /// only send messages with timestamps
+        /// greater than this value.
+        milliseconds: f64,
+    },
 }
 
 /// Type of publishing.

@@ -327,9 +327,11 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
             MessageData::DataAmf0 { data } => {
                 self.handler.on_data(stream_id, SessionData::Amf0 { timestamp, data }).await?;
             }
-            MessageData::Other { msg_type_id, data } => {
-                tracing::debug!(msg_type_id = ?msg_type_id, data = ?data, "unknown message type");
+            MessageData::Unknown(unknown_message) => {
+                self.handler.on_unknown_message(stream_id, unknown_message).await?;
             }
+            // ignore everything else
+            _ => {}
         }
 
         Ok(())
@@ -356,14 +358,18 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
             CommandType::NetConnection(NetConnectionCommand::CreateStream) => {
                 self.on_command_create_stream(stream_id, command.transaction_id).await?;
             }
+            CommandType::NetStream(NetStreamCommand::Play { .. })
+            | CommandType::NetStream(NetStreamCommand::Play2 { .. }) => {
+                return Err(crate::error::RtmpError::Session(ServerSessionError::PlayNotSupported));
+            }
             CommandType::NetStream(NetStreamCommand::DeleteStream {
                 stream_id: delete_stream_id,
             }) => {
                 self.on_command_delete_stream(stream_id, command.transaction_id, delete_stream_id)
                     .await?;
             }
-            CommandType::NetStream(NetStreamCommand::Play) | CommandType::NetStream(NetStreamCommand::Play2) => {
-                return Err(crate::error::RtmpError::Session(ServerSessionError::PlayNotSupported));
+            CommandType::NetStream(NetStreamCommand::CloseStream) => {
+                // Not sure what this does, might be important
             }
             CommandType::NetStream(NetStreamCommand::Publish {
                 publishing_name,
@@ -372,11 +378,8 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
                 self.on_command_publish(stream_id, command.transaction_id, &publishing_name, publishing_type)
                     .await?;
             }
-            CommandType::NetStream(NetStreamCommand::CloseStream) => {
-                // Not sure what this is for
-            }
-            CommandType::Unknown { command_name } => {
-                tracing::debug!(command_name = ?command_name, "unknown command");
+            CommandType::Unknown(unknown_command) => {
+                self.handler.on_unknown_command(stream_id, unknown_command).await?;
             }
             // ignore everything else
             _ => {}

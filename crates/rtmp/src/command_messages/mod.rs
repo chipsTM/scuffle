@@ -5,6 +5,7 @@ use std::borrow::Cow;
 use netconnection::NetConnectionCommand;
 use netstream::NetStreamCommand;
 use on_status::OnStatus;
+use scuffle_amf0::Amf0Value;
 
 pub mod error;
 pub mod netconnection;
@@ -45,10 +46,18 @@ pub enum CommandType<'a> {
     /// Any unknown command
     ///
     /// e.g. FFmpeg sends some commands that don't appear in any spec, so we need to handle them.
-    Unknown {
-        /// Name of the unknown command.
-        command_name: Cow<'a, str>,
-    },
+    Unknown(UnknownCommand<'a>),
+}
+
+/// Any unknown command
+///
+/// e.g. FFmpeg sends some commands that don't appear in any spec, so we need to handle them.
+#[derive(Debug, Clone)]
+pub struct UnknownCommand<'a> {
+    /// Name of the unknown command.
+    pub command_name: Cow<'a, str>,
+    /// All other values of the command including the command object.
+    pub values: Vec<Amf0Value<'a>>,
 }
 
 /// NetStream onStatus level (7.2.2.) and NetConnection connect result level (7.2.1.1.)
