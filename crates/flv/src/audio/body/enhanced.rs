@@ -32,9 +32,7 @@ nutype_enum! {
     /// See <https://en.wikipedia.org/wiki/Surround_sound#Standard_speaker_channels> and
     /// <https://en.wikipedia.org/wiki/22.2_surround_sound> for more information.
     pub enum AudioChannel(u8) {
-        // commonly used speaker configurations
-        //
-        // see - <https://en.wikipedia.org/wiki/Surround_sound#Standard_speaker_channels>
+        // Commonly used speaker configurations:
 
         /// Front left
         FrontLeft = 0,
@@ -73,9 +71,7 @@ nutype_enum! {
         /// Rear right height
         TopBackRight = 17,
 
-        // mappings to complete 22.2 multichannel audio, as standardized in SMPTE ST2036-2-2008
-        //
-        // see - <https://en.wikipedia.org/wiki/22.2_surround_sound>
+        // Mappings to complete 22.2 multichannel audio, as standardized in SMPTE ST2036-2-2008:
 
         /// Low frequency 2
         LowFrequency2 = 18,
@@ -102,8 +98,7 @@ nutype_enum! {
 /// <https://en.wikipedia.org/wiki/22.2_surround_sound> for more information.
 #[bitmask_enum::bitmask(u32)]
 pub enum AudioChannelMask {
-    // masks for commonly used speaker configurations
-    // <https://en.wikipedia.org/wiki/Surround_sound#Standard_speaker_channels>
+    // Masks for commonly used speaker configurations:
     /// Front left
     FrontLeft = 0x000001,
     /// Front right
@@ -142,8 +137,7 @@ pub enum AudioChannelMask {
     TopBackRight = 0x020000,
 
     // Completes 22.2 multichannel audio, as
-    // standardized in SMPTE ST2036-2-2008
-    // see - <https://en.wikipedia.org/wiki/22.2_surround_sound>
+    // standardized in SMPTE ST2036-2-2008:
     /// Low frequency 2
     LowFrequency2 = 0x040000,
     /// Top side left
