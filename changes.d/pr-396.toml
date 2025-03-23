@@ -4,9 +4,21 @@ description = "refactor to be more ergonomic and efficient"
 breaking = true
 authors = ["@TroyKomodo", "@lennartkloock"]
 
+[[scuffle-rtmp]]
+category = "feat"
+description = "enhanced RTMP support"
+breaking = true
+authors = ["@TroyKomodo", "@lennartkloock"]
+
 [[scuffle-flv]]
 category = "refactor"
 description = "refactor to be more ergonomic and efficient"
+breaking = true
+authors = ["@lennartkloock"]
+
+[[scuffle-flv]]
+category = "feat"
+description = "enhanced RTMP support"
 breaking = true
 authors = ["@lennartkloock"]
 
