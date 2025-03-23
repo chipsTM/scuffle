@@ -16,7 +16,7 @@ impl OnStatus<'_> {
         Amf0Encoder::encode_null(buf)?;
 
         let mut info_object = vec![
-            ("level".into(), Amf0Value::String(self.level.into_string().into())),
+            ("level".into(), Amf0Value::String(self.level.to_string().into())),
             ("code".into(), Amf0Value::String(self.code.clone())),
         ];
 

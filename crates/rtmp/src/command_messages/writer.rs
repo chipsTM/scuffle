@@ -1,5 +1,6 @@
 //! Writing [`Command`].
 
+use std::fmt::Display;
 use std::io;
 
 use bytes::Bytes;
@@ -11,9 +12,8 @@ use crate::chunk::{CHUNK_STREAM_ID_COMMAND, Chunk};
 use crate::error::RtmpError;
 use crate::messages::MessageType;
 
-impl CommandResultLevel {
-    /// Converts the [`CommandResultLevel`] to a `&str`.
-    pub fn to_str(&self) -> &str {
+impl AsRef<str> for CommandResultLevel {
+    fn as_ref(&self) -> &str {
         match self {
             CommandResultLevel::Warning => "warning",
             CommandResultLevel::Status => "status",
@@ -21,14 +21,15 @@ impl CommandResultLevel {
             CommandResultLevel::Unknown(s) => s,
         }
     }
+}
 
-    /// Converts the [`CommandResultLevel`] to a [`String`] by taking ownership.
-    pub fn into_string(self) -> String {
+impl Display for CommandResultLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CommandResultLevel::Warning => "warning".to_string(),
-            CommandResultLevel::Status => "status".to_string(),
-            CommandResultLevel::Error => "error".to_string(),
-            CommandResultLevel::Unknown(s) => s,
+            CommandResultLevel::Warning => write!(f, "warning"),
+            CommandResultLevel::Status => write!(f, "status"),
+            CommandResultLevel::Error => write!(f, "error"),
+            CommandResultLevel::Unknown(s) => write!(f, "{}", s),
         }
     }
 }
@@ -79,18 +80,18 @@ mod tests {
 
     #[test]
     fn command_result_level_to_str() {
-        assert_eq!(CommandResultLevel::Warning.to_str(), "warning");
-        assert_eq!(CommandResultLevel::Status.to_str(), "status");
-        assert_eq!(CommandResultLevel::Error.to_str(), "error");
-        assert_eq!(CommandResultLevel::Unknown("custom".to_string()).to_str(), "custom");
+        assert_eq!(CommandResultLevel::Warning.as_ref(), "warning");
+        assert_eq!(CommandResultLevel::Status.as_ref(), "status");
+        assert_eq!(CommandResultLevel::Error.as_ref(), "error");
+        assert_eq!(CommandResultLevel::Unknown("custom".to_string()).as_ref(), "custom");
     }
 
     #[test]
     fn command_result_level_into_string() {
-        assert_eq!(CommandResultLevel::Warning.into_string(), "warning");
-        assert_eq!(CommandResultLevel::Status.into_string(), "status");
-        assert_eq!(CommandResultLevel::Error.into_string(), "error");
-        assert_eq!(CommandResultLevel::Unknown("custom".to_string()).into_string(), "custom");
+        assert_eq!(CommandResultLevel::Warning.to_string(), "warning");
+        assert_eq!(CommandResultLevel::Status.to_string(), "status");
+        assert_eq!(CommandResultLevel::Error.to_string(), "error");
+        assert_eq!(CommandResultLevel::Unknown("custom".to_string()).to_string(), "custom");
     }
 
     #[test]

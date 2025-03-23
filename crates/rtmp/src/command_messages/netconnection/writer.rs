@@ -31,7 +31,7 @@ impl NetConnectionCommand<'_> {
                 Amf0Encoder::encode_object(
                     buf,
                     &[
-                        ("level".into(), Amf0Value::String(level.to_str().into())),
+                        ("level".into(), Amf0Value::String(level.as_ref().into())),
                         ("code".into(), Amf0Value::String(code)),
                         ("description".into(), Amf0Value::String(description)),
                         ("objectEncoding".into(), Amf0Value::Number(encoding)),
