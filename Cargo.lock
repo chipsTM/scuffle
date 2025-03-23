@@ -3138,6 +3138,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "scuffle-rtmp-examples"
+version = "0.1.0"
+dependencies = [
+ "scuffle-flv",
+ "scuffle-rtmp",
+ "scuffle-workspace-hack",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "scuffle-settings"
 version = "0.1.1"
 dependencies = [

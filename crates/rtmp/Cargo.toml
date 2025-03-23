@@ -10,7 +10,6 @@ documentation = "https://docs.rs/scuffle-rtmp"
 license = "MIT OR Apache-2.0"
 keywords = ["rtmp", "server", "streaming"]
 
-
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)', 'cfg(valgrind)'] }
 

@@ -1,0 +1,26 @@
+[package]
+name = "scuffle-rtmp-examples"
+version = "0.1.0"
+edition = "2024"
+description = "Examples for scuffle-rtmp"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-rtmp-examples"
+license = "MIT OR Apache-2.0"
+keywords = ["rtmp", "server", "streaming"]
+
+[[example]]
+name = "scuffle-rtmp-basic"
+path = "src/basic.rs"
+
+[dev-dependencies]
+tokio = { version = "1.44.1", features = ["full"] }
+
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
+
+scuffle-rtmp = { workspace = true }
+scuffle-flv = { workspace = true }
+
+scuffle-workspace-hack.workspace = true
