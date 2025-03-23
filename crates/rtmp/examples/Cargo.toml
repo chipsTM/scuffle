@@ -1,0 +1,20 @@
+[package]
+name = "scuffle-rtmp-examples"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[example]]
+name = "scuffle-rtmp-basic"
+path = "src/basic.rs"
+
+[dev-dependencies]
+tokio = { version = "1.44.1", features = ["full"] }
+
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
+
+scuffle-rtmp = { workspace = true }
+scuffle-flv = { workspace = true }
+
+scuffle-workspace-hack.workspace = true

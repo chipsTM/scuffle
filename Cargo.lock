@@ -353,6 +353,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitmask-enum"
+version = "2.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6cbbb8f56245b5a479b30a62cdc86d26e2f35c2b9f594bc4671654b03851380"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2927,6 +2937,7 @@ dependencies = [
 name = "scuffle-flv"
 version = "0.1.1"
 dependencies = [
+ "bitmask-enum",
  "byteorder",
  "bytes",
  "insta",
@@ -3103,6 +3114,7 @@ name = "scuffle-rtmp"
 version = "0.1.1"
 dependencies = [
  "async-trait",
+ "bitmask-enum",
  "byteorder",
  "bytes",
  "chrono",
@@ -3110,16 +3122,31 @@ dependencies = [
  "hmac",
  "num-derive",
  "num-traits",
+ "nutype-enum",
  "rand",
  "scuffle-amf0",
  "scuffle-bytes-util",
+ "scuffle-context",
  "scuffle-future-ext",
  "scuffle-workspace-hack",
  "serde_json",
  "sha2",
+ "thiserror 2.0.12",
  "tokio",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "scuffle-rtmp-examples"
+version = "0.1.0"
+dependencies = [
+ "scuffle-flv",
+ "scuffle-rtmp",
+ "scuffle-workspace-hack",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -3170,7 +3197,6 @@ dependencies = [
  "byteorder",
  "bytes",
  "scuffle-aac",
- "scuffle-amf0",
  "scuffle-av1",
  "scuffle-bytes-util",
  "scuffle-flv",
@@ -3180,6 +3206,7 @@ dependencies = [
  "scuffle-workspace-hack",
  "serde",
  "serde_json",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -3201,7 +3228,6 @@ dependencies = [
  "fastrand",
  "futures",
  "futures-channel",
- "futures-core",
  "futures-executor",
  "futures-io",
  "futures-sink",

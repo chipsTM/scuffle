@@ -28,6 +28,7 @@ members = [
     "crates/pprof",
     "crates/pprof/examples",
     "crates/rtmp",
+    "crates/rtmp/examples",
     "crates/settings",
     "crates/settings/examples",
     "crates/signal",
