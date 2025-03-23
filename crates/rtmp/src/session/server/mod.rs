@@ -1,3 +1,5 @@
+//! RTMP server session.
+
 use std::time::Duration;
 
 use bytes::BytesMut;
@@ -6,8 +8,6 @@ use scuffle_context::ContextFutExt;
 use scuffle_future_ext::FutureExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-use super::error::SessionError;
-use super::handler::{SessionData, SessionHandler};
 use crate::chunk::CHUNK_SIZE;
 use crate::chunk::reader::ChunkReader;
 use crate::chunk::writer::ChunkWriter;
@@ -29,6 +29,12 @@ use crate::protocol_control_messages::{
 };
 use crate::user_control_messages::EventMessageStreamBegin;
 
+mod error;
+mod handler;
+
+pub use error::ServerSessionError;
+pub use handler::{SessionData, SessionHandler};
+
 // The default acknowledgement window size that is used until the client sends a
 // new acknowledgement window size.
 // This is a common value used by other media servers as well.
@@ -36,6 +42,8 @@ use crate::user_control_messages::EventMessageStreamBegin;
 const DEFAULT_ACKNOWLEDGEMENT_WINDOW_SIZE: u32 = 2_500_000; // 2.5 MB
 
 /// A RTMP server session that is used to communicate with a client.
+///
+/// This provides a high-level API to drive a RTMP session.
 pub struct ServerSession<S, H> {
     /// The context of the session
     /// A reconnect request will be sent if this context gets cancelled.
@@ -173,7 +181,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
                 .read_buf(&mut self.read_buf)
                 .with_timeout(Duration::from_secs(2))
                 .await
-                .map_err(SessionError::Timeout)??;
+                .map_err(ServerSessionError::Timeout)??;
             bytes_read += n;
 
             self.sequence_number = self.sequence_number.wrapping_add(n.try_into().unwrap_or(u32::MAX));
@@ -241,7 +249,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
                 .read_buf(&mut self.read_buf)
                 .with_timeout(Duration::from_millis(2500))
                 .await
-                .map_err(SessionError::Timeout)?? as u32;
+                .map_err(ServerSessionError::Timeout)?? as u32;
 
             if n == 0 {
                 return Ok(false);
@@ -355,7 +363,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
                     .await?;
             }
             CommandType::NetStream(NetStreamCommand::Play) | CommandType::NetStream(NetStreamCommand::Play2) => {
-                return Err(crate::error::RtmpError::Session(SessionError::PlayNotSupported));
+                return Err(crate::error::RtmpError::Session(ServerSessionError::PlayNotSupported));
             }
             CommandType::NetStream(NetStreamCommand::Publish {
                 publishing_name,
@@ -383,7 +391,9 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
         if self.chunk_reader.update_max_chunk_size(chunk_size) {
             Ok(())
         } else {
-            Err(crate::error::RtmpError::Session(SessionError::InvalidChunkSize(chunk_size)))
+            Err(crate::error::RtmpError::Session(ServerSessionError::InvalidChunkSize(
+                chunk_size,
+            )))
         }
     }
 
@@ -491,7 +501,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
     ) -> Result<(), crate::error::RtmpError> {
         let Some(app_name) = &self.app_name else {
             // The app name is not set yet
-            return Err(crate::error::RtmpError::Session(SessionError::PublishBeforeConnect));
+            return Err(crate::error::RtmpError::Session(ServerSessionError::PublishBeforeConnect));
         };
 
         self.handler
@@ -522,7 +532,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
                 .write_all(self.write_buf.as_ref())
                 .with_timeout(Duration::from_secs(2))
                 .await
-                .map_err(SessionError::Timeout)??;
+                .map_err(ServerSessionError::Timeout)??;
             self.write_buf.clear();
         }
 

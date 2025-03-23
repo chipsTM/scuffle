@@ -34,6 +34,8 @@ pub mod protocol_control_messages;
 pub mod session;
 pub mod user_control_messages;
 
+pub use session::server::ServerSession;
+
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
@@ -44,32 +46,30 @@ mod tests {
     use tokio::process::Command;
     use tokio::sync::{mpsc, oneshot};
 
-    use crate::session::ServerSession;
-    use crate::session::error::SessionError;
-    use crate::session::handler::{SessionData, SessionHandler};
+    use crate::session::server::{ServerSession, ServerSessionError, SessionData, SessionHandler};
 
     enum Event {
         Publish {
             stream_id: u32,
             app_name: String,
             stream_name: String,
-            response: oneshot::Sender<Result<(), SessionError>>,
+            response: oneshot::Sender<Result<(), ServerSessionError>>,
         },
         Unpublish {
             stream_id: u32,
-            response: oneshot::Sender<Result<(), SessionError>>,
+            response: oneshot::Sender<Result<(), ServerSessionError>>,
         },
         Data {
             stream_id: u32,
             data: SessionData,
-            response: oneshot::Sender<Result<(), SessionError>>,
+            response: oneshot::Sender<Result<(), ServerSessionError>>,
         },
     }
 
     struct Handler(mpsc::Sender<Event>);
 
     impl SessionHandler for Handler {
-        async fn on_publish(&self, stream_id: u32, app_name: &str, stream_name: &str) -> Result<(), SessionError> {
+        async fn on_publish(&self, stream_id: u32, app_name: &str, stream_name: &str) -> Result<(), ServerSessionError> {
             let (response, reciever) = oneshot::channel();
 
             self.0
@@ -85,7 +85,7 @@ mod tests {
             reciever.await.unwrap()
         }
 
-        async fn on_unpublish(&self, stream_id: u32) -> Result<(), SessionError> {
+        async fn on_unpublish(&self, stream_id: u32) -> Result<(), ServerSessionError> {
             let (response, reciever) = oneshot::channel();
 
             self.0.send(Event::Unpublish { stream_id, response }).await.unwrap();
@@ -93,7 +93,7 @@ mod tests {
             reciever.await.unwrap()
         }
 
-        async fn on_data(&self, stream_id: u32, data: SessionData) -> Result<(), SessionError> {
+        async fn on_data(&self, stream_id: u32, data: SessionData) -> Result<(), ServerSessionError> {
             let (response, reciever) = oneshot::channel();
             self.0
                 .send(Event::Data {

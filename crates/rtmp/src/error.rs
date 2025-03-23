@@ -3,7 +3,7 @@
 use crate::chunk::error::ChunkReadError;
 use crate::command_messages::error::CommandError;
 use crate::handshake::complex::error::ComplexHandshakeError;
-use crate::session::error::SessionError;
+use crate::session::server::ServerSessionError;
 
 /// RTMP error.
 #[derive(Debug, thiserror::Error)]
@@ -22,7 +22,7 @@ pub enum RtmpError {
     ComplexHandshake(#[from] ComplexHandshakeError),
     /// Session error.
     #[error("session error: {0}")]
-    Session(#[from] SessionError),
+    Session(#[from] ServerSessionError),
 }
 
 impl RtmpError {
@@ -35,7 +35,7 @@ impl RtmpError {
                     | std::io::ErrorKind::ConnectionReset
                     | std::io::ErrorKind::UnexpectedEof
             ),
-            Self::Session(SessionError::Timeout(_)) => true,
+            Self::Session(ServerSessionError::Timeout(_)) => true,
             _ => false,
         }
     }
@@ -49,7 +49,7 @@ mod tests {
     use std::time::Duration;
 
     use crate::error::RtmpError;
-    use crate::session::error::SessionError;
+    use crate::session::server::ServerSessionError;
 
     #[tokio::test]
     async fn test_is_client_closed() {
@@ -61,7 +61,7 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert!(RtmpError::Session(SessionError::Timeout(elapsed)).is_client_closed());
+        assert!(RtmpError::Session(ServerSessionError::Timeout(elapsed)).is_client_closed());
 
         assert!(!RtmpError::Io(std::io::Error::other("test")).is_client_closed());
     }

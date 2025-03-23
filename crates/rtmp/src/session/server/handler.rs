@@ -2,7 +2,7 @@
 
 use bytes::Bytes;
 
-use super::error::SessionError;
+use super::error::ServerSessionError;
 
 /// Data received from a session.
 #[derive(Debug, Clone)]
@@ -38,15 +38,15 @@ pub trait SessionHandler {
         stream_id: u32,
         app_name: &str,
         stream_name: &str,
-    ) -> impl std::future::Future<Output = Result<(), SessionError>> + Send;
+    ) -> impl std::future::Future<Output = Result<(), ServerSessionError>> + Send;
 
     /// Called when a stream is unpublished.
-    fn on_unpublish(&self, stream_id: u32) -> impl std::future::Future<Output = Result<(), SessionError>> + Send;
+    fn on_unpublish(&self, stream_id: u32) -> impl std::future::Future<Output = Result<(), ServerSessionError>> + Send;
 
     /// Called when data is received.
     fn on_data(
         &self,
         stream_id: u32,
         data: SessionData,
-    ) -> impl std::future::Future<Output = Result<(), SessionError>> + Send;
+    ) -> impl std::future::Future<Output = Result<(), ServerSessionError>> + Send;
 }

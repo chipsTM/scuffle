@@ -1,8 +1,8 @@
-//! Error type for sessions.
+//! Error type for server sessions.
 
-/// Errors that can occur during a session.
+/// Errors that can occur during a server session.
 #[derive(Debug, thiserror::Error)]
-pub enum SessionError {
+pub enum ServerSessionError {
     /// Timeout.
     #[error("timeout: {0}")]
     Timeout(#[from] tokio::time::error::Elapsed),
