@@ -2,13 +2,7 @@
 name = "scuffle-rtmp-examples"
 version = "0.1.0"
 edition = "2024"
-description = "Examples for scuffle-rtmp"
-repository = "https://github.com/scufflecloud/scuffle"
-authors = ["Scuffle <opensource@scuffle.cloud>"]
-readme = "README.md"
-documentation = "https://docs.rs/scuffle-rtmp-examples"
-license = "MIT OR Apache-2.0"
-keywords = ["rtmp", "server", "streaming"]
+publish = false
 
 [[example]]
 name = "scuffle-rtmp-basic"
