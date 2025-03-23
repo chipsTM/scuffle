@@ -1,23 +1,32 @@
+//! General RTMP error type.
+
 use crate::chunk::error::ChunkReadError;
 use crate::command_messages::error::CommandError;
 use crate::handshake::complex::error::ComplexHandshakeError;
 use crate::session::error::SessionError;
 
+/// RTMP error.
 #[derive(Debug, thiserror::Error)]
 pub enum RtmpError {
+    /// IO error.
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
+    /// Chunk read error.
     #[error("chunk read error: {0}")]
     ChunkRead(#[from] ChunkReadError),
+    /// Command error.
     #[error("command error: {0}")]
     Command(#[from] CommandError),
+    /// Complex handshake error.
     #[error("complex handshake error: {0}")]
     ComplexHandshake(#[from] ComplexHandshakeError),
+    /// Session error.
     #[error("session error: {0}")]
     Session(#[from] SessionError),
 }
 
 impl RtmpError {
+    /// Returns true if the error indicates that the client has closed the connection.
     pub fn is_client_closed(&self) -> bool {
         match self {
             Self::Io(err) => matches!(

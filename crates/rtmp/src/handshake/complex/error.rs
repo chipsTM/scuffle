@@ -1,11 +1,12 @@
+//! Complex handshake error type.
+
+/// Errors that can occur during the complex handshake.
 #[derive(Debug, thiserror::Error)]
 pub enum ComplexHandshakeError {
-    #[error("not enough data")]
-    NotEnoughData,
+    /// The digest length is not correct.
     #[error("digest length not correct")]
     DigestLengthNotCorrect,
+    /// Cannot generate digest.
     #[error("cannot generate digest")]
     CannotGenerate,
-    #[error("unknown schema")]
-    UnknownSchema,
 }

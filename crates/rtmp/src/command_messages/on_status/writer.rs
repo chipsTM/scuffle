@@ -1,3 +1,5 @@
+//! Writing [`OnStatus`].
+
 use std::io;
 
 use scuffle_amf0::{Amf0Encoder, Amf0Value};
@@ -6,6 +8,7 @@ use super::OnStatus;
 use crate::command_messages::error::CommandError;
 
 impl OnStatus<'_> {
+    /// Writes an [`OnStatus`] command to the given writer.
     pub fn write(self, buf: &mut impl io::Write, transaction_id: f64) -> Result<(), CommandError> {
         Amf0Encoder::encode_string(buf, "onStatus")?;
         Amf0Encoder::encode_number(buf, transaction_id)?;

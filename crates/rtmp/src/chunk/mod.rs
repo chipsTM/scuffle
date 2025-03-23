@@ -1,3 +1,5 @@
+//! RTMP chunk protocol.
+
 use bytes::Bytes;
 
 use crate::messages::MessageType;
@@ -9,23 +11,34 @@ pub mod writer;
 nutype_enum::nutype_enum! {
     /// Common chunk stream ids
     pub enum ChunkStreamId(u32) {
+        /// The chunk stream ID for command messages is 3.
         Command = 3,
+        /// The chunk stream ID for audio messages is 4.
         Audio = 4,
+        /// The chunk stream ID for video messages is 5.
         Video = 5,
     }
 }
 
+/// A chunk type represents the format of the chunk header.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, num_derive::FromPrimitive, Hash)]
 #[repr(u8)]
-/// A chunk type represents the format of the chunk header.
 pub enum ChunkType {
-    /// Chunk type 0 - 5.3.1.2.1
+    /// Type 0 chunk - 5.3.1.2.1
+    ///
+    /// Type 0 chunk headers are 11 bytes long.
     Type0 = 0,
-    /// Chunk type 1 - 5.3.1.2.2
+    /// Type 1 chunk - 5.3.1.2.2
+    ///
+    /// Type 1 chunk headers are 7 bytes long.
     Type1 = 1,
-    /// Chunk type 2 - 5.3.1.2.3
+    /// Type 2 chunk - 5.3.1.2.3
+    ///
+    /// Type 2 chunk headers are 3 bytes long.
     Type2 = 2,
-    /// Chunk type 3 - 5.3.1.1.4
+    /// Type 3 chunk - 5.3.1.1.4
+    ///
+    /// Type 3 chunks have no message header.
     Type3 = 3,
 }
 
@@ -34,6 +47,7 @@ pub enum ChunkType {
 pub struct ChunkBasicHeader {
     /// Used for decoding the header only.
     pub format: ChunkType, // 2 bits
+    /// The chunk stream id.
     pub chunk_stream_id: u32, // 6 bits (if format == 0, 8 bits, if format == 1, 16 bits)
 }
 

@@ -1,3 +1,5 @@
+//! Writing protocol control messages.
+
 use std::io;
 
 use byteorder::{BigEndian, WriteBytesExt};
@@ -12,6 +14,7 @@ use crate::chunk::writer::ChunkWriter;
 use crate::messages::MessageType;
 
 impl ProtocolControlMessageSetChunkSize {
+    /// Writes the [`ProtocolControlMessageSetChunkSize`] to the given writer.
     pub fn write(&self, io: &mut impl io::Write, writer: &ChunkWriter) -> Result<(), crate::error::RtmpError> {
         // According to spec the first bit must be 0.
         let chunk_size = self.chunk_size & 0x7FFFFFFF; // 31 bits only
@@ -32,6 +35,7 @@ impl ProtocolControlMessageSetChunkSize {
 }
 
 impl ProtocolControlMessageAcknowledgement {
+    /// Writes the [`ProtocolControlMessageAcknowledgement`] to the given writer.
     pub fn write(&self, io: &mut impl io::Write, writer: &ChunkWriter) -> Result<(), crate::error::RtmpError> {
         writer.write_chunk(
             io,
@@ -49,6 +53,7 @@ impl ProtocolControlMessageAcknowledgement {
 }
 
 impl ProtocolControlMessageWindowAcknowledgementSize {
+    /// Writes the [`ProtocolControlMessageWindowAcknowledgementSize`] to the given writer.
     pub fn write(&self, io: &mut impl io::Write, writer: &ChunkWriter) -> Result<(), crate::error::RtmpError> {
         writer.write_chunk(
             io,
@@ -66,6 +71,7 @@ impl ProtocolControlMessageWindowAcknowledgementSize {
 }
 
 impl ProtocolControlMessageSetPeerBandwidth {
+    /// Writes the [`ProtocolControlMessageSetPeerBandwidth`] to the given writer.
     pub fn write(&self, io: &mut impl io::Write, writer: &ChunkWriter) -> Result<(), crate::error::RtmpError> {
         let mut data = Vec::new();
         data.write_u32::<BigEndian>(self.acknowledgement_window_size)

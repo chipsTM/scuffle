@@ -1,3 +1,5 @@
+//! Error type for sessions.
+
 /// Errors that can occur during a session.
 #[derive(Debug, thiserror::Error)]
 pub enum SessionError {

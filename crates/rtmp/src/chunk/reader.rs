@@ -1,3 +1,5 @@
+//! Types and functions for reading RTMP chunks.
+
 use std::cmp::min;
 use std::collections::HashMap;
 use std::io::{self, Cursor, Seek, SeekFrom};
@@ -577,9 +579,6 @@ mod tests {
 
         let error = ChunkReadError::PartialChunkTooLarge(100);
         assert_eq!(format!("{}", error), "partial chunk too large: 100");
-
-        let error = ChunkReadError::TimestampOverflow(100, 200);
-        assert_eq!(format!("{}", error), "timestamp overflow: timestamp: 100, delta: 200");
     }
 
     #[test]

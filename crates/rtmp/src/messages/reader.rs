@@ -1,3 +1,5 @@
+//! Reading [`MessageData`].
+
 use super::{MessageData, MessageType};
 use crate::chunk::Chunk;
 use crate::command_messages::Command;
@@ -6,6 +8,7 @@ use crate::protocol_control_messages::{
 };
 
 impl<'a> MessageData<'a> {
+    /// Reads [`MessageData`] from the given chunk.
     pub fn read(chunk: &'a Chunk) -> Result<Self, crate::error::RtmpError> {
         match chunk.message_header.msg_type_id {
             // Protocol Control Messages
@@ -20,7 +23,7 @@ impl<'a> MessageData<'a> {
             // RTMP Command Messages
             MessageType::CommandAMF0 => Ok(Self::Amf0Command(Command::read(&chunk.payload)?)),
             // Metadata
-            MessageType::DataAMF0 => Ok(Self::Amf0Data {
+            MessageType::DataAMF0 => Ok(Self::DataAmf0 {
                 data: chunk.payload.clone(),
             }),
             MessageType::Audio => Ok(Self::AudioData {
@@ -29,7 +32,7 @@ impl<'a> MessageData<'a> {
             MessageType::Video => Ok(Self::VideoData {
                 data: chunk.payload.clone(),
             }),
-            msg_type_id => Ok(Self::Unknown {
+            msg_type_id => Ok(Self::Other {
                 msg_type_id,
                 data: chunk.payload.clone(),
             }),
@@ -129,7 +132,7 @@ mod tests {
 
         let message = MessageData::read(&chunk).expect("no errors");
         match message {
-            MessageData::Amf0Data { data } => {
+            MessageData::DataAmf0 { data } => {
                 assert_eq!(data, amf_data);
             }
             _ => unreachable!("wrong message type"),
@@ -142,7 +145,7 @@ mod tests {
 
         assert!(matches!(
             MessageData::read(&chunk).expect("no errors"),
-            MessageData::Unknown {
+            MessageData::Other {
                 msg_type_id: MessageType::Aggregate,
                 ..
             }

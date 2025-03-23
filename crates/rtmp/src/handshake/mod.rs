@@ -1,3 +1,15 @@
+//! RTMP handshake logic.
+//!
+//! Order of messages:
+//! ```txt
+//! Client -> C0 -> Server
+//! Client -> C1 -> Server
+//! Client <- S0 <- Server
+//! Client <- S1 <- Server
+//! Client <- S2 <- Server
+//! Client -> C2 -> Server
+//! ```
+
 use std::io::{self, Seek};
 use std::time::SystemTime;
 
@@ -7,14 +19,6 @@ use simple::SimpleHandshakeServer;
 
 pub mod complex;
 pub mod simple;
-
-// Order of messages:
-// Client -> C0 -> Server
-// Client -> C1 -> Server
-// Client <- S0 <- Server
-// Client <- S1 <- Server
-// Client <- S2 <- Server
-// Client -> C2 -> Server
 
 /// This is the total size of the C1/S1 C2/S2 packets.
 pub const RTMP_HANDSHAKE_SIZE: usize = 1536;
@@ -27,39 +31,34 @@ pub const TIME_VERSION_LENGTH: usize = 8;
 /// The chunk is 764 bytes. or (1536 - 8) / 2 = 764
 pub const CHUNK_LENGTH: usize = (RTMP_HANDSHAKE_SIZE - TIME_VERSION_LENGTH) / 2;
 
-/// The schema version.
-/// For the complex handshake the schema is either 0 or 1.
-/// A chunk is 764 bytes. (1536 - 8) / 2 = 764
-/// A schema of 0 means the digest is after the key, thus the digest is at
-/// offset 776 bytes (768 + 8). A schema of 1 means the digest is before the key
-/// thus the offset is at offset 8 bytes (0 + 8). Where 8 bytes is the time and
-/// version. (4 bytes each) The schema is determined by the client.
-/// The server will always use the schema the client uses.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum SchemaVersion {
-    Schema0,
-    Schema1,
-}
-
 nutype_enum::nutype_enum! {
     /// The RTMP version.
+    ///
     /// We only support version 3.
     pub enum RtmpVersion(u8) {
+        /// RTMP version 3.
         Version3 = 0x3,
     }
 }
 
 /// The state of the handshake.
+///
 /// This is used to determine what the next step is.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ServerHandshakeState {
+    /// Next step is to read C0 and C1.
     ReadC0C1,
+    /// Next step is to read C2.
     ReadC2,
+    /// Handshake is finished.
     Finish,
 }
 
+/// The server side of the handshake.
 pub enum HandshakeServer {
+    /// Simple handshake.
     Simple(SimpleHandshakeServer),
+    /// Complex handshake.
     Complex(ComplexHandshakeServer),
 }
 
@@ -109,6 +108,7 @@ impl HandshakeServer {
     }
 }
 
+/// Returns the current unix epoch time in nanoseconds.
 pub fn current_time() -> u32 {
     let duration = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
     match duration {
@@ -125,11 +125,11 @@ mod tests {
     use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
     use bytes::Bytes;
 
+    use crate::handshake::HandshakeServer;
     use crate::handshake::complex::digest::DigestProcessor;
     use crate::handshake::complex::{
-        RTMP_CLIENT_KEY_FIRST_HALF, RTMP_SERVER_KEY, RTMP_SERVER_KEY_FIRST_HALF, RTMP_SERVER_VERSION,
+        RTMP_CLIENT_KEY_FIRST_HALF, RTMP_SERVER_KEY, RTMP_SERVER_KEY_FIRST_HALF, RTMP_SERVER_VERSION, SchemaVersion,
     };
-    use crate::handshake::{HandshakeServer, SchemaVersion};
 
     #[test]
     fn test_simple_handshake() {

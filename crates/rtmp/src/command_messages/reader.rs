@@ -1,3 +1,5 @@
+//! Reading [`Command`].
+
 use std::borrow::Cow;
 use std::convert::Infallible;
 use std::str::FromStr;
@@ -11,13 +13,16 @@ use super::netstream::NetStreamCommand;
 use super::{Command, CommandResultLevel, CommandType};
 
 impl<'a> Command<'a> {
+    /// Reads a [`Command`] from the given payload.
     pub fn read(payload: &'a Bytes) -> Result<Self, CommandError> {
         let mut amf_reader = Amf0Decoder::new(payload);
 
         let Amf0Value::String(command_name) = amf_reader.decode_with_type(Amf0Marker::String)? else {
+            // TODO: CLOUD-91
             unreachable!();
         };
         let Amf0Value::Number(transaction_id) = amf_reader.decode_with_type(Amf0Marker::Number)? else {
+            // TODO: CLOUD-91
             unreachable!();
         };
 

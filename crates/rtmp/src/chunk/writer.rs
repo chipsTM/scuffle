@@ -1,3 +1,5 @@
+//! Types and functions for writing RTMP chunks.
+
 use std::io;
 
 use byteorder::{BigEndian, LittleEndian, WriteBytesExt};

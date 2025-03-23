@@ -1,3 +1,5 @@
+//! Reading [`NetStreamCommand`].
+
 use std::convert::Infallible;
 use std::str::FromStr;
 
@@ -7,6 +9,9 @@ use super::{NetStreamCommand, NetStreamCommandPublishPublishingType};
 use crate::command_messages::error::CommandError;
 
 impl<'a> NetStreamCommand<'a> {
+    /// Reads a [`NetStreamCommand`] from the given decoder.
+    ///
+    /// Returns `Ok(None)` if the `command_name` is not recognized.
     pub fn read(command_name: &str, decoder: &mut Amf0Decoder<'a>) -> Result<Option<Self>, CommandError> {
         match command_name {
             "play" => Ok(Some(Self::Play)),
@@ -16,6 +21,7 @@ impl<'a> NetStreamCommand<'a> {
                 decoder.decode_with_type(Amf0Marker::Null)?;
 
                 let Amf0Value::Number(stream_id) = decoder.decode_with_type(Amf0Marker::Number)? else {
+                    // TODO: CLOUD-91
                     unreachable!();
                 };
 
@@ -29,12 +35,17 @@ impl<'a> NetStreamCommand<'a> {
                 decoder.decode_with_type(Amf0Marker::Null)?;
 
                 let Amf0Value::String(publishing_name) = decoder.decode_with_type(Amf0Marker::String)? else {
+                    // TODO: CLOUD-91
                     unreachable!();
                 };
                 let Amf0Value::String(publishing_type) = decoder.decode_with_type(Amf0Marker::String)? else {
+                    // TODO: CLOUD-91
                     unreachable!();
                 };
-                let publishing_type = NetStreamCommandPublishPublishingType::from_str(&publishing_type).unwrap();
+                // TODO: change expect to into_ok once stabliized
+                // https://doc.rust-lang.org/std/result/enum.Result.html#method.into_ok
+                let publishing_type =
+                    NetStreamCommandPublishPublishingType::from_str(&publishing_type).expect("infalible error");
 
                 if let NetStreamCommandPublishPublishingType::Unknown(publishing_type) = &publishing_type {
                     tracing::warn!(publishing_type = ?publishing_type, "unknown publishing type in publish command");

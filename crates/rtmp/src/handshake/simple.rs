@@ -1,3 +1,5 @@
+//! Simple Handshake Server
+
 use std::io::{self, Seek, Write};
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
@@ -8,7 +10,9 @@ use scuffle_bytes_util::BytesCursorExt;
 use super::{RTMP_HANDSHAKE_SIZE, RtmpVersion, ServerHandshakeState, TIME_VERSION_LENGTH, current_time};
 
 /// Simple Handshake Server
-/// RTMP Spec 1.0 - 5.2
+///
+/// Defined by:
+/// - Legacy RTMP spec, 5.2
 pub struct SimpleHandshakeServer {
     version: RtmpVersion,
     requested_version: RtmpVersion,

@@ -1,3 +1,5 @@
+//! Writing user control messages.
+
 use std::io;
 
 use byteorder::{BigEndian, WriteBytesExt};
@@ -8,6 +10,7 @@ use crate::chunk::writer::ChunkWriter;
 use crate::messages::MessageType;
 
 impl EventMessageStreamBegin {
+    /// Writes the [`EventMessageStreamBegin`] to the given writer.
     pub fn write(&self, writer: &ChunkWriter, io: &mut impl io::Write) -> io::Result<()> {
         let mut data = Vec::new();
 

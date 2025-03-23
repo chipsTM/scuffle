@@ -1,3 +1,5 @@
+//! Defines types for handling session events.
+
 use bytes::Bytes;
 
 use super::error::SessionError;

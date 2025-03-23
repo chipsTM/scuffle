@@ -1,21 +1,24 @@
+//! Writing [`NetConnectionCommand`].
+
 use std::io;
 
 use scuffle_amf0::{Amf0Encoder, Amf0Value};
 
-use super::NetConnectionCommand;
+use super::{NetConnectionCommand, NetConnectionCommandConnectResult};
 use crate::command_messages::error::CommandError;
 
 impl NetConnectionCommand<'_> {
+    /// Writes a [`NetConnectionCommand`] to the given writer.
     pub fn write(self, buf: &mut impl io::Write, transaction_id: f64) -> Result<(), CommandError> {
         match self {
-            Self::ConnectResult {
+            Self::ConnectResult(NetConnectionCommandConnectResult {
                 fmsver,
                 capabilities,
                 level,
                 code,
                 description,
                 encoding,
-            } => {
+            }) => {
                 Amf0Encoder::encode_string(buf, "_result")?;
                 Amf0Encoder::encode_number(buf, transaction_id)?;
                 Amf0Encoder::encode_object(
@@ -65,14 +68,14 @@ mod tests {
     fn test_netconnection_connect_response() {
         let mut buf = BytesMut::new();
 
-        NetConnectionCommand::ConnectResult {
+        NetConnectionCommand::ConnectResult(NetConnectionCommandConnectResult {
             fmsver: "flashver".into(),
             capabilities: 31.0,
             level: CommandResultLevel::Status,
             code: "idk".into(),
             description: "description".into(),
             encoding: 0.0,
-        }
+        })
         .write(&mut (&mut buf).writer(), 1.0)
         .expect("write");
 

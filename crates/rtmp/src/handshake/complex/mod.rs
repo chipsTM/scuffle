@@ -1,3 +1,9 @@
+//! This module contains the complex handshake for the RTMP protocol.
+//!
+//! Unfortunately there doesn't seem to be a good spec sheet for this.
+//! This implementation is based on this Chinese forum post because it's the best we could find:
+//! <https://blog.csdn.net/win_lin/article/details/13006803>
+
 use std::io::{self, Seek, Write};
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
@@ -6,13 +12,13 @@ use digest::DigestProcessor;
 use rand::Rng;
 use scuffle_bytes_util::BytesCursorExt;
 
-use super::{RTMP_HANDSHAKE_SIZE, RtmpVersion, SchemaVersion, ServerHandshakeState, TIME_VERSION_LENGTH, current_time};
+use super::{RTMP_HANDSHAKE_SIZE, RtmpVersion, ServerHandshakeState, TIME_VERSION_LENGTH, current_time};
 
 pub mod digest;
 pub mod error;
 
-/// This is some magic number, I do not know why its 0x04050001 however, the
-/// reference implementation uses this value. https://blog.csdn.net/win_lin/article/details/13006803
+/// This is some magic number, I do not know why its 0x04050001, however, the
+/// reference implementation uses this value.
 pub const RTMP_SERVER_VERSION: u32 = 0x04050001;
 
 /// This is the length of the digest.
@@ -21,16 +27,13 @@ pub const RTMP_SERVER_VERSION: u32 = 0x04050001;
 pub const RTMP_DIGEST_LENGTH: usize = 32;
 
 /// This is the first half of the server key.
-/// Defined https://blog.csdn.net/win_lin/article/details/13006803
 pub const RTMP_SERVER_KEY_FIRST_HALF: &[u8] = b"Genuine Adobe Flash Media Server 001";
 
 /// This is the first half of the client key.
-/// Defined https://blog.csdn.net/win_lin/article/details/13006803
 pub const RTMP_CLIENT_KEY_FIRST_HALF: &[u8] = b"Genuine Adobe Flash Player 001";
 
 /// This is the second half of the server/client key.
 /// Used for the complex handshake.
-/// Defined https://blog.csdn.net/win_lin/article/details/13006803
 pub const RTMP_SERVER_KEY: &[u8] = &[
     0x47, 0x65, 0x6e, 0x75, 0x69, 0x6e, 0x65, 0x20, 0x41, 0x64, 0x6f, 0x62, 0x65, 0x20, 0x46, 0x6c, 0x61, 0x73, 0x68, 0x20,
     0x4d, 0x65, 0x64, 0x69, 0x61, 0x20, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x20, 0x30, 0x30, 0x31, 0xf0, 0xee, 0xc2, 0x4a,
@@ -38,9 +41,24 @@ pub const RTMP_SERVER_KEY: &[u8] = &[
     0x93, 0xb8, 0xe6, 0x36, 0xcf, 0xeb, 0x31, 0xae,
 ];
 
-/// Complex Handshake Server
-/// Unfortunately there doesn't seem to be a good spec sheet for this.
-/// https://blog.csdn.net/win_lin/article/details/13006803 is the best I could find.
+/// The schema version.
+///
+/// For the complex handshake the schema is either 0 or 1.
+/// A chunk is 764 bytes. (1536 - 8) / 2 = 764
+/// A schema of 0 means the digest is after the key, thus the digest is at
+/// offset 776 bytes (768 + 8). A schema of 1 means the digest is before the key
+/// thus the offset is at offset 8 bytes (0 + 8). Where 8 bytes is the time and
+/// version. (4 bytes each) The schema is determined by the client.
+/// The server will always use the schema the client uses.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum SchemaVersion {
+    /// Schema 0.
+    Schema0,
+    /// Schema 1.
+    Schema1,
+}
+
+/// Complex Handshake Server.
 pub struct ComplexHandshakeServer {
     version: RtmpVersion,
     requested_version: RtmpVersion,
@@ -71,6 +89,7 @@ impl ComplexHandshakeServer {
         self.state == ServerHandshakeState::Finish
     }
 
+    /// Perform the complex handshake.
     pub fn handshake(&mut self, input: &mut io::Cursor<Bytes>, output: &mut Vec<u8>) -> Result<(), crate::error::RtmpError> {
         match self.state {
             ServerHandshakeState::ReadC0C1 => {

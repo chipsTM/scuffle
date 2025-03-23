@@ -1,3 +1,5 @@
+//! Digest processing for complex handshakes.
+
 use std::io;
 
 use bytes::Bytes;

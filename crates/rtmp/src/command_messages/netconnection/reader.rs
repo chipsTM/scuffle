@@ -1,13 +1,19 @@
+//! Reading [`NetConnectionCommand`].
+
 use scuffle_amf0::{Amf0Decoder, Amf0Value};
 
 use super::{CapsExMask, NetConnectionCommand, NetConnectionCommandConnect};
 use crate::command_messages::error::CommandError;
 
 impl<'a> NetConnectionCommand<'a> {
+    /// Reads a [`NetConnectionCommand`] from the given decoder.
+    ///
+    /// Returns `Ok(None)` if the `command_name` is not recognized.
     pub fn read(command_name: &str, decoder: &mut Amf0Decoder<'a>) -> Result<Option<Self>, CommandError> {
         match command_name {
             "connect" => {
                 let Amf0Value::Object(command_object) = decoder.decode_with_type(scuffle_amf0::Amf0Marker::Object)? else {
+                    // TODO: CLOUD-91
                     unreachable!();
                 };
 

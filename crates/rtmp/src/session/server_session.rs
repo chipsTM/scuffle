@@ -11,7 +11,9 @@ use super::handler::{SessionData, SessionHandler};
 use crate::chunk::CHUNK_SIZE;
 use crate::chunk::reader::ChunkReader;
 use crate::chunk::writer::ChunkWriter;
-use crate::command_messages::netconnection::{CapsExMask, NetConnectionCommand, NetConnectionCommandConnect};
+use crate::command_messages::netconnection::{
+    CapsExMask, NetConnectionCommand, NetConnectionCommandConnect, NetConnectionCommandConnectResult,
+};
 use crate::command_messages::netstream::{NetStreamCommand, NetStreamCommandPublishPublishingType};
 use crate::command_messages::on_status::OnStatus;
 use crate::command_messages::on_status::codes::{
@@ -314,10 +316,10 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
                     .on_data(stream_id, SessionData::Video { timestamp, data })
                     .await?;
             }
-            MessageData::Amf0Data { data } => {
+            MessageData::DataAmf0 { data } => {
                 self.handler.on_data(stream_id, SessionData::Amf0 { timestamp, data }).await?;
             }
-            MessageData::Unknown { msg_type_id, data } => {
+            MessageData::Other { msg_type_id, data } => {
                 tracing::warn!(msg_type_id = ?msg_type_id, data = ?data, "unknown message type");
             }
         }
@@ -416,14 +418,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
         self.app_name = Some(Box::from(connect.app));
         self.caps_ex = connect.caps_ex;
 
-        let result = NetConnectionCommand::ConnectResult {
-            fmsver: "FMS/3,0,1,123".into(), // flash version (this value is used by other media servers as well)
-            capabilities: 31.0,             // No idea what this means, but it is used by other media servers as well
-            level: CommandResultLevel::Status,
-            code: "NetConnection.Connect.Success".into(),
-            description: "Connection Succeeded.".into(),
-            encoding: 0.0,
-        };
+        let result = NetConnectionCommand::ConnectResult(NetConnectionCommandConnectResult::default());
 
         Command {
             command_type: CommandType::NetConnection(result),
