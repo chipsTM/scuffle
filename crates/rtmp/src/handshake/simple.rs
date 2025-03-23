@@ -62,7 +62,7 @@ impl SimpleHandshakeServer {
 
     fn read_c0(&mut self, input: &mut io::Cursor<Bytes>) -> Result<(), crate::error::RtmpError> {
         // Version (8 bits): In C0, this field identifies the RTMP version
-        //  requested by the client.
+        // requested by the client.
         self.requested_version = RtmpVersion::from(input.read_u8()?);
 
         // We only support version 3 for now.
@@ -74,21 +74,21 @@ impl SimpleHandshakeServer {
 
     fn read_c1(&mut self, input: &mut io::Cursor<Bytes>) -> Result<(), crate::error::RtmpError> {
         // Time (4 bytes): This field contains a timestamp, which SHOULD be
-        //  used as the epoch for all future chunks sent from this endpoint.
-        //  This may be 0, or some arbitrary value. To synchronize multiple
-        //  chunkstreams, the endpoint may wish to send the current value of
-        //  the other chunkstream’s timestamp.
+        // used as the epoch for all future chunks sent from this endpoint.
+        // This may be 0, or some arbitrary value. To synchronize multiple
+        // chunkstreams, the endpoint may wish to send the current value of
+        // the other chunkstream’s timestamp.
         self.c1_timestamp = input.read_u32::<BigEndian>()?;
 
         // Zero (4 bytes): This field MUST be all 0s.
         input.read_u32::<BigEndian>()?;
 
         // Random data (1528 bytes): This field can contain any arbitrary
-        //  values. Since each endpoint has to distinguish between the
-        //  response to the handshake it has initiated and the handshake
-        //  initiated by its peer,this data SHOULD send something sufficiently
-        //  random. But there is no need for cryptographically-secure
-        //  randomness, or even dynamic values.
+        // values. Since each endpoint has to distinguish between the
+        // response to the handshake it has initiated and the handshake
+        // initiated by its peer,this data SHOULD send something sufficiently
+        // random. But there is no need for cryptographically-secure
+        // randomness, or even dynamic values.
         self.c1_bytes = input.extract_bytes(RTMP_HANDSHAKE_SIZE - TIME_VERSION_LENGTH)?;
 
         Ok(())
@@ -96,11 +96,13 @@ impl SimpleHandshakeServer {
 
     fn read_c2(&mut self, input: &mut io::Cursor<Bytes>) -> Result<(), crate::error::RtmpError> {
         // We don't care too much about the data in C2, so we just read it
-        //  and discard it.
+        // and discard it.
+        //
         // We should technically check that the timestamp is the same as
-        //  the one we sent in S1, but we don't care. And that the random
-        //  data is the same as the one we sent in S2, but we don't care.
-        //  Some clients are not strict to spec and send different data.
+        // the one we sent in S1, but we don't care. And that the random
+        // data is the same as the one we sent in S2, but we don't care.
+        // Some clients are not strict to spec and send different data.
+        //
         // We can just ignore it and not be super strict.
         input.seek_relative(RTMP_HANDSHAKE_SIZE as i64)?;
 
@@ -110,10 +112,10 @@ impl SimpleHandshakeServer {
     /// Defined in RTMP Specification 1.0 - 5.2.2
     fn write_s0(&mut self, output: &mut Vec<u8>) -> Result<(), crate::error::RtmpError> {
         // Version (8 bits): In S0, this field identifies the RTMP
-        //  version selected by the server. The version defined by this
-        //  specification is 3. A server that does not recognize the
-        //  client’s requested version SHOULD respond with 3. The client MAY
-        //  choose to degrade to version 3, or to abandon the handshake.
+        // version selected by the server. The version defined by this
+        // specification is 3. A server that does not recognize the
+        // client’s requested version SHOULD respond with 3. The client MAY
+        // choose to degrade to version 3, or to abandon the handshake.
         output.write_u8(self.version.0)?;
 
         Ok(())
@@ -122,21 +124,21 @@ impl SimpleHandshakeServer {
     /// Defined in RTMP Specification 1.0 - 5.2.3
     fn write_s1(&mut self, output: &mut Vec<u8>) -> Result<(), crate::error::RtmpError> {
         // Time (4 bytes): This field contains a timestamp, which SHOULD be
-        //  used as the epoch for all future chunks sent from this endpoint.
-        //  This may be 0, or some arbitrary value. To synchronize multiple
-        //  chunkstreams, the endpoint may wish to send the current value of
-        //  the other chunkstream’s timestamp.
+        // used as the epoch for all future chunks sent from this endpoint.
+        // This may be 0, or some arbitrary value. To synchronize multiple
+        // chunkstreams, the endpoint may wish to send the current value of
+        // the other chunkstream’s timestamp.
         output.write_u32::<BigEndian>(current_time())?;
 
         // Zero(4 bytes): This field MUST be all 0s.
         output.write_u32::<BigEndian>(0)?;
 
         // Random data (1528 bytes): This field can contain any arbitrary
-        //  values. Since each endpoint has to distinguish between the
-        //  response to the handshake it has initiated and the handshake
-        //  initiated by its peer,this data SHOULD send something sufficiently
-        //  random. But there is no need for cryptographically-secure
-        //  randomness, or even dynamic values.
+        // values. Since each endpoint has to distinguish between the
+        // response to the handshake it has initiated and the handshake
+        // initiated by its peer,this data SHOULD send something sufficiently
+        // random. But there is no need for cryptographically-secure
+        // randomness, or even dynamic values.
         let mut rng = rand::rng();
         for _ in 0..1528 {
             output.write_u8(rng.random())?;
@@ -151,14 +153,14 @@ impl SimpleHandshakeServer {
         output.write_u32::<BigEndian>(self.c1_timestamp)?;
 
         // Time2 (4 bytes): This field MUST contain the timestamp at which the
-        //  previous packet(s1 or c1) sent by the peer was read.
+        // previous packet(s1 or c1) sent by the peer was read.
         output.write_u32::<BigEndian>(current_time())?;
 
         // Random echo (1528 bytes): This field MUST contain the random data
-        //  field sent by the peer in S1 (for C2) or S2 (for C1). Either peer
-        //  can use the time and time2 fields together with the current
-        //  timestamp as a quick estimate of the bandwidth and/or latency of
-        //  the connection, but this is unlikely to be useful.
+        // field sent by the peer in S1 (for C2) or S2 (for C1). Either peer
+        // can use the time and time2 fields together with the current
+        // timestamp as a quick estimate of the bandwidth and/or latency of
+        // the connection, but this is unlikely to be useful.
         output.write_all(&self.c1_bytes[..])?;
 
         Ok(())

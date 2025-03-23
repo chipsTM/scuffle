@@ -49,10 +49,10 @@ impl<'a> DigestProcessor<'a> {
     }
 
     /// Read digest from message
+    ///
     /// According the the spec the schema can either be in the order of
-    ///   time, version, key, digest (schema 0)
-    /// or
-    ///   time, version, digest, key (schema 1)
+    /// - time, version, key, digest (schema 0) or
+    /// - time, version, digest, key (schema 1)
     pub fn read_digest(&self) -> Result<(Bytes, SchemaVersion), ComplexHandshakeError> {
         if let Ok(digest) = self.generate_and_validate(SchemaVersion::Schema0) {
             Ok((digest, SchemaVersion::Schema0))

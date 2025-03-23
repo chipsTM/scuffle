@@ -112,7 +112,7 @@ impl ComplexHandshakeServer {
 
     fn read_c0(&mut self, input: &mut io::Cursor<Bytes>) -> Result<(), crate::error::RtmpError> {
         // Version (8 bits): In C0, this field identifies the RTMP version
-        //  requested by the client.
+        // requested by the client.
         self.requested_version = RtmpVersion(input.read_u8()?);
 
         // We only support version 3 for now.
@@ -125,7 +125,7 @@ impl ComplexHandshakeServer {
     fn read_c1(&mut self, input: &mut io::Cursor<Bytes>) -> Result<(), crate::error::RtmpError> {
         let c1_bytes = input.extract_bytes(RTMP_HANDSHAKE_SIZE)?;
 
-        //  The first 4 bytes of C1 are the timestamp.
+        // The first 4 bytes of C1 are the timestamp.
         self.c1_timestamp = (&c1_bytes[0..4]).read_u32::<BigEndian>()?;
 
         // The next 4 bytes are a version number.
@@ -144,7 +144,7 @@ impl ComplexHandshakeServer {
 
     fn read_c2(&mut self, input: &mut io::Cursor<Bytes>) -> Result<(), crate::error::RtmpError> {
         // We don't care too much about the data in C2, so we just read it
-        //  and discard it.
+        // and discard it.
         input.seek_relative(RTMP_HANDSHAKE_SIZE as i64)?;
 
         Ok(())
@@ -167,8 +167,8 @@ impl ComplexHandshakeServer {
         // The next 4 bytes are a version number.
         writer.write_u32::<BigEndian>(RTMP_SERVER_VERSION)?;
 
-        // We then write 1528 bytes of random data. (764 bytes for digest, 764 bytes for
-        // key)
+        // We then write 1528 bytes of random data.
+        // 764 bytes for the digest, 764 bytes for the key.
         let mut rng = rand::rng();
         for _ in 0..RTMP_HANDSHAKE_SIZE - TIME_VERSION_LENGTH {
             writer.write_u8(rng.random())?;
@@ -192,8 +192,8 @@ impl ComplexHandshakeServer {
         // We write the timestamp from C1 to the next 4 bytes.
         output.write_u32::<BigEndian>(self.c1_timestamp)?;
 
-        // We then write 1528 bytes of random data. (764 bytes for digest, 764 bytes for
-        // key)
+        // We then write 1528 bytes of random data.
+        // 764 bytes for the digest, 764 bytes for the key.
         let mut rng = rand::rng();
 
         // RTMP_HANDSHAKE_SIZE - TIME_VERSION_LENGTH because we already
