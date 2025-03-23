@@ -301,7 +301,8 @@ impl ScriptData {
         let mut amf0_reader = Amf0Decoder::new(&buf);
 
         let Amf0Value::String(name) = amf0_reader.decode_with_type(Amf0Marker::String)? else {
-            unreachable!()
+            // TODO: CLOUD-91
+            unreachable!();
         };
 
         match name.as_ref() {
@@ -310,7 +311,10 @@ impl ScriptData {
             "onMetaData" => {
                 let value = amf0_reader.decode()?;
 
-                let Amf0Value::Object(data) = value else { unreachable!() };
+                let Amf0Value::Object(data) = value else {
+                    // TODO: CLOUD-91
+                    unreachable!();
+                };
                 let data = OnMetaData::try_from(data)?;
 
                 Ok(Self::OnMetaData(Box::new(data)))
@@ -318,7 +322,10 @@ impl ScriptData {
             "onXMPData" => {
                 let value = amf0_reader.decode()?;
 
-                let Amf0Value::Object(data) = value else { unreachable!() };
+                let Amf0Value::Object(data) = value else {
+                    // TODO: CLOUD-91
+                    unreachable!();
+                };
                 let data = OnXmpData::try_from(data)?;
 
                 Ok(Self::OnXmpData(data))

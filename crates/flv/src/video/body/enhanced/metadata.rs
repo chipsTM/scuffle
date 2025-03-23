@@ -276,11 +276,13 @@ impl VideoPacketMetadataEntry {
     /// Read a video packet metadata entry from the given [`Amf0Decoder`].
     pub fn read(reader: &mut Amf0Decoder<'_>) -> Result<Self, FlvError> {
         let Amf0Value::String(key) = reader.decode_with_type(Amf0Marker::String)? else {
-            unreachable!()
+            // TODO: CLOUD-91
+            unreachable!();
         };
 
         let Amf0Value::Object(value) = reader.decode_with_type(Amf0Marker::Object)? else {
-            unreachable!()
+            // TODO: CLOUD-91
+            unreachable!();
         };
 
         match key.as_ref() {
