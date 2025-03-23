@@ -34,18 +34,18 @@ pub enum SessionData {
 pub trait SessionHandler {
     /// Called when a stream is published.
     fn on_publish(
-        &self,
+        &mut self,
         stream_id: u32,
         app_name: &str,
         stream_name: &str,
     ) -> impl std::future::Future<Output = Result<(), ServerSessionError>> + Send;
 
     /// Called when a stream is unpublished.
-    fn on_unpublish(&self, stream_id: u32) -> impl std::future::Future<Output = Result<(), ServerSessionError>> + Send;
+    fn on_unpublish(&mut self, stream_id: u32) -> impl std::future::Future<Output = Result<(), ServerSessionError>> + Send;
 
     /// Called when data is received.
     fn on_data(
-        &self,
+        &mut self,
         stream_id: u32,
         data: SessionData,
     ) -> impl std::future::Future<Output = Result<(), ServerSessionError>> + Send;

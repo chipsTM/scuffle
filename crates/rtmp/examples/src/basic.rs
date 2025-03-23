@@ -10,7 +10,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 struct Handler;
 
 impl SessionHandler for Handler {
-    async fn on_data(&self, _stream_id: u32, data: SessionData) -> Result<(), ServerSessionError> {
+    async fn on_data(&mut self, _stream_id: u32, data: SessionData) -> Result<(), ServerSessionError> {
         match data {
             SessionData::Audio { data, .. } => {
                 let tag = scuffle_flv::audio::AudioData::demux(&mut Cursor::new(data)).unwrap();
@@ -28,12 +28,12 @@ impl SessionHandler for Handler {
         Ok(())
     }
 
-    async fn on_publish(&self, stream_id: u32, app_name: &str, stream_name: &str) -> Result<(), ServerSessionError> {
+    async fn on_publish(&mut self, stream_id: u32, app_name: &str, stream_name: &str) -> Result<(), ServerSessionError> {
         tracing::info!("publish, stream_id: {stream_id}, app_name: {app_name}, stream_name: {stream_name}");
         Ok(())
     }
 
-    async fn on_unpublish(&self, stream_id: u32) -> Result<(), ServerSessionError> {
+    async fn on_unpublish(&mut self, stream_id: u32) -> Result<(), ServerSessionError> {
         tracing::info!("unpublish, stream_id: {stream_id}");
         Ok(())
     }

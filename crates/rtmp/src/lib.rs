@@ -69,7 +69,7 @@ mod tests {
     struct Handler(mpsc::Sender<Event>);
 
     impl SessionHandler for Handler {
-        async fn on_publish(&self, stream_id: u32, app_name: &str, stream_name: &str) -> Result<(), ServerSessionError> {
+        async fn on_publish(&mut self, stream_id: u32, app_name: &str, stream_name: &str) -> Result<(), ServerSessionError> {
             let (response, reciever) = oneshot::channel();
 
             self.0
@@ -85,7 +85,7 @@ mod tests {
             reciever.await.unwrap()
         }
 
-        async fn on_unpublish(&self, stream_id: u32) -> Result<(), ServerSessionError> {
+        async fn on_unpublish(&mut self, stream_id: u32) -> Result<(), ServerSessionError> {
             let (response, reciever) = oneshot::channel();
 
             self.0.send(Event::Unpublish { stream_id, response }).await.unwrap();
@@ -93,7 +93,7 @@ mod tests {
             reciever.await.unwrap()
         }
 
-        async fn on_data(&self, stream_id: u32, data: SessionData) -> Result<(), ServerSessionError> {
+        async fn on_data(&mut self, stream_id: u32, data: SessionData) -> Result<(), ServerSessionError> {
             let (response, reciever) = oneshot::channel();
             self.0
                 .send(Event::Data {
