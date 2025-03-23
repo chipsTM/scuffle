@@ -20,3 +20,8 @@ category = "feat"
 description = "refactor error type to be clearer"
 breaking = true
 authors = ["@lennartkloock"]
+
+[[scuffle-transmuxer]]
+category = "chore"
+description = "update to work with new scuffle-flv version"
+authors = ["@lennartkloock"]
