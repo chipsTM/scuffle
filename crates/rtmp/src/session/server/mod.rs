@@ -266,7 +266,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
             // If the sum of the two is greater than or equal to the window size, we know that
             // we just exceeded the window size and we need to send an acknowledgement again.
             if (self.sequence_number % self.acknowledgement_window_size) + n >= self.acknowledgement_window_size {
-                tracing::trace!(sequence_number = %self.sequence_number, "sending acknowledgement");
+                tracing::debug!(sequence_number = %self.sequence_number, "sending acknowledgement");
 
                 // Send acknowledgement
                 ProtocolControlMessageAcknowledgement {
@@ -328,7 +328,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
                 self.handler.on_data(stream_id, SessionData::Amf0 { timestamp, data }).await?;
             }
             MessageData::Other { msg_type_id, data } => {
-                tracing::warn!(msg_type_id = ?msg_type_id, data = ?data, "unknown message type");
+                tracing::debug!(msg_type_id = ?msg_type_id, data = ?data, "unknown message type");
             }
         }
 
@@ -376,7 +376,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
                 // Not sure what this is for
             }
             CommandType::Unknown { command_name } => {
-                tracing::warn!(command_name = ?command_name, "unknown command");
+                tracing::debug!(command_name = ?command_name, "unknown command");
             }
             // ignore everything else
             _ => {}
@@ -400,7 +400,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
     /// on_acknowledgement_window_size is called when we receive a new acknowledgement window size
     /// from the client.
     fn on_acknowledgement_window_size(&mut self, acknowledgement_window_size: u32) -> Result<(), crate::error::RtmpError> {
-        tracing::trace!(acknowledgement_window_size = %acknowledgement_window_size, "received new acknowledgement window size");
+        tracing::debug!(acknowledgement_window_size = %acknowledgement_window_size, "received new acknowledgement window size");
         self.acknowledgement_window_size = acknowledgement_window_size;
         Ok(())
     }
