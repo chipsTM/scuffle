@@ -64,7 +64,7 @@ pub trait SessionHandler {
         command: UnknownCommand,
     ) -> impl std::future::Future<Output = Result<(), ServerSessionError>> + Send {
         async move {
-            tracing::warn!(stream_id = %stream_id, command = ?command, "unknown command");
+            tracing::debug!(stream_id = %stream_id, command = ?command, "unknown command");
             Ok(())
         }
     }
