@@ -8,17 +8,12 @@ pub mod error;
 pub mod reader;
 pub mod writer;
 
-nutype_enum::nutype_enum! {
-    /// Common chunk stream ids
-    pub enum ChunkStreamId(u32) {
-        /// The chunk stream ID for command messages is 3.
-        Command = 3,
-        /// The chunk stream ID for audio messages is 4.
-        Audio = 4,
-        /// The chunk stream ID for video messages is 5.
-        Video = 5,
-    }
-}
+/// The chunk stream ID for command messages is 3.
+pub const CHUNK_STREAM_ID_COMMAND: u32 = 3;
+/// The chunk stream ID for audio messages is 4.
+pub const CHUNK_STREAM_ID_AUDIO: u32 = 4;
+/// The chunk stream ID for video messages is 5.
+pub const CHUNK_STREAM_ID_VIDEO: u32 = 5;
 
 /// A chunk type represents the format of the chunk header.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, num_derive::FromPrimitive, Hash)]
