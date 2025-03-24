@@ -24,6 +24,7 @@ members = [
     "crates/metrics/derive",
     "crates/metrics/examples",
     "crates/mp4",
+    "crates/nutype_enum",
     "crates/postcompile",
     "crates/pprof",
     "crates/pprof/examples",
@@ -35,7 +36,6 @@ members = [
     "crates/transmuxer",
     "crates/workspace-hack",
     "dev-tools/xtask",
-    "crates/nutype_enum",
 ]
 
 resolver = "2"
