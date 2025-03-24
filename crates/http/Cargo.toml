@@ -13,6 +13,18 @@ keywords = ["http", "server", "http1", "http2", "http3"]
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 
+[[example]]
+name = "scuffle-http-echo"
+path = "examples/echo.rs"
+
+[[example]]
+name = "scuffle-http-echo-tls"
+path = "examples/echo_tls.rs"
+
+[[example]]
+name = "scuffle-http-axum"
+path = "examples/axum.rs"
+
 [dependencies]
 tokio = { version = "1.43.0" }
 thiserror = "2.0.11"
@@ -55,6 +67,9 @@ axum = { version = "0.8.1" }
 rustls-pemfile = "2.2.0"
 tokio-test = "0.4.4"
 scuffle-future-ext.workspace = true
+
+# For examples:
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 
 # https://doc.rust-lang.org/cargo/reference/features.html#dependency-features
 [features]

@@ -199,8 +199,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6d6fd624c75e18b3b4c6b9caf42b1afe24437daaee904069137d8bab077be8b8"
 dependencies = [
  "axum-core",
- "axum-macros",
- "base64 0.22.1",
  "bytes",
  "form_urlencoded",
  "futures-util",
@@ -220,10 +218,8 @@ dependencies = [
  "serde_json",
  "serde_path_to_error",
  "serde_urlencoded",
- "sha1",
  "sync_wrapper",
  "tokio",
- "tokio-tungstenite",
  "tower",
  "tower-layer",
  "tower-service",
@@ -248,17 +244,6 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
-]
-
-[[package]]
-name = "axum-macros"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "604fde5e028fea851ce1d8570bbdc034bec850d157f7569d10f347d06808c05c"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -825,12 +810,6 @@ dependencies = [
  "quote",
  "syn",
 ]
-
-[[package]]
-name = "data-encoding"
-version = "2.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "575f75dfd25738df5b91b8e43e14d44bda14637a58fae779fd2b064f8bf3e010"
 
 [[package]]
 name = "debugid"
@@ -1968,8 +1947,6 @@ dependencies = [
  "rand",
  "serde_json",
  "thiserror 2.0.12",
- "tokio",
- "tokio-stream",
  "tracing",
 ]
 
@@ -2167,7 +2144,6 @@ dependencies = [
  "prettyplease",
  "scuffle-workspace-hack",
  "serde",
- "serde_derive",
  "serde_json",
  "syn",
  "target-triple",
@@ -2796,15 +2772,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "scuffle-batching-examples"
-version = "0.1.0"
-dependencies = [
- "scuffle-batching",
- "scuffle-workspace-hack",
- "tokio",
-]
-
-[[package]]
 name = "scuffle-bootstrap"
 version = "0.1.1"
 dependencies = [
@@ -2816,9 +2783,14 @@ dependencies = [
  "scuffle-bootstrap-derive",
  "scuffle-context",
  "scuffle-future-ext",
+ "scuffle-settings",
  "scuffle-signal",
  "scuffle-workspace-hack",
+ "serde",
+ "smart-default",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -2832,23 +2804,6 @@ dependencies = [
  "quote",
  "scuffle-workspace-hack",
  "syn",
-]
-
-[[package]]
-name = "scuffle-bootstrap-examples"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "scuffle-bootstrap",
- "scuffle-context",
- "scuffle-settings",
- "scuffle-signal",
- "scuffle-workspace-hack",
- "serde",
- "serde_derive",
- "smart-default",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -3015,19 +2970,6 @@ dependencies = [
  "tokio-test",
  "tower",
  "tracing",
-]
-
-[[package]]
-name = "scuffle-http-examples"
-version = "0.1.0"
-dependencies = [
- "axum",
- "rustls",
- "rustls-pemfile",
- "scuffle-http",
- "scuffle-workspace-hack",
- "tokio",
- "tracing",
  "tracing-subscriber",
 ]
 
@@ -3037,12 +2979,14 @@ version = "0.1.1"
 dependencies = [
  "insta",
  "opentelemetry",
+ "opentelemetry-stdout",
  "opentelemetry_sdk",
  "parking_lot",
  "postcompile",
  "prometheus-client",
  "scuffle-metrics-derive",
  "scuffle-workspace-hack",
+ "tokio",
  "tracing",
 ]
 
@@ -3056,19 +3000,6 @@ dependencies = [
  "scuffle-metrics",
  "scuffle-workspace-hack",
  "syn",
-]
-
-[[package]]
-name = "scuffle-metrics-examples"
-version = "0.1.0"
-dependencies = [
- "opentelemetry",
- "opentelemetry-stdout",
- "opentelemetry_sdk",
- "prometheus-client",
- "scuffle-metrics",
- "scuffle-workspace-hack",
- "tokio",
 ]
 
 [[package]]
@@ -3095,18 +3026,9 @@ version = "0.1.1"
 dependencies = [
  "flate2",
  "pprof",
+ "rand",
  "scuffle-workspace-hack",
  "thiserror 2.0.12",
-]
-
-[[package]]
-name = "scuffle-pprof-examples"
-version = "0.1.0"
-dependencies = [
- "flate2",
- "rand",
- "scuffle-pprof",
- "scuffle-workspace-hack",
 ]
 
 [[package]]
@@ -3127,6 +3049,7 @@ dependencies = [
  "scuffle-amf0",
  "scuffle-bytes-util",
  "scuffle-context",
+ "scuffle-flv",
  "scuffle-future-ext",
  "scuffle-workspace-hack",
  "serde_json",
@@ -3134,19 +3057,8 @@ dependencies = [
  "thiserror 2.0.12",
  "tokio",
  "tracing",
- "uuid",
-]
-
-[[package]]
-name = "scuffle-rtmp-examples"
-version = "0.1.0"
-dependencies = [
- "scuffle-flv",
- "scuffle-rtmp",
- "scuffle-workspace-hack",
- "tokio",
- "tracing",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
@@ -3160,18 +3072,8 @@ dependencies = [
  "scuffle-bootstrap",
  "scuffle-workspace-hack",
  "serde",
- "thiserror 2.0.12",
-]
-
-[[package]]
-name = "scuffle-settings-examples"
-version = "0.1.0"
-dependencies = [
- "scuffle-settings",
- "scuffle-workspace-hack",
- "serde",
- "serde_derive",
  "smart-default",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -3213,7 +3115,6 @@ dependencies = [
 name = "scuffle-workspace-hack"
 version = "0.1.0"
 dependencies = [
- "axum",
  "bitflags 2.9.0",
  "bytes",
  "camino",
@@ -3266,7 +3167,6 @@ dependencies = [
  "smallvec",
  "stable_deref_trait",
  "syn",
- "sync_wrapper",
  "thiserror 2.0.12",
  "tokio",
  "tokio-rustls",
@@ -3375,17 +3275,6 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
-]
-
-[[package]]
-name = "sha1"
-version = "0.10.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3bf829a2d51ab4a5ddf1352d8470c140cadc8301b2ae1789db023f01cedd6ba"
-dependencies = [
- "cfg-if",
- "cpufeatures",
- "digest",
 ]
 
 [[package]]
@@ -3715,18 +3604,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio-tungstenite"
-version = "0.26.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a9daff607c6d2bf6c16fd681ccb7eecc83e4e2cdc1ca067ffaadfca5de7f084"
-dependencies = [
- "futures-util",
- "log",
- "tokio",
- "tungstenite",
-]
-
-[[package]]
 name = "tokio-util"
 version = "0.7.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3915,23 +3792,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
-name = "tungstenite"
-version = "0.26.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4793cb5e56680ecbb1d843515b23b6de9a75eb04b66643e256a396d43be33c13"
-dependencies = [
- "bytes",
- "data-encoding",
- "http",
- "httparse",
- "log",
- "rand",
- "sha1",
- "thiserror 2.0.12",
- "utf-8",
-]
-
-[[package]]
 name = "typenum"
 version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3965,12 +3825,6 @@ dependencies = [
  "idna",
  "percent-encoding",
 ]
-
-[[package]]
-name = "utf-8"
-version = "0.7.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
 
 [[package]]
 name = "utf16_iter"

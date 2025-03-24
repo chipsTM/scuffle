@@ -1,4 +1,4 @@
-#[derive(Debug, serde_derive::Deserialize, smart_default::SmartDefault)]
+#[derive(Debug, serde::Deserialize, smart_default::SmartDefault)]
 #[serde(default)]
 struct Config {
     #[default = "baz"]
