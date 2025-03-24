@@ -4357,7 +4357,6 @@ dependencies = [
  "cargo_metadata",
  "clap",
  "serde",
- "serde_derive",
  "serde_json",
  "toml_edit",
 ]

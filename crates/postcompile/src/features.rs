@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use std::{env, fs};
 
 use serde::de::{self, Deserialize, DeserializeOwned, Deserializer};
-use serde_derive::Deserialize;
 
 pub(crate) fn find() -> Option<Vec<String>> {
     try_find().ok()
@@ -18,7 +17,7 @@ impl<E: Error> From<E> for Ignored {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(serde::Deserialize)]
 struct Build {
     #[serde(deserialize_with = "from_json")]
     features: Vec<String>,
