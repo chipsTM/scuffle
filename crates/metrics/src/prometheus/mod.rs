@@ -362,15 +362,15 @@ impl<'a> KeyValueEncoder<'a> {
         }
     }
 
-    pub fn with_resource(self, resource: Option<&'a Resource>) -> Self {
+    fn with_resource(self, resource: Option<&'a Resource>) -> Self {
         Self { resource, ..self }
     }
 
-    pub fn with_scope(self, scope: Option<&'a InstrumentationScope>) -> Self {
+    fn with_scope(self, scope: Option<&'a InstrumentationScope>) -> Self {
         Self { scope, ..self }
     }
 
-    pub fn with_attrs(self, attrs: Option<&'a [KeyValue]>) -> Self {
+    fn with_attrs(self, attrs: Option<&'a [KeyValue]>) -> Self {
         Self { attrs, ..self }
     }
 }

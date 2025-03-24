@@ -12,7 +12,7 @@ use scuffle_mp4::types::trun::{TrunSample, TrunSampleFlag};
 
 use crate::TransmuxError;
 
-pub fn stsd_entry(config: AV1CodecConfigurationRecord) -> Result<(DynBox, SequenceHeaderObu), TransmuxError> {
+pub(crate) fn stsd_entry(config: AV1CodecConfigurationRecord) -> Result<(DynBox, SequenceHeaderObu), TransmuxError> {
     let mut cursor = std::io::Cursor::new(config.config_obu.clone());
     let header = ObuHeader::parse(&mut cursor)?;
     let data = cursor.extract_bytes(header.size.unwrap_or(cursor.remaining() as u64) as usize)?;
@@ -48,7 +48,7 @@ pub fn stsd_entry(config: AV1CodecConfigurationRecord) -> Result<(DynBox, Sequen
     ))
 }
 
-pub fn trun_sample(frame_type: VideoFrameType, duration: u32, data: &Bytes) -> Result<TrunSample, TransmuxError> {
+pub(crate) fn trun_sample(frame_type: VideoFrameType, duration: u32, data: &Bytes) -> Result<TrunSample, TransmuxError> {
     Ok(TrunSample {
         composition_time_offset: None,
         duration: Some(duration),

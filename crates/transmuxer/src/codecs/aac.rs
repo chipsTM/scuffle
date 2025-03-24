@@ -14,7 +14,7 @@ use scuffle_mp4::types::trun::{TrunSample, TrunSampleFlag};
 
 use crate::TransmuxError;
 
-pub fn stsd_entry(
+pub(crate) fn stsd_entry(
     sound_size: SoundSize,
     sound_type: SoundType,
     data: Bytes,
@@ -61,7 +61,7 @@ pub fn stsd_entry(
     ))
 }
 
-pub fn trun_sample(data: &Bytes) -> Result<(TrunSample, u32), TransmuxError> {
+pub(crate) fn trun_sample(data: &Bytes) -> Result<(TrunSample, u32), TransmuxError> {
     Ok((
         TrunSample {
             duration: Some(1024),

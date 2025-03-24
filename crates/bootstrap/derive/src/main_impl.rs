@@ -36,7 +36,7 @@ struct Item {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum ItemKind {
+enum ItemKind {
     Service,
 }
 
@@ -116,7 +116,7 @@ impl syn::parse::Parse for ParseArgs {
     }
 }
 
-pub fn impl_main(input: TokenStream) -> Result<TokenStream, syn::Error> {
+pub(crate) fn impl_main(input: TokenStream) -> Result<TokenStream, syn::Error> {
     let span = input.span();
     let Main {
         options,
