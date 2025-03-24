@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use std::net::SocketAddr;
 
-use crate::error::Error;
+use crate::error::HttpError;
 use crate::service::{HttpService, HttpServiceFactory};
 
 /// The HTTP server.
@@ -184,7 +184,7 @@ where
     /// - Start listening on all configured interfaces for incoming connections.
     /// - Accept all incoming connections.
     /// - Handle incoming requests by passing them to the configured service factory.
-    pub async fn run(#[allow(unused_mut)] mut self) -> Result<(), Error<F>> {
+    pub async fn run(#[allow(unused_mut)] mut self) -> Result<(), HttpError<F>> {
         #[cfg(feature = "tls-rustls")]
         self.set_alpn_protocols();
 
