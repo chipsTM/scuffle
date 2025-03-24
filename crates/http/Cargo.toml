@@ -63,7 +63,7 @@ scuffle-workspace-hack.workspace = true
 [dev-dependencies]
 # The http3 feature requires a custom build flag (see .cargo/config.toml)
 reqwest = { version = "0.12.15", default-features = false, features = ["rustls-tls", "http2", "http3"] }
-axum = { version = "0.8.1" }
+axum = { version = "0.8.1", features = ["ws"]}
 rustls-pemfile = "2.2.0"
 tokio-test = "0.4.4"
 scuffle-future-ext.workspace = true
