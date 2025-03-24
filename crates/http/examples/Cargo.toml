@@ -11,12 +11,16 @@ description = "Examples for scuffle-http"
 keywords = ["http", "server", "http1", "http2", "http3"]
 
 [[example]]
-name = "scuffle-http-axum"
-path = "src/axum.rs"
+name = "scuffle-http-echo"
+path = "src/echo.rs"
 
 [[example]]
-name = "scuffle-http-simple-service"
-path = "src/simple_service.rs"
+name = "scuffle-http-echo-tls"
+path = "src/echo_tls.rs"
+
+[[example]]
+name = "scuffle-http-axum"
+path = "src/axum.rs"
 
 [dev-dependencies]
 axum = { version = "0.8.1", features = ["macros", "ws"] }

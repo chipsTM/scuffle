@@ -1,3 +1,15 @@
+//! A simple HTTP echo server with TLS and HTTP/3.
+//!
+//! This example demonstrates how to create a simple HTTP server that echoes the request body back to the client.
+//!
+//! It loads a certificate and private key from the `local` directory and serves the server over HTTPS with HTTP/1, HTTP/2 and HTTP/3.
+//!
+//! Try with:
+//!
+//! ```
+//! curl --http3-only -X POST -d 'test' https://localhost:8000/
+//! ```
+
 use std::{fs, io};
 
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
@@ -7,15 +19,16 @@ async fn main() {
     let service = scuffle_http::service::fn_http_service(|req| async move {
         scuffle_http::Response::builder()
             .status(scuffle_http::http::StatusCode::OK)
-            .header(scuffle_http::http::header::CONTENT_TYPE, "text/plain")
-            .body(format!("Hello, world!\nURL: {:?}", req.uri()))
+            .body(req.into_body())
     });
+    // The simplest option here is a clone factory that clones the given service for each connection.
     let service_factory = scuffle_http::service::service_clone_factory(service);
 
+    // Create a server that listens on all interfaces on port 8000.
     scuffle_http::HttpServer::builder()
-        .rustls_config(get_tls_config().expect("failed to load tls config"))
         .service_factory(service_factory)
-        .bind("[::]:443".parse().unwrap())
+        .bind("[::]:8000".parse().unwrap())
+        .rustls_config(get_tls_config().expect("failed to load tls config"))
         .enable_http3(true)
         .build()
         .run()
