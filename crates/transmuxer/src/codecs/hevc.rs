@@ -10,7 +10,7 @@ use scuffle_mp4::types::trun::{TrunSample, TrunSampleFlag};
 
 use crate::TransmuxError;
 
-pub fn stsd_entry(config: HEVCDecoderConfigurationRecord) -> Result<(DynBox, Sps), TransmuxError> {
+pub(crate) fn stsd_entry(config: HEVCDecoderConfigurationRecord) -> Result<(DynBox, Sps), TransmuxError> {
     let Some(sps) = config
         .arrays
         .iter()
@@ -42,7 +42,7 @@ pub fn stsd_entry(config: HEVCDecoderConfigurationRecord) -> Result<(DynBox, Sps
     ))
 }
 
-pub fn trun_sample(
+pub(crate) fn trun_sample(
     frame_type: VideoFrameType,
     composition_time: i32,
     duration: u32,

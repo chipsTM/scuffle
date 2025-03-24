@@ -120,7 +120,7 @@ impl Default for InnerOptions {
 
 impl<T: Send + Sync> Inner<T> {
     /// Creates a new `Inner` instance.
-    pub fn new(data: T, options: InnerOptions) -> Result<Self, FfmpegError> {
+    pub(crate) fn new(data: T, options: InnerOptions) -> Result<Self, FfmpegError> {
         // Safety: av_malloc is safe to call
         let buffer = unsafe { av_malloc(options.buffer_size) };
 
@@ -223,7 +223,7 @@ impl<T: Send + Sync> Inner<T> {
 impl Inner<()> {
     /// Empty context cannot be used until its initialized and setup correctly
     /// Safety: this function is marked as unsafe because it must be initialized and setup correctltly before returning it to the user.
-    pub unsafe fn empty() -> Self {
+    pub(crate) unsafe fn empty() -> Self {
         Self {
             data: Some(Box::new(())),
             context: SmartPtr::null(|mut_ref| {
@@ -238,7 +238,7 @@ impl Inner<()> {
     }
 
     /// Opens an output stream to a file path.
-    pub fn open_output(path: &str) -> Result<Self, FfmpegError> {
+    pub(crate) fn open_output(path: &str) -> Result<Self, FfmpegError> {
         let path = std::ffi::CString::new(path).expect("Failed to convert path to CString");
 
         // Safety: We immediately initialize the inner and setup the context.

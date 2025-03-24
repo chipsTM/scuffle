@@ -7,7 +7,7 @@ use crate::error::Error;
 use crate::service::{HttpService, HttpServiceFactory};
 
 /// Helper function used by hyper server to handle incoming connections.
-pub async fn handle_connection<F, S, I>(
+pub(crate) async fn handle_connection<F, S, I>(
     ctx: scuffle_context::Context,
     service: S,
     io: I,

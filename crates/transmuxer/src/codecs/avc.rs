@@ -10,7 +10,7 @@ use scuffle_mp4::types::trun::{TrunSample, TrunSampleFlag};
 
 use crate::TransmuxError;
 
-pub fn stsd_entry(config: AVCDecoderConfigurationRecord, sps: &Sps) -> Result<DynBox, TransmuxError> {
+pub(crate) fn stsd_entry(config: AVCDecoderConfigurationRecord, sps: &Sps) -> Result<DynBox, TransmuxError> {
     if config.sps.is_empty() {
         return Err(TransmuxError::InvalidAVCDecoderConfigurationRecord);
     }
@@ -32,7 +32,7 @@ pub fn stsd_entry(config: AVCDecoderConfigurationRecord, sps: &Sps) -> Result<Dy
     .into())
 }
 
-pub fn trun_sample(
+pub(crate) fn trun_sample(
     frame_type: VideoFrameType,
     composition_time: u32,
     duration: u32,

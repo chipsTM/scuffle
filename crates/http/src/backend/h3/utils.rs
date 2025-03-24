@@ -6,7 +6,7 @@ use http_body::Body;
 use crate::service::{HttpService, HttpServiceFactory};
 
 /// Copy the response body to the given stream.
-pub async fn copy_response_body<S, F>(
+pub(crate) async fn copy_response_body<S, F>(
     mut send: RequestStream<S, Bytes>,
     body: <F::Service as HttpService>::ResBody,
 ) -> Result<(), crate::error::Error<F>>

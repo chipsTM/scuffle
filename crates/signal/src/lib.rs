@@ -59,8 +59,9 @@
 //! `SPDX-License-Identifier: MIT OR Apache-2.0`
 #![cfg_attr(all(coverage_nightly, test), feature(coverage_attribute))]
 #![deny(missing_docs)]
-#![deny(unsafe_code)]
 #![deny(unreachable_pub)]
+#![deny(clippy::undocumented_unsafe_blocks)]
+#![deny(clippy::multiple_unsafe_ops_per_block)]
 
 use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -438,12 +439,12 @@ mod test {
     }
 
     #[cfg(windows)]
-    pub async fn raise_signal(kind: SignalKind) {
+    pub(crate) async fn raise_signal(kind: SignalKind) {
         SignalMocker::raise(kind);
     }
 
     #[cfg(unix)]
-    pub async fn raise_signal(kind: SignalKind) {
+    pub(crate) async fn raise_signal(kind: SignalKind) {
         // Safety: This is a test, and we control the process.
         unsafe {
             libc::raise(match kind {

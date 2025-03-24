@@ -13,7 +13,7 @@
 //!
 //! `SPDX-License-Identifier: MIT OR Apache-2.0`
 #![allow(clippy::single_match)]
-#![deny(missing_docs)]
+// #![deny(missing_docs)]
 #![deny(unsafe_code)]
 #![deny(unreachable_pub)]
 
