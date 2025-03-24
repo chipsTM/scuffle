@@ -1,0 +1,5 @@
+[[scuffle-http]]
+category = "refactor"
+description = "rename error type to avoid name clashes"
+breaking = true
+authors = ["@lennartkloock"]
