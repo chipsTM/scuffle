@@ -39,7 +39,6 @@ postcompile = { workspace = true, features = ["prettyplease"] }
 # For examples:
 tokio = { version = "1", features = ["full"] }
 opentelemetry-stdout = "0.29"
-prometheus-client = { version = "0.23" }
 
 [features]
 default = ["prometheus"]
