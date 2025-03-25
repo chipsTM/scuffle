@@ -20,6 +20,7 @@ path = "examples/derive.rs"
 [[example]]
 name = "scuffle-metrics-prometheus"
 path = "examples/prometheus.rs"
+required-features = ["default"]
 
 [dependencies]
 prometheus-client = { version = "0.23", optional = true }
@@ -37,6 +38,7 @@ postcompile = { workspace = true, features = ["prettyplease"] }
 # For examples:
 tokio = { version = "1", features = ["full"] }
 opentelemetry-stdout = "0.29"
+prometheus-client = { version = "0.23" }
 
 [features]
 internal-logs = ["dep:tracing"]
