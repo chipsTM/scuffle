@@ -16,16 +16,17 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 [[example]]
 name = "scuffle-http-echo"
 path = "examples/echo.rs"
+required-features = ["default"]
 
 [[example]]
 name = "scuffle-http-echo-tls"
 path = "examples/echo_tls.rs"
-required-features = ["tls-rustls", "http3"]
+required-features = ["default", "tls-rustls", "http3"]
 
 [[example]]
 name = "scuffle-http-axum"
 path = "examples/axum.rs"
-required-features = ["tls-rustls", "http3", "tower", "tracing"]
+required-features = ["default", "tls-rustls", "http3", "tower", "tracing"]
 
 [dependencies]
 tokio = { version = "1.43.0" }
