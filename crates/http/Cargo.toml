@@ -25,7 +25,7 @@ required-features = ["tls-rustls", "http3"]
 [[example]]
 name = "scuffle-http-axum"
 path = "examples/axum.rs"
-required-features = ["tls-rustls", "http3", "tower"]
+required-features = ["tls-rustls", "http3", "tower", "tracing"]
 
 [dependencies]
 tokio = { version = "1.43.0" }
@@ -72,6 +72,7 @@ scuffle-future-ext.workspace = true
 
 # For examples:
 tokio = { version = "1.43.0", features = ["full"] }
+tracing = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 
 # https://doc.rust-lang.org/cargo/reference/features.html#dependency-features
