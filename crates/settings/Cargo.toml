@@ -13,6 +13,11 @@ keywords = ["settings", "configuration", "environment", "config"]
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 
+[[example]]
+name = "scuffle-settings-cli"
+path = "examples/cli.rs"
+required-features = ["cli"]
+
 [dependencies]
 config = { version = "0.15", default-features = false }
 clap = { version = "4", optional = true }
@@ -25,6 +30,9 @@ scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 serde = { version = "1", features = [ "derive" ] }
+
+# For examples:
+smart-default = "0.7"
 
 [features]
 cli = ["clap"]

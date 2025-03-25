@@ -45,7 +45,7 @@ struct Global {
     pub config: Config,
 }
 
-#[derive(serde_derive::Deserialize, Debug, smart_default::SmartDefault)]
+#[derive(serde::Deserialize, Debug, smart_default::SmartDefault)]
 #[serde(default)]
 struct Config {
     #[default = "foo"]
