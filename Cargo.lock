@@ -3063,6 +3063,7 @@ dependencies = [
  "scuffle-flv",
  "scuffle-future-ext",
  "scuffle-workspace-hack",
+ "serde",
  "serde_json",
  "sha2",
  "thiserror 2.0.12",
