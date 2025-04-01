@@ -1,44 +1,46 @@
 //! Deserialize AMF0 data to a Rust data structure.
 
-use std::io;
+use std::io::{self, Seek};
 
 use byteorder::{BigEndian, ReadBytesExt};
+use bytes::Buf;
 use num_traits::FromPrimitive;
 use serde::de::{EnumAccess, IntoDeserializer, MapAccess, SeqAccess, VariantAccess};
 
 use crate::{Amf0Error, Amf0Marker, Amf0Value};
 
-/// Deserialize a value from a reader.
-pub fn from_reader<'de, T, R>(reader: R) -> crate::Result<T>
-where
-    T: serde::de::Deserialize<'de>,
-    R: io::Read + io::Seek,
-{
-    let mut de = Deserializer::new(reader);
-    let value = T::deserialize(&mut de)?;
-    Ok(value)
-}
+// /// Deserialize a value from a reader.
+// pub fn from_reader<'de, T, R>(reader: R) -> crate::Result<T>
+// where
+//     T: serde::de::Deserialize<'de>,
+//     R: io::Read + io::Seek,
+// {
+//     let mut de = Deserializer::new(reader);
+//     let value = T::deserialize(&mut de)?;
+//     Ok(value)
+// }
 
 /// Deserialize a value from bytes.
 pub fn from_bytes<'de, T>(bytes: &'de [u8]) -> crate::Result<T>
 where
     T: serde::de::Deserialize<'de>,
 {
-    from_reader(std::io::Cursor::new(bytes))
+    let mut de = Deserializer::new(bytes);
+    let value = T::deserialize(&mut de)?;
+    Ok(value)
 }
 
 /// Deserializer for AMF0 data.
-pub struct Deserializer<R> {
-    reader: R,
+pub struct Deserializer<'de> {
+    reader: io::Cursor<&'de [u8]>,
 }
 
-impl<R> Deserializer<R>
-where
-    R: io::Read + io::Seek,
-{
+impl<'de> Deserializer<'de> {
     /// Create a new deserializer from a reader.
-    pub fn new(reader: R) -> Self {
-        Deserializer { reader }
+    pub fn new(bytes: &'de [u8]) -> Self {
+        Deserializer {
+            reader: io::Cursor::new(bytes),
+        }
     }
 
     fn expect_marker(&mut self, expect: &'static [Amf0Marker]) -> Result<(), Amf0Error> {
@@ -76,15 +78,18 @@ where
         Ok(number)
     }
 
-    fn read_normal_string(&mut self) -> Result<String, Amf0Error> {
+    fn read_normal_string(&mut self) -> Result<&'de str, Amf0Error> {
         let len = self.reader.read_u16::<BigEndian>()? as usize;
-        let mut buf = vec![0; len];
-        self.reader.read_exact(&mut buf)?;
-        let s = String::from_utf8(buf)?;
+
+        let start = self.reader.position() as usize;
+        let end = start + len;
+        let slice = &self.reader.get_ref()[start..end];
+        self.reader.seek_relative(len as i64)?;
+        let s = std::str::from_utf8(slice)?;
         Ok(s)
     }
 
-    fn read_string(&mut self) -> Result<String, Amf0Error> {
+    fn read_string(&mut self) -> Result<&'de str, Amf0Error> {
         let marker = self.reader.read_u8()?;
         let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
 
@@ -99,18 +104,16 @@ where
             });
         };
 
-        // TODO: we allocate here. Do we have to?
-        let mut buf = vec![0; len];
-        self.reader.read_exact(&mut buf)?;
-        let s = String::from_utf8(buf)?;
+        let start = self.reader.position() as usize;
+        let end = start + len;
+        let slice = &self.reader.get_ref()[start..end];
+        self.reader.seek_relative(len as i64)?;
+        let s = std::str::from_utf8(slice)?;
         Ok(s)
     }
 }
 
-impl<B> Deserializer<B>
-where
-    B: io::Read + io::Seek + bytes::Buf,
-{
+impl<'de> Deserializer<'de> {
     /// Deserialize the remaining values from the reader and return them as a vector of [`Amf0Value`]s.
     pub fn deserialize_all(&mut self) -> Result<Vec<Amf0Value>, Amf0Error> {
         let mut values = Vec::new();
@@ -124,10 +127,7 @@ where
     }
 }
 
-impl<'de, R> serde::de::Deserializer<'de> for &mut Deserializer<R>
-where
-    R: io::Read + io::Seek,
-{
+impl<'de> serde::de::Deserializer<'de> for &mut Deserializer<'de> {
     type Error = Amf0Error;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -245,14 +245,15 @@ where
         V: serde::de::Visitor<'de>,
     {
         let s = self.read_string()?;
-        visitor.visit_string(s)
+        visitor.visit_string(s.to_string())
     }
 
-    fn deserialize_str<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        unimplemented!("zero-copy deserialization is not supported")
+        let s = self.read_string()?;
+        visitor.visit_borrowed_str(s)
     }
 
     fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -413,7 +414,7 @@ where
         V: serde::de::Visitor<'de>,
     {
         let s = self.read_normal_string()?;
-        visitor.visit_string(s)
+        visitor.visit_string(s.to_string())
     }
 
     fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -424,15 +425,12 @@ where
     }
 }
 
-struct StrictArray<'a, R> {
-    de: &'a mut Deserializer<R>,
+struct StrictArray<'a, 'de> {
+    de: &'a mut Deserializer<'de>,
     remaining: usize,
 }
 
-impl<'a, 'de, R> SeqAccess<'de> for StrictArray<'a, R>
-where
-    R: io::Read + io::Seek,
-{
+impl<'a, 'de> SeqAccess<'de> for StrictArray<'a, 'de> {
     type Error = Amf0Error;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
@@ -452,14 +450,11 @@ where
     }
 }
 
-struct Object<'a, R> {
-    de: &'a mut Deserializer<R>,
+struct Object<'a, 'de> {
+    de: &'a mut Deserializer<'de>,
 }
 
-impl<'a, 'de, R> MapAccess<'de> for Object<'a, R>
-where
-    R: io::Read + io::Seek,
-{
+impl<'a, 'de> MapAccess<'de> for Object<'a, 'de> {
     type Error = Amf0Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
@@ -488,15 +483,12 @@ where
     }
 }
 
-struct EcmaArray<'a, R> {
-    de: &'a mut Deserializer<R>,
+struct EcmaArray<'a, 'de> {
+    de: &'a mut Deserializer<'de>,
     remaining: usize,
 }
 
-impl<'a, 'de, R> MapAccess<'de> for EcmaArray<'a, R>
-where
-    R: io::Read + io::Seek,
-{
+impl<'a, 'de> MapAccess<'de> for EcmaArray<'a, 'de> {
     type Error = Amf0Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
@@ -536,14 +528,11 @@ where
     }
 }
 
-struct Enum<'a, R> {
-    de: &'a mut Deserializer<R>,
+struct Enum<'a, 'de> {
+    de: &'a mut Deserializer<'de>,
 }
 
-impl<'a, 'de, R> EnumAccess<'de> for Enum<'a, R>
-where
-    R: io::Read + io::Seek,
-{
+impl<'a, 'de> EnumAccess<'de> for Enum<'a, 'de> {
     type Error = Amf0Error;
     type Variant = Self;
 
@@ -559,10 +548,7 @@ where
     }
 }
 
-impl<'a, 'de, R> VariantAccess<'de> for Enum<'a, R>
-where
-    R: io::Read + io::Seek,
-{
+impl<'a, 'de> VariantAccess<'de> for Enum<'a, 'de> {
     type Error = Amf0Error;
 
     fn unit_variant(self) -> Result<(), Self::Error> {
@@ -596,7 +582,6 @@ where
 mod tests {
     use core::f64;
     use std::fmt::Debug;
-    use std::io;
 
     use super::Deserializer;
     use crate::{Amf0Error, Amf0Marker, Amf0Object, Amf0Value, from_bytes};
@@ -905,7 +890,7 @@ mod tests {
         ];
         bytes.extend_from_slice(&f64::consts::PI.to_be_bytes());
 
-        let mut de = Deserializer::new(io::Cursor::new(bytes));
+        let mut de = Deserializer::new(&bytes);
         let value: String = serde::de::Deserialize::deserialize(&mut de).unwrap();
         assert_eq!(value, "hello");
         let value: bool = serde::de::Deserialize::deserialize(&mut de).unwrap();
@@ -979,7 +964,7 @@ mod tests {
             Amf0Marker::ObjectEnd as u8,
         ];
 
-        let mut de = Deserializer::new(io::Cursor::new(bytes));
+        let mut de = Deserializer::new(&bytes);
         let values = de.deserialize_all().unwrap();
         assert_eq!(
             values,

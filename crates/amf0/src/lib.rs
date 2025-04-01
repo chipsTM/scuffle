@@ -56,7 +56,7 @@ pub mod error;
 pub mod ser;
 pub mod value;
 
-pub use de::{Deserializer, from_bytes, from_reader};
+pub use de::{Deserializer, from_bytes};
 pub use error::{Amf0Error, Result};
 pub use ser::{Serializer, to_bytes, to_writer};
 pub use value::{Amf0Object, Amf0Value};

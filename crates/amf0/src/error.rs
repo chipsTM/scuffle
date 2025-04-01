@@ -3,7 +3,7 @@
 use std::fmt::Display;
 use std::io;
 use std::num::TryFromIntError;
-use std::string::FromUtf8Error;
+use std::str::Utf8Error;
 
 use crate::Amf0Marker;
 
@@ -33,7 +33,7 @@ pub enum Amf0Error {
     UnsupportedMarker(Amf0Marker),
     /// String parse error.
     #[error("string parse error: {0}")]
-    StringParseError(#[from] FromUtf8Error),
+    StringParseError(#[from] Utf8Error),
     /// Unexpected type.
     #[error("unexpected type: expected one of {expected:?}, got {got:?}")]
     UnexpectedType {
