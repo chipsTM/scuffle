@@ -1,7 +1,5 @@
 //! Reading [`NetConnectionCommand`].
 
-use std::io;
-
 use serde::Deserialize;
 
 use super::{NetConnectionCommand, NetConnectionCommandConnect};
@@ -11,13 +9,10 @@ impl NetConnectionCommand {
     /// Reads a [`NetConnectionCommand`] from the given decoder.
     ///
     /// Returns `Ok(None)` if the `command_name` is not recognized.
-    pub fn read<R>(
+    pub fn read(
         command_name: &str,
-        deserializer: &mut scuffle_amf0::Deserializer<R>,
-    ) -> Result<Option<Self>, CommandError>
-    where
-        R: io::Read + io::Seek + bytes::Buf,
-    {
+        deserializer: &mut scuffle_amf0::Deserializer<'_>,
+    ) -> Result<Option<Self>, CommandError> {
         match command_name {
             "connect" => {
                 let command_object = NetConnectionCommandConnect::deserialize(deserializer)?;
@@ -37,8 +32,6 @@ impl NetConnectionCommand {
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
-    use std::io;
-
     use scuffle_amf0::Amf0Object;
     use serde::Serialize;
 
@@ -51,7 +44,7 @@ mod tests {
         let mut serializer = scuffle_amf0::Serializer::new(&mut command_object);
         Amf0Object::new().serialize(&mut serializer).unwrap();
 
-        let mut decoder = scuffle_amf0::Deserializer::new(io::Cursor::new(command_object));
+        let mut decoder = scuffle_amf0::Deserializer::new(&command_object);
         let result = NetConnectionCommand::read("connect", &mut decoder).unwrap_err();
 
         assert!(matches!(result, CommandError::Amf0(scuffle_amf0::Amf0Error::Custom(_))));

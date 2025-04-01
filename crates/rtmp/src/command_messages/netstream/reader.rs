@@ -1,7 +1,5 @@
 //! Reading [`NetStreamCommand`].
 
-use std::io;
-
 use scuffle_amf0::Amf0Object;
 use serde::Deserialize;
 
@@ -12,13 +10,10 @@ impl NetStreamCommand {
     /// Reads a [`NetStreamCommand`] from the given decoder.
     ///
     /// Returns `Ok(None)` if the `command_name` is not recognized.
-    pub fn read<R>(
+    pub fn read(
         command_name: &str,
-        deserializer: &mut scuffle_amf0::Deserializer<R>,
-    ) -> Result<Option<Self>, CommandError>
-    where
-        R: io::Read + io::Seek + bytes::Buf,
-    {
+        deserializer: &mut scuffle_amf0::Deserializer<'_>,
+    ) -> Result<Option<Self>, CommandError> {
         match command_name {
             "play" => {
                 // skip command object
@@ -91,8 +86,6 @@ impl NetStreamCommand {
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
-    use std::io;
-
     use scuffle_amf0::Amf0Marker;
     use serde::Serialize;
 
@@ -101,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_command_no_payload() {
-        let command = NetStreamCommand::read("closeStream", &mut scuffle_amf0::Deserializer::new(io::Cursor::new(&[])))
+        let command = NetStreamCommand::read("closeStream", &mut scuffle_amf0::Deserializer::new(&[]))
             .unwrap()
             .unwrap();
         assert_eq!(command, NetStreamCommand::CloseStream);
@@ -112,12 +105,9 @@ mod tests {
         let mut payload = vec![Amf0Marker::Null as u8, Amf0Marker::Number as u8];
         payload.extend_from_slice(0.0f64.to_be_bytes().as_ref());
 
-        let command = NetStreamCommand::read(
-            "deleteStream",
-            &mut scuffle_amf0::Deserializer::new(io::Cursor::new(&payload)),
-        )
-        .unwrap()
-        .unwrap();
+        let command = NetStreamCommand::read("deleteStream", &mut scuffle_amf0::Deserializer::new(&payload))
+            .unwrap()
+            .unwrap();
         assert_eq!(command, NetStreamCommand::DeleteStream { stream_id: 0.0 });
     }
 
@@ -132,7 +122,7 @@ mod tests {
             .serialize(&mut serializer)
             .unwrap();
 
-        let command = NetStreamCommand::read("publish", &mut scuffle_amf0::Deserializer::new(io::Cursor::new(&payload)))
+        let command = NetStreamCommand::read("publish", &mut scuffle_amf0::Deserializer::new(&payload))
             .unwrap()
             .unwrap();
 

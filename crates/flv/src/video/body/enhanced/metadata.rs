@@ -1,7 +1,5 @@
 //! Types and functions for working with metadata video packets.
 
-use std::io;
-
 use scuffle_amf0::Amf0Object;
 use serde::Deserialize;
 
@@ -140,7 +138,7 @@ pub enum VideoPacketMetadataEntry {
 
 impl VideoPacketMetadataEntry {
     /// Read a video packet metadata entry from the given [`scuffle_amf0::Deserializer`].
-    pub fn read<R: io::Read + io::Seek>(deserializer: &mut scuffle_amf0::Deserializer<R>) -> Result<Self, FlvError> {
+    pub fn read(deserializer: &mut scuffle_amf0::Deserializer<'_>) -> Result<Self, FlvError> {
         let key = String::deserialize(&mut *deserializer)?;
 
         match key.as_ref() {
@@ -162,8 +160,6 @@ impl VideoPacketMetadataEntry {
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
-    use std::io;
-
     use scuffle_amf0::{Amf0Object, Amf0Value};
     use serde::Serialize;
 
@@ -222,7 +218,7 @@ mod tests {
         "colorInfo".serialize(&mut serializer).unwrap();
         object.serialize(&mut serializer).unwrap();
 
-        let mut deserializer = scuffle_amf0::Deserializer::new(io::Cursor::new(buf));
+        let mut deserializer = scuffle_amf0::Deserializer::new(&buf);
         let entry = VideoPacketMetadataEntry::read(&mut deserializer).unwrap();
 
         assert_eq!(

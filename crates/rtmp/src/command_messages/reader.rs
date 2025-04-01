@@ -1,7 +1,6 @@
 //! Reading [`Command`].
 
 use std::convert::Infallible;
-use std::io;
 use std::str::FromStr;
 
 use bytes::Bytes;
@@ -15,7 +14,7 @@ use super::{Command, CommandResultLevel, CommandType, UnknownCommand};
 impl Command {
     /// Reads a [`Command`] from the given payload.
     pub fn read(payload: &Bytes) -> Result<Self, CommandError> {
-        let mut deserializer = scuffle_amf0::Deserializer::new(io::Cursor::new(payload));
+        let mut deserializer = scuffle_amf0::Deserializer::new(payload);
 
         let command_name = String::deserialize(&mut deserializer)?;
         let transaction_id = f64::deserialize(&mut deserializer)?;
@@ -30,10 +29,7 @@ impl Command {
 }
 
 impl CommandType {
-    fn read<R>(command_name: String, deserializer: &mut scuffle_amf0::Deserializer<R>) -> Result<Self, CommandError>
-    where
-        R: io::Read + io::Seek + bytes::Buf,
-    {
+    fn read(command_name: String, deserializer: &mut scuffle_amf0::Deserializer<'_>) -> Result<Self, CommandError> {
         if let Some(command) = NetConnectionCommand::read(&command_name, deserializer)? {
             return Ok(Self::NetConnection(command));
         }

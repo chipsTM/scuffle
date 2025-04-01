@@ -113,12 +113,11 @@ impl VideoPacket {
         match header.video_packet_type {
             VideoPacketType::Metadata => {
                 let data = reader.extract_bytes(size_of_video_track.unwrap_or(reader.remaining()))?;
-                let mut cursor = io::Cursor::new(data);
+                let mut amf_deserializer = scuffle_amf0::Deserializer::new(&data);
 
                 let mut metadata = Vec::new();
 
-                while cursor.has_remaining() {
-                    let mut amf_deserializer = scuffle_amf0::Deserializer::new(&mut cursor);
+                while amf_deserializer.has_remaining() {
                     metadata.push(metadata::VideoPacketMetadataEntry::read(&mut amf_deserializer)?);
                 }
 

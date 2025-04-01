@@ -9,17 +9,6 @@ use serde::de::{EnumAccess, IntoDeserializer, MapAccess, SeqAccess, VariantAcces
 
 use crate::{Amf0Error, Amf0Marker, Amf0Value};
 
-// /// Deserialize a value from a reader.
-// pub fn from_reader<'de, T, R>(reader: R) -> crate::Result<T>
-// where
-//     T: serde::de::Deserialize<'de>,
-//     R: io::Read + io::Seek,
-// {
-//     let mut de = Deserializer::new(reader);
-//     let value = T::deserialize(&mut de)?;
-//     Ok(value)
-// }
-
 /// Deserialize a value from bytes.
 pub fn from_bytes<'de, T>(bytes: &'de [u8]) -> crate::Result<T>
 where
@@ -124,6 +113,11 @@ impl<'de> Deserializer<'de> {
         }
 
         Ok(values)
+    }
+
+    /// Check if there are remaining bytes to read in this deserializer.
+    pub fn has_remaining(&self) -> bool {
+        self.reader.has_remaining()
     }
 }
 

@@ -40,8 +40,6 @@ impl OnStatus {
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
-    use std::io;
-
     use bytes::{BufMut, BytesMut};
     use scuffle_amf0::Amf0Value;
 
@@ -65,9 +63,7 @@ mod tests {
         .write(&mut (&mut buf).writer(), 1.0)
         .expect("write");
 
-        let values = scuffle_amf0::Deserializer::new(io::Cursor::new(buf))
-            .deserialize_all()
-            .unwrap();
+        let values = scuffle_amf0::Deserializer::new(&buf).deserialize_all().unwrap();
 
         assert_eq!(values.len(), 4);
         assert_eq!(values[0], Amf0Value::String("onStatus".into())); // command name

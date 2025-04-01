@@ -194,7 +194,7 @@ impl ScriptData {
     /// Demux the [`ScriptData`] from the given reader.
     pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, FlvError> {
         let buf = reader.extract_remaining();
-        let mut amf0_deserializer = scuffle_amf0::Deserializer::new(io::Cursor::new(buf));
+        let mut amf0_deserializer = scuffle_amf0::Deserializer::new(&buf);
 
         let name = String::deserialize(&mut amf0_deserializer)?;
 
