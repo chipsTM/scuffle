@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::fmt::Display;
+use std::hash::Hash;
 
 use bytes::Bytes;
 use bytestring::ByteString;
@@ -9,7 +10,7 @@ use bytestring::ByteString;
 pub(crate) mod serde;
 
 /// A [`Cow`] type for bytes.
-#[derive(Debug, Clone, Eq, Hash)]
+#[derive(Debug, Clone, Eq)]
 pub enum BytesCow<'a> {
     /// A borrowed [`Bytes`] object.
     Slice(&'a [u8]),
@@ -19,6 +20,21 @@ pub enum BytesCow<'a> {
     Vec(Vec<u8>),
     /// An owned [`Bytes`] object.
     Bytes(Bytes),
+}
+
+impl<T> PartialEq<T> for BytesCow<'_>
+where
+    T: AsRef<[u8]>,
+{
+    fn eq(&self, other: &T) -> bool {
+        self.as_bytes() == other.as_ref()
+    }
+}
+
+impl Hash for BytesCow<'_> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.as_bytes().hash(state);
+    }
 }
 
 impl Default for BytesCow<'_> {
@@ -117,17 +133,8 @@ impl From<Vec<u8>> for BytesCow<'_> {
     }
 }
 
-impl<T> PartialEq<T> for BytesCow<'_>
-where
-    T: AsRef<[u8]>,
-{
-    fn eq(&self, other: &T) -> bool {
-        self.as_bytes() == other.as_ref()
-    }
-}
-
 /// A [`Cow`] type for strings.
-#[derive(Debug, Clone, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Eq)]
 pub enum StringCow<'a> {
     /// A borrowed [`ByteString`] object.
     Ref(&'a str),
@@ -142,6 +149,39 @@ pub enum StringCow<'a> {
 impl Default for StringCow<'_> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl PartialEq<str> for StringCow<'_> {
+    fn eq(&self, other: &str) -> bool {
+        self.as_str() == other
+    }
+}
+
+impl Hash for StringCow<'_> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.as_str().hash(state);
+    }
+}
+
+impl PartialOrd for StringCow<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.as_str().partial_cmp(other.as_str())
+    }
+}
+
+impl Ord for StringCow<'_> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.as_str().cmp(other.as_str())
+    }
+}
+
+impl<T> PartialEq<T> for StringCow<'_>
+where
+    T: AsRef<str>,
+{
+    fn eq(&self, other: &T) -> bool {
+        self.as_str() == other.as_ref()
     }
 }
 
@@ -248,20 +288,5 @@ impl From<String> for StringCow<'_> {
 impl From<ByteString> for StringCow<'_> {
     fn from(bytes: ByteString) -> Self {
         StringCow::from_bytes(bytes)
-    }
-}
-
-impl PartialEq<str> for StringCow<'_> {
-    fn eq(&self, other: &str) -> bool {
-        self.as_str() == other
-    }
-}
-
-impl<T> PartialEq<T> for StringCow<'_>
-where
-    T: AsRef<str>,
-{
-    fn eq(&self, other: &T) -> bool {
-        self.as_str() == other.as_ref()
     }
 }
