@@ -5,14 +5,11 @@ use serde::Deserialize;
 use super::{NetConnectionCommand, NetConnectionCommandConnect};
 use crate::command_messages::error::CommandError;
 
-impl NetConnectionCommand {
+impl NetConnectionCommand<'_> {
     /// Reads a [`NetConnectionCommand`] from the given decoder.
     ///
     /// Returns `Ok(None)` if the `command_name` is not recognized.
-    pub fn read(
-        command_name: &str,
-        deserializer: &mut scuffle_amf0::Deserializer<'_>,
-    ) -> Result<Option<Self>, CommandError> {
+    pub fn read(command_name: &str, deserializer: &mut scuffle_amf0::Deserializer) -> Result<Option<Self>, CommandError> {
         match command_name {
             "connect" => {
                 let command_object = NetConnectionCommandConnect::deserialize(deserializer)?;

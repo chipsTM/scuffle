@@ -6,20 +6,20 @@ pub mod reader;
 
 /// NetStream commands as defined in 7.2.2.
 #[derive(Debug, Clone, PartialEq)]
-pub enum NetStreamCommand {
+pub enum NetStreamCommand<'a> {
     /// Play command.
     Play {
         /// All values in the command.
         ///
         /// See the legacy RTMP spec for details.
-        values: Vec<Amf0Value>,
+        values: Vec<Amf0Value<'a>>,
     },
     /// Play2 command.
     Play2 {
         /// All values in the command.
         ///
         /// See the legacy RTMP spec for details.
-        parameters: Amf0Object,
+        parameters: Amf0Object<'a>,
     },
     /// Delete stream command.
     DeleteStream {

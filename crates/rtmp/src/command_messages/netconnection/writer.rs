@@ -8,7 +8,7 @@ use serde::Serialize;
 use super::{NetConnectionCommand, NetConnectionCommandConnectResult};
 use crate::command_messages::error::CommandError;
 
-impl NetConnectionCommand {
+impl NetConnectionCommand<'_> {
     /// Writes a [`NetConnectionCommand`] to the given writer.
     pub fn write(self, buf: &mut impl io::Write, transaction_id: f64) -> Result<(), CommandError> {
         let mut serializer = scuffle_amf0::Serializer::new(buf);
@@ -34,7 +34,7 @@ impl NetConnectionCommand {
 
                 [
                     ("level".into(), Amf0Value::String(level.as_ref().into())),
-                    ("code".into(), Amf0Value::String(code.0.to_string())),
+                    ("code".into(), Amf0Value::String(code.0.into())),
                     ("description".into(), Amf0Value::String(description)),
                     ("objectEncoding".into(), Amf0Value::Number(encoding)),
                 ]

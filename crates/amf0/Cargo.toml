@@ -17,6 +17,8 @@ byteorder = "1.5"
 num-traits = "0.2"
 num-derive = "0.4"
 thiserror = "2.0"
+bytestring = "1.4.0"
+scuffle-bytes-util = { features = ["serde"], workspace = true }
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]

@@ -1,10 +1,11 @@
 //! Script data structures
 
+use std::collections::BTreeMap;
 use std::io;
 
 use bytes::Bytes;
 use scuffle_amf0::{Amf0Object, Amf0Value};
-use scuffle_bytes_util::BytesCursorExt;
+use scuffle_bytes_util::{BytesCursorExt, StringCow};
 use serde::Deserialize;
 
 use crate::audio::header::enhanced::AudioFourCc;
@@ -82,7 +83,7 @@ impl<'de> serde::Deserialize<'de> for OnMetaDataVideoCodecId {
 /// - Enhanced RTMP spec, page 13-16, Enhancing onMetaData
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct OnMetaData {
+pub struct OnMetaData<'a> {
     /// Audio codec ID used in the file.
     pub audiocodecid: Option<OnMetaDataAudioCodecId>,
     /// Audio bitrate, in kilobits per second.
@@ -144,12 +145,14 @@ pub struct OnMetaData {
     /// This structure provides a framework for detailed customization and control over
     /// the media tracks, ensuring optimal management and delivery across various types
     /// of content and platforms.
-    pub audio_track_id_info_map: Option<Amf0Object>,
+    #[serde(borrow)]
+    pub audio_track_id_info_map: Option<Amf0Object<'a>>,
     /// See [`OnMetaData::audio_track_id_info_map`].
-    pub video_track_id_info_map: Option<Amf0Object>,
+    #[serde(borrow)]
+    pub video_track_id_info_map: Option<Amf0Object<'a>>,
     /// Any other metadata contained in the script data.
-    #[serde(flatten)]
-    pub other: Amf0Object,
+    #[serde(flatten, borrow)]
+    pub other: BTreeMap<StringCow<'a>, Amf0Value<'a>>,
 }
 
 /// XMP Metadata
@@ -158,15 +161,15 @@ pub struct OnMetaData {
 /// - Legacy FLV spec, Annex E.6
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct OnXmpData {
+pub struct OnXmpData<'a> {
     /// XMP metadata, formatted according to the XMP metadata specification.
     ///
     /// For further details, see [www.adobe.com/devnet/xmp/pdfs/XMPSpecificationPart3.pdf](https://web.archive.org/web/20090306165322/https://www.adobe.com/devnet/xmp/pdfs/XMPSpecificationPart3.pdf).
     #[serde(rename = "liveXML")]
     live_xml: Option<String>,
     /// Any other metadata contained in the script data.
-    #[serde(flatten)]
-    other: Amf0Object,
+    #[serde(flatten, borrow)]
+    other: BTreeMap<StringCow<'a>, Amf0Value<'a>>,
 }
 
 /// FLV `SCRIPTDATA` tag
@@ -174,27 +177,27 @@ pub struct OnXmpData {
 /// Defined by:
 /// - Legacy FLV spec, Annex E.4.4.1
 #[derive(Debug, Clone, PartialEq)]
-pub enum ScriptData {
+pub enum ScriptData<'a> {
     /// `onMetaData` script data.
     ///
     /// Boxed because it's so big.
-    OnMetaData(Box<OnMetaData>),
+    OnMetaData(Box<OnMetaData<'a>>),
     /// `onXMPData` script data.
-    OnXmpData(OnXmpData),
+    OnXmpData(OnXmpData<'a>),
     /// Any other script data.
     Other {
         /// The name of the script data.
         name: String,
         /// The data of the script data.
-        data: Vec<Amf0Value>,
+        data: Vec<Amf0Value<'a>>,
     },
 }
 
-impl ScriptData {
+impl ScriptData<'_> {
     /// Demux the [`ScriptData`] from the given reader.
     pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, FlvError> {
         let buf = reader.extract_remaining();
-        let mut amf0_deserializer = scuffle_amf0::Deserializer::new(&buf);
+        let mut amf0_deserializer = scuffle_amf0::Deserializer::new(buf);
 
         let name = String::deserialize(&mut amf0_deserializer)?;
 
@@ -276,7 +279,7 @@ mod tests {
                 width: Some(1280.0),
                 audio_track_id_info_map: None,
                 video_track_id_info_map: None,
-                other: Amf0Object::new(),
+                other: BTreeMap::new(),
             }
         );
     }
@@ -345,9 +348,9 @@ mod tests {
                 videocodecid: Some(OnMetaDataVideoCodecId::Enhanced(VideoFourCc::Avc)),
                 videodatarate: Some(1024.0),
                 width: Some(1280.0),
-                audio_track_id_info_map: Some([("test".to_string(), Amf0Value::Number(1.0))].into()),
-                video_track_id_info_map: Some([("test2".to_string(), Amf0Value::Number(2.0))].into()),
-                other: Amf0Object::new(),
+                audio_track_id_info_map: Some([("test".into(), Amf0Value::Number(1.0))].as_ref().into()),
+                video_track_id_info_map: Some([("test2".into(), Amf0Value::Number(2.0))].as_ref().into()),
+                other: BTreeMap::new(),
             }
         );
     }
@@ -383,7 +386,7 @@ mod tests {
             xmp_data,
             OnXmpData {
                 live_xml: Some("hello".to_string()),
-                other: [("test".to_string(), Amf0Value::Null)].into(),
+                other: [("test".into(), Amf0Value::Null)].into_iter().collect(),
             }
         );
     }

@@ -11,9 +11,9 @@ use super::netconnection::NetConnectionCommand;
 use super::netstream::NetStreamCommand;
 use super::{Command, CommandResultLevel, CommandType, UnknownCommand};
 
-impl Command {
+impl Command<'_> {
     /// Reads a [`Command`] from the given payload.
-    pub fn read(payload: &Bytes) -> Result<Self, CommandError> {
+    pub fn read(payload: Bytes) -> Result<Self, CommandError> {
         let mut deserializer = scuffle_amf0::Deserializer::new(payload);
 
         let command_name = String::deserialize(&mut deserializer)?;
@@ -28,8 +28,8 @@ impl Command {
     }
 }
 
-impl CommandType {
-    fn read(command_name: String, deserializer: &mut scuffle_amf0::Deserializer<'_>) -> Result<Self, CommandError> {
+impl CommandType<'_> {
+    fn read(command_name: String, deserializer: &mut scuffle_amf0::Deserializer) -> Result<Self, CommandError> {
         if let Some(command) = NetConnectionCommand::read(&command_name, deserializer)? {
             return Ok(Self::NetConnection(command));
         }

@@ -34,7 +34,7 @@ impl Display for CommandResultLevel {
     }
 }
 
-impl Command {
+impl Command<'_> {
     fn write_amf0_chunk(io: &mut impl io::Write, writer: &ChunkWriter, payload: Bytes) -> io::Result<()> {
         writer.write_chunk(
             io,

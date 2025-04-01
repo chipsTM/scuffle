@@ -8,6 +8,7 @@
 
 use nutype_enum::nutype_enum;
 use scuffle_amf0::Amf0Object;
+use scuffle_bytes_util::StringCow;
 
 use crate::command_messages::CommandResultLevel;
 
@@ -15,15 +16,15 @@ pub mod writer;
 
 /// The `onStatus` command is used to send status information from the server to the client.
 #[derive(Debug, Clone, PartialEq)]
-pub struct OnStatus {
+pub struct OnStatus<'a> {
     /// The status code.
     pub code: OnStatusCode,
     /// The description of the status update.
-    pub description: Option<String>,
+    pub description: Option<StringCow<'a>>,
     /// The level of the status update.
     pub level: CommandResultLevel,
     /// Any other additional information that should be sent as part of the object.
-    pub others: Option<Amf0Object>,
+    pub others: Option<Amf0Object<'a>>,
 }
 
 nutype_enum! {

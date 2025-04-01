@@ -7,7 +7,7 @@ use crate::protocol_control_messages::{
     ProtocolControlMessageSetChunkSize, ProtocolControlMessageWindowAcknowledgementSize,
 };
 
-impl MessageData {
+impl MessageData<'_> {
     /// Reads [`MessageData`] from the given chunk.
     pub fn read(chunk: &Chunk) -> Result<Self, crate::error::RtmpError> {
         match chunk.message_header.msg_type_id {
@@ -39,7 +39,7 @@ impl MessageData {
                 data: chunk.payload.clone(),
             }),
             MessageType::SharedObjAMF0 => Ok(Self::SharedObjAmf0), // Not implemented
-            MessageType::CommandAMF0 => Ok(Self::Amf0Command(Command::read(&chunk.payload)?)),
+            MessageType::CommandAMF0 => Ok(Self::Amf0Command(Command::read(chunk.payload.clone())?)),
             MessageType::Aggregate => Ok(Self::Aggregate), // Not implemented
             msg_type_id => Ok(Self::Unknown(UnknownMessage {
                 msg_type_id,

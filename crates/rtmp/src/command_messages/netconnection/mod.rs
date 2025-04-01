@@ -1,6 +1,9 @@
 //! NetConnection command messages.
 
+use std::collections::BTreeMap;
+
 use scuffle_amf0::Amf0Object;
+use scuffle_bytes_util::StringCow;
 
 use super::on_status::OnStatusCode;
 use crate::command_messages::CommandResultLevel;
@@ -14,7 +17,7 @@ pub mod writer;
 /// - Legacy RTMP spec, 7.2.1.1
 /// - Enhanced RTMP spec, page 36-37, Enhancing NetConnection connect Command
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
-pub struct NetConnectionCommandConnect {
+pub struct NetConnectionCommandConnect<'a> {
     /// Tells the server application name the client is connected to.
     pub app: String,
     /// represents capability flags which can be combined via a
@@ -28,8 +31,8 @@ pub struct NetConnectionCommandConnect {
     /// Defined by:
     /// - Legacy RTMP spec, page 30
     /// - Enhanced RTMP spec, page 36-37
-    #[serde(flatten)]
-    pub others: Amf0Object,
+    #[serde(flatten, borrow)]
+    pub others: BTreeMap<StringCow<'a>, Amf0Object<'a>>,
 }
 
 /// Extended capabilities mask used by the [enhanced connect command](NetConnectionCommandConnect).
@@ -52,11 +55,11 @@ pub enum CapsExMask {
 /// Defined by:
 /// - Legacy RTMP spec, 7.2.1.1
 #[derive(Debug, Clone, PartialEq)]
-pub struct NetConnectionCommandConnectResult {
+pub struct NetConnectionCommandConnectResult<'a> {
     /// Flash Media Server version.
     ///
     /// Usually set to "FMS/3,0,1,123".
-    fmsver: String,
+    fmsver: StringCow<'a>,
     /// No idea what this means, but it is used by other media servers as well.
     ///
     /// Usually set to 31.0.
@@ -70,21 +73,21 @@ pub struct NetConnectionCommandConnectResult {
     /// Result description.
     ///
     /// Usually set to "Connection Succeeded.".
-    description: String,
+    description: StringCow<'a>,
     /// Not sure what this means but it may stand for the AMF encoding version.
     ///
     /// Usually set to 0.0.
     encoding: f64,
 }
 
-impl Default for NetConnectionCommandConnectResult {
+impl Default for NetConnectionCommandConnectResult<'static> {
     fn default() -> Self {
         Self {
-            fmsver: "FMS/3,0,1,123".to_string(),
+            fmsver: "FMS/3,0,1,123".into(),
             capabilities: 31.0,
             level: CommandResultLevel::Status,
             code: OnStatusCode::NET_CONNECTION_CONNECT_SUCCESS,
-            description: "Connection Succeeded.".to_string(),
+            description: "Connection Succeeded.".into(),
             encoding: 0.0,
         }
     }
@@ -92,19 +95,19 @@ impl Default for NetConnectionCommandConnectResult {
 
 /// NetConnection commands as defined in 7.2.1.
 #[derive(Debug, Clone, PartialEq)]
-pub enum NetConnectionCommand {
+pub enum NetConnectionCommand<'a> {
     /// Connect command.
-    Connect(NetConnectionCommandConnect),
+    Connect(NetConnectionCommandConnect<'a>),
     /// Connect result.
     ///
     /// Sent from server to client in response to [`NetConnectionCommand::Connect`].
-    ConnectResult(NetConnectionCommandConnectResult),
+    ConnectResult(NetConnectionCommandConnectResult<'a>),
     /// Call command.
     Call {
         /// The command object.
-        command_object: Option<Amf0Object>,
+        command_object: Option<Amf0Object<'a>>,
         /// Any optional arguments.
-        optional_arguments: Option<Amf0Object>,
+        optional_arguments: Option<Amf0Object<'a>>,
     },
     /// Close command.
     Close,

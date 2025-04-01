@@ -124,7 +124,7 @@ pub struct MetadataColorInfo {
 // It will almost always be ColorInfo, so it's fine that it wastes space when it's the other variant
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq)]
-pub enum VideoPacketMetadataEntry {
+pub enum VideoPacketMetadataEntry<'a> {
     /// Color info metadata.
     ColorInfo(MetadataColorInfo),
     /// Any other metadata entry.
@@ -132,13 +132,13 @@ pub enum VideoPacketMetadataEntry {
         /// The key of the metadata entry.
         key: String,
         /// The metadata object.
-        object: Amf0Object,
+        object: Amf0Object<'a>,
     },
 }
 
-impl VideoPacketMetadataEntry {
+impl VideoPacketMetadataEntry<'_> {
     /// Read a video packet metadata entry from the given [`scuffle_amf0::Deserializer`].
-    pub fn read(deserializer: &mut scuffle_amf0::Deserializer<'_>) -> Result<Self, FlvError> {
+    pub fn read(deserializer: &mut scuffle_amf0::Deserializer) -> Result<Self, FlvError> {
         let key = String::deserialize(&mut *deserializer)?;
 
         match key.as_ref() {
@@ -218,7 +218,7 @@ mod tests {
         "colorInfo".serialize(&mut serializer).unwrap();
         object.serialize(&mut serializer).unwrap();
 
-        let mut deserializer = scuffle_amf0::Deserializer::new(&buf);
+        let mut deserializer = scuffle_amf0::Deserializer::new(buf.into());
         let entry = VideoPacketMetadataEntry::read(&mut deserializer).unwrap();
 
         assert_eq!(

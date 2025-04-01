@@ -6,14 +6,11 @@ use serde::Deserialize;
 use super::{NetStreamCommand, NetStreamCommandPublishPublishingType};
 use crate::command_messages::error::CommandError;
 
-impl NetStreamCommand {
+impl NetStreamCommand<'_> {
     /// Reads a [`NetStreamCommand`] from the given decoder.
     ///
     /// Returns `Ok(None)` if the `command_name` is not recognized.
-    pub fn read(
-        command_name: &str,
-        deserializer: &mut scuffle_amf0::Deserializer<'_>,
-    ) -> Result<Option<Self>, CommandError> {
+    pub fn read(command_name: &str, deserializer: &mut scuffle_amf0::Deserializer) -> Result<Option<Self>, CommandError> {
         match command_name {
             "play" => {
                 // skip command object

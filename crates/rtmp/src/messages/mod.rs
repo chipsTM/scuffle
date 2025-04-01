@@ -14,7 +14,7 @@ pub mod reader;
 /// Defined by:
 /// - Legacy RTMP spec, 5.4
 #[derive(Debug)]
-pub enum MessageData {
+pub enum MessageData<'a> {
     // Protocol Control Messages
     /// Set Chunk Size message
     SetChunkSize(ProtocolControlMessageSetChunkSize),
@@ -84,7 +84,7 @@ pub enum MessageData {
     /// Amf0 command message
     ///
     /// > Command messages carry the AMF-encoded commands between the client and the server.
-    Amf0Command(Command),
+    Amf0Command(Command<'a>),
     /// Aggregate message
     ///
     /// Not implemented.

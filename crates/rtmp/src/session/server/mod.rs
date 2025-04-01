@@ -297,7 +297,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
     /// Process one RTMP message
     async fn process_message(
         &mut self,
-        msg: MessageData,
+        msg: MessageData<'_>,
         stream_id: u32,
         timestamp: u32,
     ) -> Result<(), crate::error::RtmpError> {
@@ -347,7 +347,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
 
     /// on_amf0_command_message is called when we receive an AMF0 command
     /// message from the client We then handle the command message
-    async fn on_command_message(&mut self, stream_id: u32, command: Command) -> Result<(), crate::error::RtmpError> {
+    async fn on_command_message(&mut self, stream_id: u32, command: Command<'_>) -> Result<(), crate::error::RtmpError> {
         match command.command_type {
             CommandType::NetConnection(NetConnectionCommand::Connect(connect)) => {
                 self.on_command_connect(stream_id, command.transaction_id, connect).await?;
@@ -412,7 +412,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
         &mut self,
         _stream_id: u32,
         transaction_id: f64,
-        connect: NetConnectionCommandConnect,
+        connect: NetConnectionCommandConnect<'_>,
     ) -> Result<(), crate::error::RtmpError> {
         ProtocolControlMessageWindowAcknowledgementSize {
             acknowledgement_window_size: CHUNK_SIZE as u32,
