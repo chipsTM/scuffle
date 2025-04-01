@@ -80,7 +80,7 @@ mod tests {
         .write(&mut (&mut buf).writer(), 1.0)
         .expect("write");
 
-        let mut deserializer = scuffle_amf0::Deserializer::new(&buf);
+        let mut deserializer = scuffle_amf0::Deserializer::new(buf.freeze());
         let values = deserializer.deserialize_all().unwrap();
 
         assert_eq!(values.len(), 4);
@@ -120,7 +120,7 @@ mod tests {
             .write(&mut (&mut buf).writer(), 1.0)
             .expect("write");
 
-        let mut deserializer = scuffle_amf0::Deserializer::new(&buf);
+        let mut deserializer = scuffle_amf0::Deserializer::new(buf.freeze());
         let values = deserializer.deserialize_all().unwrap();
 
         assert_eq!(values.len(), 4);

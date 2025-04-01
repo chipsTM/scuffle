@@ -63,7 +63,7 @@ mod tests {
         .write(&mut (&mut buf).writer(), 1.0)
         .expect("write");
 
-        let values = scuffle_amf0::Deserializer::new(&buf).deserialize_all().unwrap();
+        let values = scuffle_amf0::Deserializer::new(buf.freeze()).deserialize_all().unwrap();
 
         assert_eq!(values.len(), 4);
         assert_eq!(values[0], Amf0Value::String("onStatus".into())); // command name

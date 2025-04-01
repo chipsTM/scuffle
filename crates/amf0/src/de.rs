@@ -75,9 +75,7 @@ impl Deserializer {
     }
 
     fn read_string<'de>(&mut self) -> Result<StringCow<'de>, Amf0Error> {
-        println!("read_string");
         let marker = self.reader.read_u8()?;
-        // println!("read_string marker: {:?}", marker);
         let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
 
         let len = if marker == Amf0Marker::String {
@@ -91,9 +89,7 @@ impl Deserializer {
             });
         };
 
-        // println!("read_string len: {:?}", len);
         let s = StringCow::from_bytes(self.reader.extract_bytes(len)?.try_into()?);
-        // println!("read_string s: {:?}", s);
         Ok(s)
     }
 }
@@ -126,7 +122,6 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     {
         let marker = self.reader.read_u8()?;
         let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
-        println!("deserialize_any marker: {:?}", marker);
 
         self.reader.seek_relative(-1)?;
 
@@ -351,9 +346,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("deserialize_map");
         let marker = self.reader.read_u8()?;
-        println!("deserialize_map marker: {:?}", marker);
         let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
 
         if marker == Amf0Marker::TypedObject {
@@ -454,11 +447,8 @@ impl<'a, 'de> MapAccess<'de> for Object<'a> {
     where
         K: serde::de::DeserializeSeed<'de>,
     {
-        println!("next_key_seed");
-
         let end_marker = self.de.reader.read_u24::<BigEndian>()?;
         if end_marker == Amf0Marker::ObjectEnd as u32 {
-            println!("next_key_seed end_marker");
             return Ok(None);
         }
 
@@ -467,7 +457,6 @@ impl<'a, 'de> MapAccess<'de> for Object<'a> {
 
         // Object keys are not preceeded with a marker and are always normal strings
         let s = self.de.read_normal_string()?;
-        println!("next_key_seed s: {:?}", s);
         let string_de = IntoDeserializer::<Self::Error>::into_deserializer(s);
         seed.deserialize(string_de).map(Some)
     }
@@ -476,7 +465,6 @@ impl<'a, 'de> MapAccess<'de> for Object<'a> {
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        println!("next_value_seed");
         seed.deserialize(&mut *self.de)
     }
 }

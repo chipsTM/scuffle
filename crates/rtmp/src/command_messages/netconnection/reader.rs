@@ -29,6 +29,7 @@ impl NetConnectionCommand<'_> {
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
+    use bytes::Bytes;
     use scuffle_amf0::Amf0Object;
     use serde::Serialize;
 
@@ -39,9 +40,9 @@ mod tests {
     fn test_read_no_app() {
         let mut command_object = Vec::new();
         let mut serializer = scuffle_amf0::Serializer::new(&mut command_object);
-        Amf0Object::new().serialize(&mut serializer).unwrap();
+        Amf0Object::Borrowed(&[]).serialize(&mut serializer).unwrap();
 
-        let mut decoder = scuffle_amf0::Deserializer::new(&command_object);
+        let mut decoder = scuffle_amf0::Deserializer::new(Bytes::from_owner(command_object));
         let result = NetConnectionCommand::read("connect", &mut decoder).unwrap_err();
 
         assert!(matches!(result, CommandError::Amf0(scuffle_amf0::Amf0Error::Custom(_))));

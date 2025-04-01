@@ -83,6 +83,7 @@ impl NetStreamCommand<'_> {
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
+    use bytes::Bytes;
     use scuffle_amf0::Amf0Marker;
     use serde::Serialize;
 
@@ -91,7 +92,7 @@ mod tests {
 
     #[test]
     fn test_command_no_payload() {
-        let command = NetStreamCommand::read("closeStream", &mut scuffle_amf0::Deserializer::new(&[]))
+        let command = NetStreamCommand::read("closeStream", &mut scuffle_amf0::Deserializer::new(Bytes::new()))
             .unwrap()
             .unwrap();
         assert_eq!(command, NetStreamCommand::CloseStream);
@@ -102,9 +103,12 @@ mod tests {
         let mut payload = vec![Amf0Marker::Null as u8, Amf0Marker::Number as u8];
         payload.extend_from_slice(0.0f64.to_be_bytes().as_ref());
 
-        let command = NetStreamCommand::read("deleteStream", &mut scuffle_amf0::Deserializer::new(&payload))
-            .unwrap()
-            .unwrap();
+        let command = NetStreamCommand::read(
+            "deleteStream",
+            &mut scuffle_amf0::Deserializer::new(Bytes::from_owner(payload)),
+        )
+        .unwrap()
+        .unwrap();
         assert_eq!(command, NetStreamCommand::DeleteStream { stream_id: 0.0 });
     }
 
@@ -119,7 +123,7 @@ mod tests {
             .serialize(&mut serializer)
             .unwrap();
 
-        let command = NetStreamCommand::read("publish", &mut scuffle_amf0::Deserializer::new(&payload))
+        let command = NetStreamCommand::read("publish", &mut scuffle_amf0::Deserializer::new(Bytes::from_owner(payload)))
             .unwrap()
             .unwrap();
 

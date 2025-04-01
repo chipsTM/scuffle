@@ -82,7 +82,7 @@ impl<'de> serde::Deserialize<'de> for OnMetaDataVideoCodecId {
 /// - Legacy FLV spec, Annex E.5
 /// - Enhanced RTMP spec, page 13-16, Enhancing onMetaData
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", bound = "'a: 'de")]
 pub struct OnMetaData<'a> {
     /// Audio codec ID used in the file.
     pub audiocodecid: Option<OnMetaDataAudioCodecId>,
