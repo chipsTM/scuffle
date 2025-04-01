@@ -276,7 +276,7 @@ where
         let marker = self.reader.read_u8()?;
         let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
 
-        if marker == Amf0Marker::Null {
+        if marker == Amf0Marker::Null || marker == Amf0Marker::Undefined {
             visitor.visit_none()
         } else {
             // We have to seek back because the marker is part of the next value
@@ -378,7 +378,7 @@ where
             })
         } else {
             Err(Amf0Error::UnexpectedType {
-                expected: &[Amf0Marker::Object, Amf0Marker::EcmaArray],
+                expected: &[Amf0Marker::Object, Amf0Marker::TypedObject, Amf0Marker::EcmaArray],
                 got: marker,
             })
         }
