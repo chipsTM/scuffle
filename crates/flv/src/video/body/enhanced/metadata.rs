@@ -288,11 +288,7 @@ impl VideoPacketMetadataEntry {
         match key.as_ref() {
             "colorInfo" => Ok(VideoPacketMetadataEntry::ColorInfo(MetadataColorInfo::try_from(value)?)),
             _ => {
-                let object = value
-                    .into_owned()
-                    .into_iter()
-                    .map(|(k, v)| (k.to_string(), v.to_owned()))
-                    .collect();
+                let object = value.iter().cloned().map(|(k, v)| (k.to_string(), v.to_owned())).collect();
 
                 Ok(VideoPacketMetadataEntry::Other {
                     key: key.to_string(),
