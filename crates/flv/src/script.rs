@@ -1,6 +1,6 @@
 //! Script data structures
 
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::io;
 
 use bytes::Bytes;
@@ -152,7 +152,7 @@ pub struct OnMetaData<'a> {
     pub video_track_id_info_map: Option<Amf0Object<'a>>,
     /// Any other metadata contained in the script data.
     #[serde(flatten, borrow)]
-    pub other: BTreeMap<StringCow<'a>, Amf0Value<'a>>,
+    pub other: HashMap<StringCow<'a>, Amf0Value<'a>>,
 }
 
 /// XMP Metadata
@@ -169,7 +169,7 @@ pub struct OnXmpData<'a> {
     live_xml: Option<String>,
     /// Any other metadata contained in the script data.
     #[serde(flatten, borrow)]
-    other: BTreeMap<StringCow<'a>, Amf0Value<'a>>,
+    other: HashMap<StringCow<'a>, Amf0Value<'a>>,
 }
 
 /// FLV `SCRIPTDATA` tag
@@ -279,7 +279,7 @@ mod tests {
                 width: Some(1280.0),
                 audio_track_id_info_map: None,
                 video_track_id_info_map: None,
-                other: BTreeMap::new(),
+                other: HashMap::new(),
             }
         );
     }
@@ -351,7 +351,7 @@ mod tests {
                 width: Some(1280.0),
                 audio_track_id_info_map: Some([("test".into(), Amf0Value::Number(1.0))].into_iter().collect()),
                 video_track_id_info_map: Some([("test2".into(), Amf0Value::Number(2.0))].into_iter().collect()),
-                other: BTreeMap::new(),
+                other: HashMap::new(),
             }
         );
     }

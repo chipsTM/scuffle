@@ -224,6 +224,8 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler>
             && self.caps_ex.is_some_and(|c| c.intersects(CapsExMask::Reconnect))
             && self.ctx.as_ref().is_some_and(|ctx| ctx.is_done())
         {
+            tracing::debug!("sending reconnect request");
+
             OnStatus {
                 code: OnStatusCode::NET_CONNECTION_CONNECT_RECONNECT_REQUEST,
                 level: CommandResultLevel::Status,

@@ -567,7 +567,7 @@ impl<'a, 'de> VariantAccess<'de> for Enum<'a> {
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
     use core::f64;
-    use std::collections::BTreeMap;
+    use std::collections::HashMap;
     use std::fmt::Debug;
 
     use bytes::Bytes;
@@ -915,7 +915,7 @@ mod tests {
         struct Test<'a> {
             b: String,
             #[serde(flatten, borrow)]
-            other: BTreeMap<StringCow<'a>, Amf0Value<'a>>,
+            other: HashMap<StringCow<'a>, Amf0Value<'a>>,
         }
 
         let value: Test = from_bytes(Bytes::from_owner(bytes)).unwrap();

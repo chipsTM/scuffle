@@ -1,8 +1,8 @@
 //! NetConnection command messages.
 
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
-use scuffle_amf0::Amf0Object;
+use scuffle_amf0::{Amf0Object, Amf0Value};
 use scuffle_bytes_util::StringCow;
 
 use super::on_status::OnStatusCode;
@@ -32,7 +32,7 @@ pub struct NetConnectionCommandConnect<'a> {
     /// - Legacy RTMP spec, page 30
     /// - Enhanced RTMP spec, page 36-37
     #[serde(flatten, borrow)]
-    pub others: BTreeMap<StringCow<'a>, Amf0Object<'a>>,
+    pub others: HashMap<StringCow<'a>, Amf0Value<'a>>,
 }
 
 /// Extended capabilities mask used by the [enhanced connect command](NetConnectionCommandConnect).

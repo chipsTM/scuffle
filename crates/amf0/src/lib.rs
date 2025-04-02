@@ -18,7 +18,8 @@
 //! ```rust
 //! # fn test() -> Result<(), Box<dyn std::error::Error>> {
 //! use scuffle_amf0::{Deserializer, Serializer};
-//! # let bytes = &[0x02, 0, 1, b'a'];
+//! # let payload = &[0x02, 0, 1, b'a'];
+//! # let bytes = bytes::Bytes::from_static(payload);
 //! # let mut writer = Vec::new();
 //!
 //! // Decode a string value from bytes
@@ -28,7 +29,7 @@
 //!
 //! // Encode a value into a writer
 //! scuffle_amf0::to_writer(&mut writer, &value)?;
-//! # assert_eq!(writer, bytes);
+//! # assert_eq!(writer, payload);
 //! # Ok(())
 //! # }
 //! # test().expect("test failed");
