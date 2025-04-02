@@ -4,12 +4,25 @@ description = "rewrite with serde support"
 breaking = true
 authors = ["@lennartkloock"]
 
+[[scuffle-bytes-util]]
+category = "feat"
+description = "add new cow types"
+authors = ["@TroyKomodo", "@lennartkloock"]
+
 [[scuffle-flv]]
 category = "chore"
 description = "update to use new version of scuffle-amf0"
+breaking = true
 authors = ["@lennartkloock"]
 
 [[scuffle-rtmp]]
 category = "chore"
 description = "update to use new version of scuffle-amf0"
+breaking = true
+authors = ["@lennartkloock"]
+
+[[scuffle-transmuxer]]
+category = "chore"
+description = "update to use new version of scuffle-rtmp"
+breaking = true
 authors = ["@lennartkloock"]
