@@ -1,5 +1,6 @@
 //! Writing [`OnStatus`].
 
+use std::collections::HashMap;
 use std::io;
 
 use scuffle_amf0::Amf0Value;
@@ -18,17 +19,17 @@ impl OnStatus<'_> {
         // command object is null
         ().serialize(&mut serializer)?;
 
-        let mut info_object = Vec::new();
+        let mut info_object = HashMap::new();
 
-        info_object.push(("level".into(), Amf0Value::String(self.level.to_string().into())));
-        info_object.push(("code".into(), Amf0Value::String(self.code.0.into())));
+        info_object.insert("level".into(), Amf0Value::String(self.level.to_string().into()));
+        info_object.insert("code".into(), Amf0Value::String(self.code.0.into()));
 
         if let Some(description) = self.description {
-            info_object.push(("description".into(), Amf0Value::String(description)));
+            info_object.insert("description".into(), Amf0Value::String(description));
         }
 
         if let Some(others) = self.others {
-            info_object.extend(others.into_owned());
+            info_object.extend(others);
         }
 
         info_object.serialize(&mut serializer)?;

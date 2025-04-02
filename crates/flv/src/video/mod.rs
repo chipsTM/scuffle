@@ -203,7 +203,7 @@ mod tests {
             metadata[0],
             VideoPacketMetadataEntry::Other {
                 key: "".to_string(),
-                object: Amf0Object::Borrowed(&[]), // empty object
+                object: Amf0Object::new(), // empty object
             }
         );
     }

@@ -1,13 +1,13 @@
 //! AMF0 value types.
 
 use std::borrow::Cow;
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use scuffle_bytes_util::StringCow;
 use serde::ser::{SerializeMap, SerializeSeq};
 
 /// Represents any AMF0 object.
-pub type Amf0Object<'a> = Cow<'a, [(StringCow<'a>, Amf0Value<'a>)]>;
+pub type Amf0Object<'a> = HashMap<StringCow<'a>, Amf0Value<'a>>;
 /// Represents any AMF0 array.
 pub type Amf0Array<'a> = Cow<'a, [Amf0Value<'a>]>;
 
@@ -35,12 +35,9 @@ impl<'a> Amf0Value<'a> {
             Amf0Value::Number(v) => Amf0Value::Number(v),
             Amf0Value::Boolean(v) => Amf0Value::Boolean(v),
             Amf0Value::String(v) => Amf0Value::String(v.into_owned()),
-            Amf0Value::Object(v) => Amf0Value::Object(Cow::Owned(
-                v.into_owned()
-                    .into_iter()
-                    .map(|(k, v)| (k.into_owned(), v.into_owned()))
-                    .collect(),
-            )),
+            Amf0Value::Object(v) => {
+                Amf0Value::Object(v.into_iter().map(|(k, v)| (k.into_owned(), v.into_owned())).collect())
+            }
             Amf0Value::Null => Amf0Value::Null,
             Amf0Value::Array(v) => Amf0Value::Array(v.into_owned().into_iter().map(|v| v.into_owned()).collect()),
         }
@@ -65,30 +62,10 @@ impl<'a> From<StringCow<'a>> for Amf0Value<'a> {
     }
 }
 
-// owned object
-impl<'a> From<BTreeMap<String, Amf0Value<'a>>> for Amf0Value<'a> {
-    fn from(value: BTreeMap<String, Amf0Value<'a>>) -> Self {
-        Amf0Value::Object(Cow::Owned(value.into_iter().map(|(k, v)| (k.into(), v)).collect()))
-    }
-}
-
-// borrowed object
-impl<'a> From<&'a [(StringCow<'a>, Amf0Value<'a>)]> for Amf0Value<'a> {
-    fn from(value: &'a [(StringCow<'a>, Amf0Value<'a>)]) -> Self {
-        Amf0Value::Object(Cow::Borrowed(value))
-    }
-}
-
-// cow object
+// object
 impl<'a> From<Amf0Object<'a>> for Amf0Value<'a> {
     fn from(value: Amf0Object<'a>) -> Self {
         Amf0Value::Object(value)
-    }
-}
-
-impl<'a> FromIterator<(StringCow<'a>, Amf0Value<'a>)> for Amf0Value<'a> {
-    fn from_iter<T: IntoIterator<Item = (StringCow<'a>, Amf0Value<'a>)>>(iter: T) -> Self {
-        Amf0Value::Object(Cow::Owned(iter.into_iter().collect()))
     }
 }
 
@@ -230,7 +207,7 @@ impl<'de> serde::de::Deserialize<'de> for Amf0Value<'de> {
             where
                 A: serde::de::MapAccess<'de>,
             {
-                let mut object = BTreeMap::new();
+                let mut object = HashMap::new();
 
                 while let Some((key, value)) = map.next_entry()? {
                     object.insert(key, value);

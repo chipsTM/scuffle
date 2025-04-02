@@ -40,7 +40,7 @@ mod tests {
     fn test_read_no_app() {
         let mut command_object = Vec::new();
         let mut serializer = scuffle_amf0::Serializer::new(&mut command_object);
-        Amf0Object::Borrowed(&[]).serialize(&mut serializer).unwrap();
+        Amf0Object::new().serialize(&mut serializer).unwrap();
 
         let mut decoder = scuffle_amf0::Deserializer::new(Bytes::from_owner(command_object));
         let result = NetConnectionCommand::read("connect", &mut decoder).unwrap_err();

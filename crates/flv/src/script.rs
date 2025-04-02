@@ -320,8 +320,9 @@ mod tests {
         ]
         .into_iter()
         .collect();
-        object.serialize(&mut serializer).unwrap();
+        Amf0Value::Object(object).serialize(&mut serializer).unwrap();
 
+        println!("{:?}", data);
         let mut reader = io::Cursor::new(Bytes::from_owner(data));
 
         let script_data = ScriptData::demux(&mut reader).unwrap();
@@ -348,8 +349,8 @@ mod tests {
                 videocodecid: Some(OnMetaDataVideoCodecId::Enhanced(VideoFourCc::Avc)),
                 videodatarate: Some(1024.0),
                 width: Some(1280.0),
-                audio_track_id_info_map: Some([("test".into(), Amf0Value::Number(1.0))].as_ref().into()),
-                video_track_id_info_map: Some([("test2".into(), Amf0Value::Number(2.0))].as_ref().into()),
+                audio_track_id_info_map: Some([("test".into(), Amf0Value::Number(1.0))].into_iter().collect()),
+                video_track_id_info_map: Some([("test2".into(), Amf0Value::Number(2.0))].into_iter().collect()),
                 other: BTreeMap::new(),
             }
         );
