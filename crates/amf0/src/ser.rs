@@ -113,6 +113,8 @@ where
             self.writer.write_all(v.as_bytes())?;
         } else {
             // Long string
+
+            // This try_into fails if the length is greater than u32::MAX
             let len: u32 = v.len().try_into()?;
 
             self.writer.write_u8(Amf0Marker::LongString as u8)?;
@@ -594,7 +596,10 @@ where
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
-    use crate::{Amf0Marker, to_bytes};
+    use std::collections::HashMap;
+    use std::hash::Hash;
+
+    use crate::{Amf0Error, Amf0Marker, Amf0Value, to_bytes};
 
     #[test]
     fn string() {
@@ -702,7 +707,8 @@ mod tests {
 
     #[test]
     fn array() {
-        let bytes = to_bytes(&[false, true, false]).unwrap();
+        let vec = vec![false, true, false];
+        let bytes = to_bytes(&vec).unwrap();
         #[rustfmt::skip]
         assert_eq!(
             bytes,
@@ -718,8 +724,8 @@ mod tests {
             ]
         );
 
-        let byte_array: [u8; 2] = [0, 1]; // 2 bytes
-        let bytes = to_bytes(&byte_array).unwrap();
+        let byte_vec = vec![0u8, 1]; // 2 bytes
+        let bytes = to_bytes(&byte_vec).unwrap();
 
         #[rustfmt::skip]
         let mut expected = vec![
@@ -730,7 +736,7 @@ mod tests {
         expected.extend(&0.0f64.to_be_bytes());
         expected.push(Amf0Marker::Number as u8);
         expected.extend(&1.0f64.to_be_bytes());
-        assert_eq!(bytes, expected,);
+        assert_eq!(bytes, expected);
 
         let bytes = to_bytes(&("a", false, true)).unwrap();
         #[rustfmt::skip]
@@ -902,5 +908,71 @@ mod tests {
             b'h', b'e', b'l', b'l', b'o',
         ];
         assert_eq!(bytes, expected);
+    }
+
+    fn test_invalid_map_key<T>(key: T)
+    where
+        T: Eq + Hash + serde::Serialize,
+    {
+        let mut map = HashMap::new();
+        map.insert(key, Amf0Value::Number(1.0));
+        let err = to_bytes(&map).unwrap_err();
+        assert!(matches!(err, Amf0Error::MapKeyNotString));
+    }
+
+    #[test]
+    fn invalid_map_keys() {
+        test_invalid_map_key(false);
+
+        test_invalid_map_key(1u8);
+        test_invalid_map_key(1u16);
+        test_invalid_map_key(1u32);
+        test_invalid_map_key(1u64);
+
+        test_invalid_map_key(1i8);
+        test_invalid_map_key(1i16);
+        test_invalid_map_key(1i32);
+        test_invalid_map_key(1i64);
+
+        test_invalid_map_key('a');
+
+        test_invalid_map_key([1u8, 2, 3]);
+
+        test_invalid_map_key(None::<String>);
+        test_invalid_map_key(Some("hello"));
+        test_invalid_map_key(());
+
+        test_invalid_map_key(vec![1, 2, 3]);
+        test_invalid_map_key((1, 2, 3));
+
+        #[derive(serde::Serialize, Eq, PartialEq, Hash)]
+        struct Tuple(String, String);
+        test_invalid_map_key(Tuple("hello".to_string(), "world".to_string()));
+
+        #[derive(serde::Serialize, Eq, PartialEq, Hash)]
+        struct Struct {
+            a: String,
+        }
+        test_invalid_map_key(Struct { a: "hello".to_string() });
+
+        #[derive(serde::Serialize, Eq, PartialEq, Hash)]
+        struct Unit;
+        test_invalid_map_key(Unit);
+
+        #[derive(serde::Serialize, Eq, PartialEq, Hash)]
+        struct Newtype(String);
+        test_invalid_map_key(Newtype("hello".to_string()));
+
+        #[derive(serde::Serialize, Eq, PartialEq, Hash)]
+        enum Enum {
+            A,
+            B(bool),
+            C(String, String),
+            D { a: String },
+        }
+        test_invalid_map_key(Enum::A);
+        test_invalid_map_key(Enum::B(true));
+        test_invalid_map_key(Enum::C("hello".to_string(), "world".to_string()));
+        test_invalid_map_key(Enum::D { a: "hello".to_string() });
     }
 }
