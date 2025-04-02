@@ -6,6 +6,7 @@
 //! You can choose between one of them if you use this work.
 //!
 //! `SPDX-License-Identifier: MIT OR Apache-2.0`
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(all(coverage_nightly, test), feature(coverage_attribute))]
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
