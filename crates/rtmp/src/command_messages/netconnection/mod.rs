@@ -26,6 +26,7 @@ pub struct NetConnectionCommandConnect<'a> {
     /// beyond the legacy RTMP specification) are supported via E-RTMP.
     /// See enum [`CapsExMask`] for the enumerated values representing the
     /// assigned bits.
+    #[serde(default)]
     pub caps_ex: Option<CapsExMask>,
     /// All other parameters.
     ///

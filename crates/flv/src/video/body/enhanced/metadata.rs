@@ -19,18 +19,22 @@ pub struct MetadataColorInfoColorConfig {
     /// Number of bits used to record the color channels for each pixel.
     ///
     /// SHOULD be 8, 10 or 12
+    #[serde(default)]
     pub bit_depth: Option<f64>,
     /// Indicates the chromaticity coordinates of the source color primaries.
     ///
     /// enumeration [0-255]
+    #[serde(default)]
     pub color_primaries: Option<f64>,
     /// Opto-electronic transfer characteristic function (e.g., PQ, HLG).
     ///
     /// enumeration [0-255]
+    #[serde(default)]
     pub transfer_characteristics: Option<f64>,
     /// Matrix coefficients used in deriving luma and chroma signals.
     ///
     /// enumeration [0-255]
+    #[serde(default)]
     pub matrix_coefficients: Option<f64>,
 }
 
@@ -42,11 +46,13 @@ pub struct MetadataColorInfoHdrCll {
     /// (in 1 cd/m2) of the entire playback sequence.
     ///
     /// [0.0001-10000]
+    #[serde(default)]
     pub max_fall: Option<f64>,
     /// Maximum light level of any single pixel (in 1 cd/m2)
     /// of the entire playback sequence.
     ///
     /// [0.0001-10000]
+    #[serde(default)]
     pub max_cll: Option<f64>,
 }
 
@@ -71,20 +77,28 @@ pub struct MetadataColorInfoHdrCll {
 #[serde(rename_all = "camelCase")]
 pub struct MetadataColorInfoHdrMdcv {
     /// Red x coordinate.
+    #[serde(default)]
     pub red_x: Option<f64>,
     /// Red y coordinate.
+    #[serde(default)]
     pub red_y: Option<f64>,
     /// Green x coordinate.
+    #[serde(default)]
     pub green_x: Option<f64>,
     /// Green y coordinate.
+    #[serde(default)]
     pub green_y: Option<f64>,
     /// Blue x coordinate.
+    #[serde(default)]
     pub blue_x: Option<f64>,
     /// Blue y coordinate.
+    #[serde(default)]
     pub blue_y: Option<f64>,
     /// White point x coordinate.
+    #[serde(default)]
     pub white_point_x: Option<f64>,
     /// White point y coordinate.
+    #[serde(default)]
     pub white_point_y: Option<f64>,
     /// Max display luminance of the mastering display (in 1 cd/m2 ie. nits).
     ///
@@ -99,10 +113,12 @@ pub struct MetadataColorInfoHdrMdcv {
     /// > the theoretical limit for Mastering Reference Displays and adhere to the
     /// > SMPTE ST 2084 standard (a.k.a., PQ) which is capable of representing full gamut
     /// > of luminance level.
+    #[serde(default)]
     pub max_luminance: Option<f64>,
     /// Min display luminance of the mastering display (in 1 cd/m2 ie. nits).
     ///
     /// See [`max_luminance`](MetadataColorInfoHdrMdcv::max_luminance) for details.
+    #[serde(default)]
     pub min_luminance: Option<f64>,
 }
 
@@ -114,10 +130,13 @@ pub struct MetadataColorInfoHdrMdcv {
 #[serde(rename_all = "camelCase")]
 pub struct MetadataColorInfo {
     /// Color configuration metadata.
+    #[serde(default)]
     pub color_config: Option<MetadataColorInfoColorConfig>,
     /// HDR content light level metadata.
+    #[serde(default)]
     pub hdr_cll: Option<MetadataColorInfoHdrCll>,
     /// HDR mastering display color volume metadata.
+    #[serde(default)]
     pub hdr_mdcv: Option<MetadataColorInfoHdrMdcv>,
 }
 

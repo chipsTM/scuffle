@@ -85,34 +85,49 @@ impl<'de> serde::Deserialize<'de> for OnMetaDataVideoCodecId {
 #[serde(rename_all = "camelCase", bound = "'a: 'de")]
 pub struct OnMetaData<'a> {
     /// Audio codec ID used in the file.
+    #[serde(default)]
     pub audiocodecid: Option<OnMetaDataAudioCodecId>,
     /// Audio bitrate, in kilobits per second.
+    #[serde(default)]
     pub audiodatarate: Option<f64>,
     /// Delay introduced by the audio codec, in seconds.
+    #[serde(default)]
     pub audiodelay: Option<f64>,
     /// Frequency at which the audio stream is replayed.
+    #[serde(default)]
     pub audiosamplerate: Option<f64>,
     /// Resolution of a single audio sample.
+    #[serde(default)]
     pub audiosamplesize: Option<f64>,
     /// Indicating the last video frame is a key frame.
+    #[serde(default)]
     pub can_seek_to_end: Option<bool>,
     /// Creation date and time.
+    #[serde(default)]
     pub creationdate: Option<String>,
     /// Total duration of the file, in seconds.
+    #[serde(default)]
     pub duration: Option<f64>,
     /// Total size of the file, in bytes.
+    #[serde(default)]
     pub filesize: Option<f64>,
     /// Number of frames per second.
+    #[serde(default)]
     pub framerate: Option<f64>,
     /// Height of the video, in pixels.
+    #[serde(default)]
     pub height: Option<f64>,
     /// Indicates stereo audio.
+    #[serde(default)]
     pub stereo: Option<bool>,
     /// Video codec ID used in the file.
+    #[serde(default)]
     pub videocodecid: Option<OnMetaDataVideoCodecId>,
     /// Video bitrate, in kilobits per second.
+    #[serde(default)]
     pub videodatarate: Option<f64>,
     /// Width of the video, in pixels.
+    #[serde(default)]
     pub width: Option<f64>,
     /// The audioTrackIdInfoMap and videoTrackIdInfoMap objects are designed to store
     /// metadata for audio and video tracks respectively. Each object uses a TrackId as
@@ -145,10 +160,10 @@ pub struct OnMetaData<'a> {
     /// This structure provides a framework for detailed customization and control over
     /// the media tracks, ensuring optimal management and delivery across various types
     /// of content and platforms.
-    #[serde(borrow)]
+    #[serde(default, borrow)]
     pub audio_track_id_info_map: Option<Amf0Object<'a>>,
     /// See [`OnMetaData::audio_track_id_info_map`].
-    #[serde(borrow)]
+    #[serde(default, borrow)]
     pub video_track_id_info_map: Option<Amf0Object<'a>>,
     /// Any other metadata contained in the script data.
     #[serde(flatten, borrow)]
@@ -165,7 +180,7 @@ pub struct OnXmpData<'a> {
     /// XMP metadata, formatted according to the XMP metadata specification.
     ///
     /// For further details, see [www.adobe.com/devnet/xmp/pdfs/XMPSpecificationPart3.pdf](https://web.archive.org/web/20090306165322/https://www.adobe.com/devnet/xmp/pdfs/XMPSpecificationPart3.pdf).
-    #[serde(rename = "liveXML")]
+    #[serde(default, rename = "liveXML")]
     live_xml: Option<StringCow<'a>>,
     /// Any other metadata contained in the script data.
     #[serde(flatten, borrow)]
