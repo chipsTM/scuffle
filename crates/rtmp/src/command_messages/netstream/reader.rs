@@ -85,7 +85,8 @@ impl NetStreamCommand<'_> {
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
     use bytes::Bytes;
-    use scuffle_amf0::Amf0Marker;
+    use scuffle_amf0::{Amf0Marker, Amf0Object};
+    use scuffle_bytes_util::StringCow;
     use serde::Serialize;
 
     use super::NetStreamCommandPublishPublishingType;
@@ -100,7 +101,78 @@ mod tests {
     }
 
     #[test]
-    fn test_command_delete_stream() {
+    fn play_command() {
+        let mut payload = Vec::new();
+
+        let mut serializer = scuffle_amf0::Serializer::new(&mut payload);
+        ().serialize(&mut serializer).unwrap();
+        0.0f64.serialize(&mut serializer).unwrap();
+        "test".serialize(&mut serializer).unwrap();
+
+        let command = NetStreamCommand::read("play", &mut scuffle_amf0::Deserializer::new(Bytes::from_owner(payload)))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(
+            command,
+            NetStreamCommand::Play {
+                values: vec![0.0f64.into(), StringCow::from("test").into(),],
+            }
+        );
+    }
+
+    #[test]
+    fn play2_command() {
+        let mut payload = Vec::new();
+
+        let mut serializer = scuffle_amf0::Serializer::new(&mut payload);
+        ().serialize(&mut serializer).unwrap();
+        let mut object = Amf0Object::new();
+        object.insert("name".into(), StringCow::from("test").into());
+        object.insert("value".into(), 0.0f64.into());
+        object.serialize(&mut serializer).unwrap();
+
+        let command = NetStreamCommand::read("play2", &mut scuffle_amf0::Deserializer::new(Bytes::from_owner(payload)))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(command, NetStreamCommand::Play2 { parameters: object });
+    }
+
+    #[test]
+    fn receive_audio() {
+        let mut payload = Vec::new();
+        let mut serializer = scuffle_amf0::Serializer::new(&mut payload);
+        ().serialize(&mut serializer).unwrap();
+        true.serialize(&mut serializer).unwrap();
+
+        let command = NetStreamCommand::read(
+            "receiveAudio",
+            &mut scuffle_amf0::Deserializer::new(Bytes::from_owner(payload)),
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(command, NetStreamCommand::ReceiveAudio { receive_audio: true });
+    }
+
+    #[test]
+    fn receive_video() {
+        let mut payload = Vec::new();
+        let mut serializer = scuffle_amf0::Serializer::new(&mut payload);
+        ().serialize(&mut serializer).unwrap();
+        true.serialize(&mut serializer).unwrap();
+
+        let command = NetStreamCommand::read(
+            "receiveVideo",
+            &mut scuffle_amf0::Deserializer::new(Bytes::from_owner(payload)),
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(command, NetStreamCommand::ReceiveVideo { receive_video: true });
+    }
+
+    #[test]
+    fn delete_stream() {
         let mut payload = vec![Amf0Marker::Null as u8, Amf0Marker::Number as u8];
         payload.extend_from_slice(0.0f64.to_be_bytes().as_ref());
 
@@ -114,7 +186,7 @@ mod tests {
     }
 
     #[test]
-    fn test_command_publish() {
+    fn publish() {
         let mut payload = Vec::new();
 
         let mut serializer = scuffle_amf0::Serializer::new(&mut payload);
@@ -133,6 +205,39 @@ mod tests {
             NetStreamCommand::Publish {
                 publishing_name: "live".into(),
                 publishing_type: NetStreamCommandPublishPublishingType::Record
+            }
+        );
+    }
+
+    #[test]
+    fn seek() {
+        let mut payload = Vec::new();
+        let mut serializer = scuffle_amf0::Serializer::new(&mut payload);
+        ().serialize(&mut serializer).unwrap();
+        0.0f64.serialize(&mut serializer).unwrap();
+
+        let command = NetStreamCommand::read("seek", &mut scuffle_amf0::Deserializer::new(Bytes::from_owner(payload)))
+            .unwrap()
+            .unwrap();
+        assert_eq!(command, NetStreamCommand::Seek { milliseconds: 0.0 });
+    }
+
+    #[test]
+    fn pause() {
+        let mut payload = Vec::new();
+        let mut serializer = scuffle_amf0::Serializer::new(&mut payload);
+        ().serialize(&mut serializer).unwrap();
+        true.serialize(&mut serializer).unwrap();
+        0.0f64.serialize(&mut serializer).unwrap();
+
+        let command = NetStreamCommand::read("pause", &mut scuffle_amf0::Deserializer::new(Bytes::from_owner(payload)))
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            command,
+            NetStreamCommand::Pause {
+                pause: true,
+                milliseconds: 0.0
             }
         );
     }
