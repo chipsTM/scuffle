@@ -33,7 +33,7 @@ impl Deserializer {
         }
     }
 
-    fn expect_marker(&mut self, expect: &'static [Amf0Marker]) -> Result<(), Amf0Error> {
+    fn expect_marker(&mut self, expect: &'static [Amf0Marker]) -> Result<Amf0Marker, Amf0Error> {
         let marker = self.reader.read_u8()?;
         let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
 
@@ -43,20 +43,12 @@ impl Deserializer {
                 got: marker,
             })
         } else {
-            Ok(())
+            Ok(marker)
         }
     }
 
     fn read_number(&mut self) -> Result<f64, Amf0Error> {
-        let marker = self.reader.read_u8()?;
-        let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
-
-        if marker != Amf0Marker::Number && marker != Amf0Marker::Date {
-            return Err(Amf0Error::UnexpectedType {
-                expected: &[Amf0Marker::Number, Amf0Marker::Date],
-                got: marker,
-            });
-        }
+        let marker = self.expect_marker(&[Amf0Marker::Number, Amf0Marker::Date])?;
 
         let number = self.reader.read_f64::<BigEndian>()?;
 
@@ -75,18 +67,13 @@ impl Deserializer {
     }
 
     fn read_string<'de>(&mut self) -> Result<StringCow<'de>, Amf0Error> {
-        let marker = self.reader.read_u8()?;
-        let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
+        let marker = self.expect_marker(&[Amf0Marker::String, Amf0Marker::LongString, Amf0Marker::XmlDocument])?;
 
         let len = if marker == Amf0Marker::String {
             self.reader.read_u16::<BigEndian>()? as usize
-        } else if marker == Amf0Marker::LongString || marker == Amf0Marker::XmlDocument {
-            self.reader.read_u32::<BigEndian>()? as usize
         } else {
-            return Err(Amf0Error::UnexpectedType {
-                expected: &[Amf0Marker::String, Amf0Marker::LongString],
-                got: marker,
-            });
+            // LongString or XmlDocument
+            self.reader.read_u32::<BigEndian>()? as usize
         };
 
         let s = StringCow::from_bytes(self.reader.extract_bytes(len)?.try_into()?);
@@ -276,17 +263,8 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let marker = self.reader.read_u8()?;
-        let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
-
-        if marker == Amf0Marker::Null || marker == Amf0Marker::Undefined {
-            visitor.visit_unit()
-        } else {
-            Err(Amf0Error::UnexpectedType {
-                expected: &[Amf0Marker::Null, Amf0Marker::Undefined],
-                got: marker,
-            })
-        }
+        self.expect_marker(&[Amf0Marker::Null, Amf0Marker::Undefined])?;
+        visitor.visit_unit()
     }
 
     fn deserialize_unit_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
@@ -346,8 +324,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let marker = self.reader.read_u8()?;
-        let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
+        let marker = self.expect_marker(&[Amf0Marker::TypedObject, Amf0Marker::Object, Amf0Marker::EcmaArray])?;
 
         if marker == Amf0Marker::TypedObject {
             // Skip the class name
@@ -356,17 +333,13 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
 
         if marker == Amf0Marker::Object || marker == Amf0Marker::TypedObject {
             visitor.visit_map(Object { de: self })
-        } else if marker == Amf0Marker::EcmaArray {
+        } else {
+            // EcmaArray
             let size = self.reader.read_u32::<BigEndian>()? as usize;
 
             visitor.visit_map(EcmaArray {
                 de: self,
                 remaining: size,
-            })
-        } else {
-            Err(Amf0Error::UnexpectedType {
-                expected: &[Amf0Marker::Object, Amf0Marker::TypedObject, Amf0Marker::EcmaArray],
-                got: marker,
             })
         }
     }
