@@ -848,7 +848,7 @@ mod tests {
             Amf0Marker::Number as u8, // value
         ];
         bytes.extend_from_slice(&f64::consts::PI.to_be_bytes());
-        bytes.push(0); // not object end marker
+        bytes.extend_from_slice(&[0, 0, 0]); // not object end marker
         let value: Test = from_bytes(Bytes::from_owner(bytes)).unwrap();
 
         assert_eq!(
