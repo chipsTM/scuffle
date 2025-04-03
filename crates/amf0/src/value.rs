@@ -273,7 +273,7 @@ mod tests {
     use serde::de::{IntoDeserializer, MapAccess, SeqAccess};
 
     use super::Amf0Value;
-    use crate::{Amf0Array, Amf0Marker, Amf0Object, from_bytes, to_bytes};
+    use crate::{Amf0Array, Amf0Error, Amf0Marker, Amf0Object, from_bytes, to_bytes};
 
     #[test]
     fn from() {
@@ -305,6 +305,14 @@ mod tests {
         let iter = std::iter::once(Amf0Value::Boolean(true));
         let value: Amf0Value = iter.collect();
         assert_eq!(value, Amf0Value::Array(Cow::Owned(vec![Amf0Value::Boolean(true)])));
+    }
+
+    #[test]
+    fn unsupported_marker() {
+        let bytes = [Amf0Marker::MovieClipMarker as u8];
+
+        let err = from_bytes::<Amf0Value>(Bytes::from_owner(bytes)).unwrap_err();
+        assert!(matches!(err, Amf0Error::UnsupportedMarker(Amf0Marker::MovieClipMarker)));
     }
 
     #[test]

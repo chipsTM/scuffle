@@ -485,8 +485,7 @@ impl<'a, 'de> MapAccess<'de> for EcmaArray<'a> {
             // It seems like the object end marker is optional here?
             // Anyway, we don't need it because we know the length of the array
 
-            let maybe_end_marker = self.de.reader.read_u24::<BigEndian>()?;
-            if maybe_end_marker != Amf0Marker::ObjectEnd as u32 {
+            if self.de.reader.remaining() >= 3 && self.de.reader.read_u24::<BigEndian>()? != Amf0Marker::ObjectEnd as u32 {
                 // Seek back if this wasn't an end marker
                 self.de.reader.seek_relative(-3)?;
             }
@@ -587,6 +586,26 @@ mod tests {
 
         let value: String = from_bytes(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, "hello");
+
+        #[rustfmt::skip]
+        let bytes = [
+            Amf0Marker::LongString as u8,
+            0, 0, 0, 5, // length
+            b'h', b'e', b'l', b'l', b'o',
+        ];
+
+        let value: String = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        assert_eq!(value, "hello");
+
+        let bytes = [Amf0Marker::Boolean as u8];
+        let err = from_bytes::<String>(Bytes::from_owner(bytes)).unwrap_err();
+        assert!(matches!(
+            err,
+            Amf0Error::UnexpectedType {
+                expected: [Amf0Marker::String, Amf0Marker::LongString],
+                got: Amf0Marker::Boolean
+            }
+        ));
     }
 
     #[test]
@@ -594,6 +613,16 @@ mod tests {
         let bytes = [Amf0Marker::Boolean as u8, 1];
         let value: bool = from_bytes(Bytes::from_owner(bytes)).unwrap();
         assert!(value);
+
+        let bytes = [Amf0Marker::String as u8];
+        let err = from_bytes::<bool>(Bytes::from_owner(bytes)).unwrap_err();
+        assert!(matches!(
+            err,
+            Amf0Error::UnexpectedType {
+                expected: [Amf0Marker::Boolean],
+                got: Amf0Marker::String
+            }
+        ));
     }
 
     fn number_test<'de, T>(one: T)
@@ -632,6 +661,22 @@ mod tests {
         number_test(1i64);
         number_test(1f32);
         number_test(1f64);
+
+        let mut bytes = vec![Amf0Marker::Date as u8];
+        bytes.extend_from_slice(&f64::consts::PI.to_be_bytes());
+        bytes.extend_from_slice(&0u16.to_be_bytes()); // timezone
+        let value: f64 = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        assert_eq!(value, f64::consts::PI);
+
+        let bytes = [Amf0Marker::Boolean as u8];
+        let err = from_bytes::<f64>(Bytes::from_owner(bytes)).unwrap_err();
+        assert!(matches!(
+            err,
+            Amf0Error::UnexpectedType {
+                expected: [Amf0Marker::Number, Amf0Marker::Date],
+                got: Amf0Marker::Boolean
+            }
+        ));
     }
 
     #[test]
@@ -701,6 +746,16 @@ mod tests {
         ];
         let value: Test = from_bytes(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, Test(true, "hello".to_string()));
+
+        #[rustfmt::skip]
+        let bytes = [
+            Amf0Marker::StrictArray as u8,
+            0, 0, 0, 1, // length
+            Amf0Marker::Boolean as u8,
+            1,
+        ];
+        let err = from_bytes::<Test>(Bytes::from_owner(bytes)).unwrap_err();
+        assert!(matches!(err, Amf0Error::WrongArrayLength { expected: 2, got: 1 }));
     }
 
     #[test]
@@ -774,6 +829,45 @@ mod tests {
                 c: f64::consts::PI,
             }
         );
+
+        #[rustfmt::skip]
+        let mut bytes = vec![
+            Amf0Marker::EcmaArray as u8,
+            0, 0, 0, 3, // length
+            0, 1, // length
+            b'a', // key
+            Amf0Marker::Boolean as u8, // value
+            1,
+            0, 1, // length
+            b'b', // key
+            Amf0Marker::String as u8, // value
+            0, 1, // length
+            b'b', // value
+            0, 1, // length
+            b'c', // key
+            Amf0Marker::Number as u8, // value
+        ];
+        bytes.extend_from_slice(&f64::consts::PI.to_be_bytes());
+        bytes.push(0); // not object end marker
+        let value: Test = from_bytes(Bytes::from_owner(bytes)).unwrap();
+
+        assert_eq!(
+            value,
+            Test {
+                a: true,
+                b: "b".to_string(),
+                c: f64::consts::PI,
+            }
+        );
+
+        let err = from_bytes::<Test>(Bytes::from_owner([Amf0Marker::String as u8])).unwrap_err();
+        assert!(matches!(
+            err,
+            Amf0Error::UnexpectedType {
+                expected: [Amf0Marker::Object, Amf0Marker::TypedObject, Amf0Marker::EcmaArray],
+                got: Amf0Marker::String
+            }
+        ));
     }
 
     #[test]
