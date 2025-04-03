@@ -1,6 +1,7 @@
 //! NetStream command messages.
 
 use scuffle_amf0::{Amf0Object, Amf0Value};
+use scuffle_bytes_util::StringCow;
 
 pub mod reader;
 
@@ -41,9 +42,9 @@ pub enum NetStreamCommand<'a> {
     /// Publish command.
     Publish {
         /// Name with which the stream is published.
-        publishing_name: String,
+        publishing_name: StringCow<'a>,
         /// Type of publishing.
-        publishing_type: NetStreamCommandPublishPublishingType,
+        publishing_type: NetStreamCommandPublishPublishingType<'a>,
     },
     /// Seek command.
     Seek {
@@ -70,7 +71,7 @@ pub enum NetStreamCommand<'a> {
 /// Appears as part of the [`NetStreamCommand::Publish`] command.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub enum NetStreamCommandPublishPublishingType {
+pub enum NetStreamCommandPublishPublishingType<'a> {
     /// Citing the legacy RTMP spec, page 46:
     /// Live data is published without recording it in a file.
     Live,
@@ -88,6 +89,6 @@ pub enum NetStreamCommandPublishPublishingType {
     /// is found, it is created.
     Append,
     /// Any other value.
-    #[serde(untagged)]
-    Unknown(String),
+    #[serde(untagged, borrow)]
+    Unknown(StringCow<'a>),
 }

@@ -1,6 +1,7 @@
 //! Types and functions for working with metadata video packets.
 
 use scuffle_amf0::Amf0Object;
+use scuffle_bytes_util::StringCow;
 use serde::Deserialize;
 
 use crate::error::FlvError;
@@ -130,7 +131,7 @@ pub enum VideoPacketMetadataEntry<'a> {
     /// Any other metadata entry.
     Other {
         /// The key of the metadata entry.
-        key: String,
+        key: StringCow<'a>,
         /// The metadata object.
         object: Amf0Object<'a>,
     },
@@ -139,7 +140,7 @@ pub enum VideoPacketMetadataEntry<'a> {
 impl VideoPacketMetadataEntry<'_> {
     /// Read a video packet metadata entry from the given [`scuffle_amf0::Deserializer`].
     pub fn read(deserializer: &mut scuffle_amf0::Deserializer) -> Result<Self, FlvError> {
-        let key = String::deserialize(&mut *deserializer)?;
+        let key = StringCow::deserialize(&mut *deserializer)?;
 
         match key.as_ref() {
             "colorInfo" => Ok(VideoPacketMetadataEntry::ColorInfo(MetadataColorInfo::deserialize(
@@ -148,10 +149,7 @@ impl VideoPacketMetadataEntry<'_> {
             _ => {
                 let object = Amf0Object::deserialize(deserializer)?;
 
-                Ok(VideoPacketMetadataEntry::Other {
-                    key: key.to_string(),
-                    object,
-                })
+                Ok(VideoPacketMetadataEntry::Other { key, object })
             }
         }
     }

@@ -17,9 +17,10 @@ pub mod writer;
 /// - Legacy RTMP spec, 7.2.1.1
 /// - Enhanced RTMP spec, page 36-37, Enhancing NetConnection connect Command
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+#[serde(bound = "'a: 'de")]
 pub struct NetConnectionCommandConnect<'a> {
     /// Tells the server application name the client is connected to.
-    pub app: String,
+    pub app: StringCow<'a>,
     /// represents capability flags which can be combined via a
     /// Bitwise OR to indicate which extended set of capabilities (i.e.,
     /// beyond the legacy RTMP specification) are supported via E-RTMP.

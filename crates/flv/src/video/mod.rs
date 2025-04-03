@@ -202,7 +202,7 @@ mod tests {
         assert_eq!(
             metadata[0],
             VideoPacketMetadataEntry::Other {
-                key: "".to_string(),
+                key: "".into(),
                 object: Amf0Object::new(), // empty object
             }
         );

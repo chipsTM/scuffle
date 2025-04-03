@@ -1,6 +1,7 @@
 //! Reading [`NetStreamCommand`].
 
 use scuffle_amf0::Amf0Object;
+use scuffle_bytes_util::StringCow;
 use serde::Deserialize;
 
 use super::{NetStreamCommand, NetStreamCommandPublishPublishingType};
@@ -52,7 +53,7 @@ impl NetStreamCommand<'_> {
                 // skip command object
                 <()>::deserialize(&mut *deserializer)?;
 
-                let publishing_name = String::deserialize(&mut *deserializer)?;
+                let publishing_name = StringCow::deserialize(&mut *deserializer)?;
                 let publishing_type = NetStreamCommandPublishPublishingType::deserialize(deserializer)?;
 
                 Ok(Some(Self::Publish {

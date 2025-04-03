@@ -160,13 +160,13 @@ pub struct OnMetaData<'a> {
 /// Defined by:
 /// - Legacy FLV spec, Annex E.6
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", bound = "'a: 'de")]
 pub struct OnXmpData<'a> {
     /// XMP metadata, formatted according to the XMP metadata specification.
     ///
     /// For further details, see [www.adobe.com/devnet/xmp/pdfs/XMPSpecificationPart3.pdf](https://web.archive.org/web/20090306165322/https://www.adobe.com/devnet/xmp/pdfs/XMPSpecificationPart3.pdf).
     #[serde(rename = "liveXML")]
-    live_xml: Option<String>,
+    live_xml: Option<StringCow<'a>>,
     /// Any other metadata contained in the script data.
     #[serde(flatten, borrow)]
     other: HashMap<StringCow<'a>, Amf0Value<'a>>,
@@ -187,7 +187,7 @@ pub enum ScriptData<'a> {
     /// Any other script data.
     Other {
         /// The name of the script data.
-        name: String,
+        name: StringCow<'a>,
         /// The data of the script data.
         data: Vec<Amf0Value<'a>>,
     },
@@ -199,7 +199,7 @@ impl ScriptData<'_> {
         let buf = reader.extract_remaining();
         let mut amf0_deserializer = scuffle_amf0::Deserializer::new(buf);
 
-        let name = String::deserialize(&mut amf0_deserializer)?;
+        let name = StringCow::deserialize(&mut amf0_deserializer)?;
 
         match name.as_ref() {
             // We might also want to handle "@setDataFrame" the same way as onMetaData.
@@ -386,7 +386,7 @@ mod tests {
         assert_eq!(
             xmp_data,
             OnXmpData {
-                live_xml: Some("hello".to_string()),
+                live_xml: Some("hello".into()),
                 other: [("test".into(), Amf0Value::Null)].into_iter().collect(),
             }
         );
