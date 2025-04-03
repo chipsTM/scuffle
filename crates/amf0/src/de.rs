@@ -324,7 +324,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let marker = self.expect_marker(&[Amf0Marker::TypedObject, Amf0Marker::Object, Amf0Marker::EcmaArray])?;
+        let marker = self.expect_marker(&[Amf0Marker::Object, Amf0Marker::TypedObject, Amf0Marker::EcmaArray])?;
 
         if marker == Amf0Marker::TypedObject {
             // Skip the class name
@@ -575,7 +575,7 @@ mod tests {
         assert!(matches!(
             err,
             Amf0Error::UnexpectedType {
-                expected: [Amf0Marker::String, Amf0Marker::LongString],
+                expected: [Amf0Marker::String, Amf0Marker::LongString, Amf0Marker::XmlDocument],
                 got: Amf0Marker::Boolean
             }
         ));
