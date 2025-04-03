@@ -264,10 +264,48 @@ impl<'a> serde::ser::Serialize for Amf0Value<'a> {
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
+    use std::borrow::Cow;
+    use std::fmt::{Debug, Display};
+
     use bytes::Bytes;
+    use scuffle_bytes_util::StringCow;
+    use serde::Deserialize;
+    use serde::de::{IntoDeserializer, MapAccess, SeqAccess};
 
     use super::Amf0Value;
-    use crate::{Amf0Marker, from_bytes};
+    use crate::{Amf0Array, Amf0Marker, Amf0Object, from_bytes, to_bytes};
+
+    #[test]
+    fn from() {
+        let value: Amf0Value = 1.0.into();
+        assert_eq!(value, Amf0Value::Number(1.0));
+
+        let value: Amf0Value = true.into();
+        assert_eq!(value, Amf0Value::Boolean(true));
+
+        let value: Amf0Value = StringCow::from("abc").into();
+        assert_eq!(value, Amf0Value::String("abc".into()));
+
+        let object: Amf0Object = [("a".into(), Amf0Value::Boolean(true))].into_iter().collect();
+        let value: Amf0Value = object.clone().into();
+        assert_eq!(value, Amf0Value::Object(object));
+
+        let array: Vec<Amf0Value> = vec![Amf0Value::Boolean(true)];
+        let value: Amf0Value = array.clone().into();
+        assert_eq!(value, Amf0Value::Array(Cow::Owned(array)));
+
+        let array: &[Amf0Value] = &[Amf0Value::Boolean(true)];
+        let value: Amf0Value = array.into();
+        assert_eq!(value, Amf0Value::Array(Cow::Borrowed(array)));
+
+        let array: Amf0Array = Cow::Borrowed(&[Amf0Value::Boolean(true)]);
+        let value: Amf0Value = array.clone().into();
+        assert_eq!(value, Amf0Value::Array(array));
+
+        let iter = std::iter::once(Amf0Value::Boolean(true));
+        let value: Amf0Value = iter.collect();
+        assert_eq!(value, Amf0Value::Array(Cow::Owned(vec![Amf0Value::Boolean(true)])));
+    }
 
     #[test]
     fn string() {
@@ -306,6 +344,213 @@ mod tests {
         assert_eq!(
             value,
             Amf0Value::Object([("a".into(), Amf0Value::Boolean(true))].into_iter().collect())
+        );
+    }
+
+    #[test]
+    fn array() {
+        #[rustfmt::skip]
+        let bytes = [
+            Amf0Marker::StrictArray as u8,
+            0, 0, 0, 1,
+            Amf0Marker::Boolean as u8,
+            1,
+        ];
+
+        let value: Amf0Value = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        assert_eq!(value, Amf0Value::Array(Cow::Borrowed(&[Amf0Value::Boolean(true)])));
+
+        let serialized = to_bytes(&value).unwrap();
+        assert_eq!(serialized, bytes);
+    }
+
+    #[test]
+    fn null() {
+        let bytes = [Amf0Marker::Null as u8];
+
+        let value: Amf0Value = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        assert_eq!(value, Amf0Value::Null);
+
+        let serialized = to_bytes(&value).unwrap();
+        assert_eq!(serialized, bytes);
+    }
+
+    #[test]
+    fn into_owned() {
+        let value = Amf0Value::Number(1.0);
+        let owned_value = value.clone().into_owned();
+        assert_eq!(owned_value, value);
+
+        let value = Amf0Value::Boolean(true);
+        let owned_value = value.clone().into_owned();
+        assert_eq!(owned_value, value);
+
+        let value = Amf0Value::String("abc".into());
+        let owned_value = value.clone().into_owned();
+        assert_eq!(owned_value, value);
+
+        let value = Amf0Value::Object([("a".into(), Amf0Value::Boolean(true))].into_iter().collect());
+        let owned_value = value.clone().into_owned();
+        assert_eq!(owned_value, value,);
+
+        let value = Amf0Value::Null;
+        let owned_value = value.clone().into_owned();
+        assert_eq!(owned_value, value);
+
+        let value = Amf0Value::Array(Cow::Borrowed(&[Amf0Value::Boolean(true)]));
+        let owned_value = value.clone().into_owned();
+        assert_eq!(owned_value, value);
+    }
+
+    #[test]
+    fn deserialize() {
+        #[derive(Debug)]
+        struct TestError;
+
+        impl Display for TestError {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "Test error")
+            }
+        }
+
+        impl std::error::Error for TestError {}
+
+        impl serde::de::Error for TestError {
+            fn custom<T: std::fmt::Display>(msg: T) -> Self {
+                assert_eq!(msg.to_string(), "invalid type: Option value, expected a byte slice");
+                Self
+            }
+        }
+
+        enum Mode {
+            Bool,
+            I64,
+            U64,
+            F64,
+            Str,
+            String,
+            BorrowedStr,
+            Unit,
+            None,
+            Some,
+            Seq,
+            Map,
+            Bytes,
+            End,
+        }
+
+        struct TestDeserializer {
+            mode: Mode,
+        }
+
+        impl<'de> SeqAccess<'de> for TestDeserializer {
+            type Error = TestError;
+
+            fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
+            where
+                T: serde::de::DeserializeSeed<'de>,
+            {
+                match self.mode {
+                    Mode::Seq => {
+                        self.mode = Mode::End;
+                        Ok(Some(seed.deserialize(TestDeserializer { mode: Mode::I64 })?))
+                    }
+                    Mode::End => Ok(None),
+                    _ => Err(TestError),
+                }
+            }
+        }
+
+        impl<'de> MapAccess<'de> for TestDeserializer {
+            type Error = TestError;
+
+            fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
+            where
+                K: serde::de::DeserializeSeed<'de>,
+            {
+                match self.mode {
+                    Mode::Map => Ok(Some(seed.deserialize(TestDeserializer { mode: Mode::Str })?)),
+                    Mode::End => Ok(None),
+                    _ => Err(TestError),
+                }
+            }
+
+            fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
+            where
+                V: serde::de::DeserializeSeed<'de>,
+            {
+                match self.mode {
+                    Mode::Map => {
+                        self.mode = Mode::End;
+                        Ok(seed.deserialize(TestDeserializer { mode: Mode::I64 })?)
+                    }
+                    _ => Err(TestError),
+                }
+            }
+        }
+
+        impl<'de> serde::Deserializer<'de> for TestDeserializer {
+            type Error = TestError;
+
+            serde::forward_to_deserialize_any! {
+                bool i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 char str string bytes byte_buf
+                option unit unit_struct newtype_struct seq tuple tuple_struct
+                map struct enum identifier ignored_any
+            }
+
+            fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+            where
+                V: serde::de::Visitor<'de>,
+            {
+                match self.mode {
+                    Mode::Bool => visitor.visit_bool(true),
+                    Mode::I64 => visitor.visit_i64(1),
+                    Mode::U64 => visitor.visit_u64(1),
+                    Mode::F64 => visitor.visit_f64(1.0),
+                    Mode::Str => visitor.visit_str("hello"),
+                    Mode::String => visitor.visit_string("hello".to_owned()),
+                    Mode::BorrowedStr => visitor.visit_borrowed_str("hello"),
+                    Mode::Unit => visitor.visit_unit(),
+                    Mode::None => visitor.visit_none(),
+                    Mode::Some => visitor.visit_some(1.into_deserializer()),
+                    Mode::Seq => visitor.visit_seq(self),
+                    Mode::Map => visitor.visit_map(self),
+                    Mode::Bytes => visitor.visit_bytes(b"hello"),
+                    Mode::End => unreachable!(),
+                }
+            }
+        }
+
+        fn test_de(mode: Mode, expected: Amf0Value) {
+            let deserializer = TestDeserializer { mode };
+            let deserialized_value: Amf0Value = Amf0Value::deserialize(deserializer).unwrap();
+            assert_eq!(deserialized_value, expected);
+        }
+
+        test_de(Mode::Bool, Amf0Value::Boolean(true));
+        test_de(Mode::I64, Amf0Value::Number(1.0));
+        test_de(Mode::U64, Amf0Value::Number(1.0));
+        test_de(Mode::F64, Amf0Value::Number(1.0));
+        test_de(Mode::Str, Amf0Value::String("hello".into()));
+        test_de(Mode::String, Amf0Value::String("hello".into()));
+        test_de(Mode::BorrowedStr, Amf0Value::String("hello".into()));
+        test_de(Mode::Unit, Amf0Value::Null);
+        test_de(Mode::None, Amf0Value::Null);
+        test_de(Mode::Some, Amf0Value::Number(1.0));
+        test_de(Mode::Seq, Amf0Value::Array(Cow::Owned(vec![Amf0Value::Number(1.0)])));
+        test_de(
+            Mode::Map,
+            Amf0Value::Object([("hello".into(), Amf0Value::Number(1.0))].into_iter().collect()),
+        );
+        test_de(
+            Mode::Bytes,
+            Amf0Value::Array(Cow::Owned(vec![
+                Amf0Value::Number(104.0),
+                Amf0Value::Number(101.0),
+                Amf0Value::Number(108.0),
+                Amf0Value::Number(108.0),
+                Amf0Value::Number(111.0),
+            ])),
         );
     }
 }
