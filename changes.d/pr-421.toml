@@ -12,17 +12,18 @@ authors = ["@TroyKomodo", "@lennartkloock"]
 [[scuffle-flv]]
 category = "chore"
 description = "update to use new version of scuffle-amf0"
+# breaking because I add a bunch of lifetimes
 breaking = true
 authors = ["@lennartkloock"]
 
 [[scuffle-rtmp]]
 category = "chore"
 description = "update to use new version of scuffle-amf0"
+# breaking because I add a bunch of lifetimes
 breaking = true
 authors = ["@lennartkloock"]
 
 [[scuffle-transmuxer]]
 category = "chore"
 description = "update to use new version of scuffle-rtmp"
-breaking = true
 authors = ["@lennartkloock"]
