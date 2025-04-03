@@ -20,7 +20,8 @@ mod cow;
 pub use bit_read::BitReader;
 pub use bit_write::BitWriter;
 pub use bytes_cursor::{BytesCursor, BytesCursorExt};
+pub use cow::bytes::BytesCow;
+pub use cow::string::StringCow;
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
-pub use cow::serde::StringCowDeserializer;
-pub use cow::{BytesCow, StringCow};
+pub use cow::string::serde::StringCowDeserializer;
