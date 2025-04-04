@@ -4,7 +4,7 @@ use std::io::Seek;
 
 use byteorder::ReadBytesExt;
 use bytes::Bytes;
-use num_traits::{AsPrimitive, FromPrimitive};
+use num_traits::FromPrimitive;
 use serde::de::{EnumAccess, IntoDeserializer, MapAccess, SeqAccess, VariantAccess};
 
 use crate::decoder::{Amf0Decoder, ObjectHeader};
@@ -74,7 +74,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Amf0Decoder {
         V: serde::de::Visitor<'de>,
     {
         let value = self.decode_number()?;
-        visitor.visit_i64(value.as_())
+        visitor.visit_i64(value as i64)
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value, Self::Error>
