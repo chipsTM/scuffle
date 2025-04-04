@@ -74,7 +74,7 @@ impl<'a, R: io::Read> ZeroCopyReader<'a> for IoRead<R> {
 
     fn has_remaining(&self) -> bool {
         // This is a naive implementation.
-        false
+        true
     }
 }
 
