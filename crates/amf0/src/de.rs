@@ -388,7 +388,8 @@ impl<'a, 'de> MapAccess<'de> for EcmaArray<'a> {
 
         self.remaining -= 1;
 
-        let s = self.de.decoder.decode_ecma_array_key()?;
+        // Object keys are not preceeded with a marker and are always normal strings
+        let s = self.de.decoder.decode_normal_string()?;
         let string_de = s.into_deserializer();
         seed.deserialize(string_de).map(Some)
     }

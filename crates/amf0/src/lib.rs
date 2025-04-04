@@ -64,8 +64,12 @@ pub mod error;
 pub mod ser;
 pub mod value;
 
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 pub use de::{Deserializer, from_bytes};
 pub use error::{Amf0Error, Result};
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 pub use ser::{Serializer, to_bytes, to_writer};
 pub use value::{Amf0Array, Amf0Object, Amf0Value};
 

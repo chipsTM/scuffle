@@ -91,7 +91,7 @@ impl Amf0Decoder {
         Ok(value != 0)
     }
 
-    fn decode_normal_string<'de>(&mut self) -> Result<StringCow<'de>, Amf0Error> {
+    pub(crate) fn decode_normal_string<'de>(&mut self) -> Result<StringCow<'de>, Amf0Error> {
         let len = self.reader.read_u16::<BigEndian>()? as usize;
 
         Ok(StringCow::from_bytes(self.reader.extract_bytes(len)?.try_into()?))
@@ -147,12 +147,6 @@ impl Amf0Decoder {
 
         // Object keys are not preceeded with a marker and are always normal strings
         self.decode_normal_string().map(Some)
-    }
-
-    #[inline]
-    pub(crate) fn decode_ecma_array_key<'de>(&mut self) -> Result<StringCow<'de>, Amf0Error> {
-        // Object keys are not preceeded with a marker and are always normal strings
-        self.decode_normal_string()
     }
 
     pub(crate) fn decode_optional_object_end(&mut self) -> Result<bool, Amf0Error> {

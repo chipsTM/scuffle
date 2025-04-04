@@ -1,6 +1,5 @@
 //! AMF0 error type.
 
-use std::fmt::Display;
 use std::io;
 use std::num::TryFromIntError;
 use std::str::Utf8Error;
@@ -60,7 +59,7 @@ pub enum Amf0Error {
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl serde::ser::Error for Amf0Error {
-    fn custom<T: Display>(msg: T) -> Self {
+    fn custom<T: std::fmt::Display>(msg: T) -> Self {
         Amf0Error::Custom(msg.to_string())
     }
 }
@@ -68,7 +67,7 @@ impl serde::ser::Error for Amf0Error {
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl serde::de::Error for Amf0Error {
-    fn custom<T: Display>(msg: T) -> Self {
+    fn custom<T: std::fmt::Display>(msg: T) -> Self {
         Amf0Error::Custom(msg.to_string())
     }
 }

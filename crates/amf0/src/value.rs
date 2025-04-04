@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use std::io;
 
 use scuffle_bytes_util::StringCow;
-use serde::ser::{SerializeMap, SerializeSeq};
 
 use crate::Amf0Error;
 use crate::encoder::Amf0Encoder;
@@ -261,20 +260,20 @@ impl<'a> serde::ser::Serialize for Amf0Value<'a> {
                 let mut map = serializer.serialize_map(Some(v.len()))?;
 
                 for (key, value) in v.iter() {
-                    map.serialize_entry(key, value)?;
+                    serde::ser::SerializeMap::serialize_entry(&mut map, key, value)?;
                 }
 
-                map.end()
+                serde::ser::SerializeMap::end(map)
             }
             Amf0Value::Null => serializer.serialize_none(),
             Amf0Value::Array(v) => {
                 let mut seq = serializer.serialize_seq(Some(v.len()))?;
 
                 for value in v.iter() {
-                    seq.serialize_element(value)?;
+                    serde::ser::SerializeSeq::serialize_element(&mut seq, value)?;
                 }
 
-                seq.end()
+                serde::ser::SerializeSeq::end(seq)
             }
         }
     }
