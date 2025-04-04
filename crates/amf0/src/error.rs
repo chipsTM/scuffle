@@ -49,6 +49,9 @@ pub enum Amf0Error {
         /// The actual length.
         got: usize,
     },
+    /// char deserialization is not supported.
+    #[error("char deserialization is not supported")]
+    CharNotSupported,
     /// Custom error message.
     #[cfg(feature = "serde")]
     #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
