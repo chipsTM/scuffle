@@ -30,7 +30,7 @@ impl Command<'_> {
 }
 
 impl<'a> CommandType<'a> {
-    fn read(command_name: StringCow<'a>, decoder: &mut Amf0Decoder) -> Result<Self, CommandError> {
+    fn read(command_name: StringCow<'a>, decoder: &mut Amf0Decoder<Bytes>) -> Result<Self, CommandError> {
         if let Some(command) = NetConnectionCommand::read(command_name.as_str(), decoder)? {
             return Ok(Self::NetConnection(command));
         }

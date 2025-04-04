@@ -56,7 +56,7 @@ pub struct UnknownCommand<'a> {
     /// Name of the unknown command.
     pub command_name: StringCow<'a>,
     /// All other values of the command including the command object.
-    pub values: Vec<Amf0Value<'a>>,
+    pub values: Vec<Amf0Value<'static>>,
 }
 
 /// NetStream onStatus level (7.2.2.) and NetConnection connect result level (7.2.1.1.)

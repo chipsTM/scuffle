@@ -1,5 +1,6 @@
 //! Reading [`NetConnectionCommand`].
 
+use bytes::Bytes;
 use scuffle_amf0::decoder::Amf0Decoder;
 
 use super::NetConnectionCommand;
@@ -9,7 +10,7 @@ impl NetConnectionCommand<'_> {
     /// Reads a [`NetConnectionCommand`] from the given decoder.
     ///
     /// Returns `Ok(None)` if the `command_name` is not recognized.
-    pub fn read(command_name: &str, decoder: &mut Amf0Decoder) -> Result<Option<Self>, CommandError> {
+    pub fn read(command_name: &str, decoder: &mut Amf0Decoder<Bytes>) -> Result<Option<Self>, CommandError> {
         match command_name {
             "connect" => {
                 let command_object = decoder.deserialize()?;

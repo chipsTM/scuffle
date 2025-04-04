@@ -1,6 +1,5 @@
 //! Script data structures
 
-use std::collections::HashMap;
 use std::io;
 
 use bytes::Bytes;
@@ -167,7 +166,7 @@ pub struct OnMetaData<'a> {
     pub video_track_id_info_map: Option<Amf0Object<'a>>,
     /// Any other metadata contained in the script data.
     #[serde(flatten, borrow)]
-    pub other: HashMap<StringCow<'a>, Amf0Value<'a>>,
+    pub other: Amf0Object<'a>,
 }
 
 /// XMP Metadata
@@ -184,7 +183,7 @@ pub struct OnXmpData<'a> {
     live_xml: Option<StringCow<'a>>,
     /// Any other metadata contained in the script data.
     #[serde(flatten, borrow)]
-    other: HashMap<StringCow<'a>, Amf0Value<'a>>,
+    other: Amf0Object<'a>,
 }
 
 /// FLV `SCRIPTDATA` tag
@@ -204,7 +203,7 @@ pub enum ScriptData<'a> {
         /// The name of the script data.
         name: StringCow<'a>,
         /// The data of the script data.
-        data: Vec<Amf0Value<'a>>,
+        data: Vec<Amf0Value<'static>>,
     },
 }
 
@@ -294,7 +293,7 @@ mod tests {
                 width: Some(1280.0),
                 audio_track_id_info_map: None,
                 video_track_id_info_map: None,
-                other: HashMap::new(),
+                other: Amf0Object::new(),
             }
         );
     }
@@ -364,7 +363,7 @@ mod tests {
                 width: Some(1280.0),
                 audio_track_id_info_map: Some([("test".into(), Amf0Value::Number(1.0))].into_iter().collect()),
                 video_track_id_info_map: Some([("test2".into(), Amf0Value::Number(2.0))].into_iter().collect()),
-                other: HashMap::new(),
+                other: Amf0Object::new(),
             }
         );
     }

@@ -1,5 +1,6 @@
 //! Types and functions for working with metadata video packets.
 
+use bytes::Bytes;
 use scuffle_amf0::Amf0Object;
 use scuffle_amf0::decoder::Amf0Decoder;
 use scuffle_bytes_util::StringCow;
@@ -152,13 +153,13 @@ pub enum VideoPacketMetadataEntry<'a> {
         /// The key of the metadata entry.
         key: StringCow<'a>,
         /// The metadata object.
-        object: Amf0Object<'a>,
+        object: Amf0Object<'static>,
     },
 }
 
 impl VideoPacketMetadataEntry<'_> {
     /// Read a video packet metadata entry from the given [`Amf0Decoder`].
-    pub fn read(decoder: &mut Amf0Decoder) -> Result<Self, FlvError> {
+    pub fn read(decoder: &mut Amf0Decoder<Bytes>) -> Result<Self, FlvError> {
         let key = decoder.decode_string()?;
 
         match key.as_ref() {

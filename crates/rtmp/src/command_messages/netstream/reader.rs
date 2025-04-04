@@ -1,5 +1,6 @@
 //! Reading [`NetStreamCommand`].
 
+use bytes::Bytes;
 use scuffle_amf0::decoder::Amf0Decoder;
 
 use super::NetStreamCommand;
@@ -9,7 +10,7 @@ impl NetStreamCommand<'_> {
     /// Reads a [`NetStreamCommand`] from the given decoder.
     ///
     /// Returns `Ok(None)` if the `command_name` is not recognized.
-    pub fn read(command_name: &str, decoder: &mut Amf0Decoder) -> Result<Option<Self>, CommandError> {
+    pub fn read(command_name: &str, decoder: &mut Amf0Decoder<Bytes>) -> Result<Option<Self>, CommandError> {
         match command_name {
             "play" => {
                 // skip command object

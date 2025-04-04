@@ -1,26 +1,24 @@
 //! Deserialize AMF0 data to a Rust data structure.
 
-use std::io::Seek;
-
-use byteorder::ReadBytesExt;
-use bytes::Bytes;
-use num_traits::FromPrimitive;
 use serde::de::{EnumAccess, IntoDeserializer, MapAccess, SeqAccess, VariantAccess};
 
 use crate::decoder::{Amf0Decoder, ObjectHeader};
 use crate::{Amf0Error, Amf0Marker};
 
-/// Deserialize a value from bytes.
-pub fn from_bytes<'de, T>(bytes: Bytes) -> crate::Result<T>
+/// Deserialize a value from a given [`bytes::Buf`].
+pub fn from_bytes<'de, T>(buf: impl bytes::Buf) -> crate::Result<T>
 where
     T: serde::de::Deserialize<'de>,
 {
-    let mut de = Amf0Decoder::new(bytes);
+    let mut de = Amf0Decoder::new(buf);
     let value = T::deserialize(&mut de)?;
     Ok(value)
 }
 
-impl<'de> serde::de::Deserializer<'de> for &mut Amf0Decoder {
+impl<'de, B> serde::de::Deserializer<'de> for &mut Amf0Decoder<B>
+where
+    B: bytes::Buf,
+{
     type Error = Amf0Error;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -162,14 +160,13 @@ impl<'de> serde::de::Deserializer<'de> for &mut Amf0Decoder {
     where
         V: serde::de::Visitor<'de>,
     {
-        let marker = self.reader.read_u8()?;
-        let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
+        let marker = self.peek_marker()?;
 
         if marker == Amf0Marker::Null || marker == Amf0Marker::Undefined {
+            self.next_marker = None; // clear the marker buffer
+
             visitor.visit_none()
         } else {
-            // We have to seek back because the marker is part of the next value
-            self.reader.seek_relative(-1)?;
             visitor.visit_some(self)
         }
     }
@@ -289,12 +286,15 @@ impl<'de> serde::de::Deserializer<'de> for &mut Amf0Decoder {
     }
 }
 
-struct StrictArray<'a> {
-    de: &'a mut Amf0Decoder,
+struct StrictArray<'a, B> {
+    de: &'a mut Amf0Decoder<B>,
     remaining: usize,
 }
 
-impl<'a, 'de> SeqAccess<'de> for StrictArray<'a> {
+impl<'a, 'de, B> SeqAccess<'de> for StrictArray<'a, B>
+where
+    B: bytes::Buf,
+{
     type Error = Amf0Error;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
@@ -314,11 +314,14 @@ impl<'a, 'de> SeqAccess<'de> for StrictArray<'a> {
     }
 }
 
-struct Object<'a> {
-    de: &'a mut Amf0Decoder,
+struct Object<'a, B> {
+    de: &'a mut Amf0Decoder<B>,
 }
 
-impl<'a, 'de> MapAccess<'de> for Object<'a> {
+impl<'a, 'de, B> MapAccess<'de> for Object<'a, B>
+where
+    B: bytes::Buf,
+{
     type Error = Amf0Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
@@ -342,12 +345,15 @@ impl<'a, 'de> MapAccess<'de> for Object<'a> {
     }
 }
 
-struct EcmaArray<'a> {
-    de: &'a mut Amf0Decoder,
+struct EcmaArray<'a, B> {
+    de: &'a mut Amf0Decoder<B>,
     remaining: usize,
 }
 
-impl<'a, 'de> MapAccess<'de> for EcmaArray<'a> {
+impl<'a, 'de, B> MapAccess<'de> for EcmaArray<'a, B>
+where
+    B: bytes::Buf,
+{
     type Error = Amf0Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
@@ -355,7 +361,11 @@ impl<'a, 'de> MapAccess<'de> for EcmaArray<'a> {
         K: serde::de::DeserializeSeed<'de>,
     {
         if self.remaining == 0 {
-            self.de.decode_optional_object_end()?;
+            // There might be an object end marker after the last key
+            if self.de.peek_marker()? == Amf0Marker::ObjectEnd {
+                self.de.next_marker = None; // clear the marker buffer
+            }
+
             return Ok(None);
         }
 
@@ -379,11 +389,14 @@ impl<'a, 'de> MapAccess<'de> for EcmaArray<'a> {
     }
 }
 
-struct Enum<'a> {
-    de: &'a mut Amf0Decoder,
+struct Enum<'a, B> {
+    de: &'a mut Amf0Decoder<B>,
 }
 
-impl<'a, 'de> EnumAccess<'de> for Enum<'a> {
+impl<'a, 'de, B> EnumAccess<'de> for Enum<'a, B>
+where
+    B: bytes::Buf,
+{
     type Error = Amf0Error;
     type Variant = Self;
 
@@ -399,7 +412,10 @@ impl<'a, 'de> EnumAccess<'de> for Enum<'a> {
     }
 }
 
-impl<'a, 'de> VariantAccess<'de> for Enum<'a> {
+impl<'a, 'de, B> VariantAccess<'de> for Enum<'a, B>
+where
+    B: bytes::Buf,
+{
     type Error = Amf0Error;
 
     fn unit_variant(self) -> Result<(), Self::Error> {
@@ -434,6 +450,7 @@ mod tests {
     use core::f64;
     use std::collections::HashMap;
     use std::fmt::Debug;
+    use std::io;
 
     use bytes::Bytes;
     use scuffle_bytes_util::StringCow;
@@ -845,7 +862,7 @@ mod tests {
         ];
         bytes.extend_from_slice(&f64::consts::PI.to_be_bytes());
 
-        let mut de = Amf0Decoder::new(Bytes::from_owner(bytes));
+        let mut de = Amf0Decoder::new(io::Cursor::new(Bytes::from_owner(bytes)));
         let value: String = serde::de::Deserialize::deserialize(&mut de).unwrap();
         assert_eq!(value, "hello");
         let value: bool = serde::de::Deserialize::deserialize(&mut de).unwrap();
@@ -922,7 +939,7 @@ mod tests {
             Amf0Marker::ObjectEnd as u8,
         ];
 
-        let mut de = Amf0Decoder::new(Bytes::from_owner(bytes));
+        let mut de = Amf0Decoder::new(io::Cursor::new(Bytes::from_owner(bytes)));
         let values = de.decode_all().unwrap();
         assert_eq!(
             values,

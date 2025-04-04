@@ -13,14 +13,14 @@ pub enum NetStreamCommand<'a> {
         /// All values in the command.
         ///
         /// See the legacy RTMP spec for details.
-        values: Vec<Amf0Value<'a>>,
+        values: Vec<Amf0Value<'static>>,
     },
     /// Play2 command.
     Play2 {
         /// All values in the command.
         ///
         /// See the legacy RTMP spec for details.
-        parameters: Amf0Object<'a>,
+        parameters: Amf0Object<'static>,
     },
     /// Delete stream command.
     DeleteStream {
