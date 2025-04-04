@@ -18,6 +18,8 @@ pub mod writer;
 #[derive(Debug, Clone, PartialEq)]
 pub struct OnStatus<'a> {
     /// The status code.
+    ///
+    /// Refer to the [`OnStatusCode`] enum for a list of common status codes.
     pub code: OnStatusCode,
     /// The description of the status update.
     pub description: Option<StringCow<'a>>,
