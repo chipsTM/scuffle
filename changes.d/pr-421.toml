@@ -9,6 +9,11 @@ category = "feat"
 description = "add new cow types"
 authors = ["@TroyKomodo", "@lennartkloock"]
 
+[[scuffle-bytes-util]]
+category = "feat"
+description = "add new zero-copy reader types"
+authors = ["@TroyKomodo", "@lennartkloock"]
+
 [[scuffle-flv]]
 category = "chore"
 description = "update to use new version of scuffle-amf0"

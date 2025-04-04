@@ -1,5 +1,7 @@
 //! AMF0 decoder
 
+use std::io;
+
 use byteorder::{BigEndian, ReadBytesExt};
 use num_traits::FromPrimitive;
 use scuffle_bytes_util::StringCow;
@@ -63,12 +65,6 @@ impl<'a, R> Amf0Decoder<R>
 where
     R: ZeroCopyReader<'a>,
 {
-    /// Check if there are remaining bytes to read.
-    #[inline]
-    pub fn has_remaining(&self) -> bool {
-        self.reader.has_remaining()
-    }
-
     /// Decode a [`Amf0Value`] from the buffer.
     pub fn decode_value(&mut self) -> Result<Amf0Value<'a>, Amf0Error> {
         let marker = self.peek_marker()?;
@@ -88,9 +84,18 @@ where
     pub fn decode_all(&mut self) -> Result<Vec<Amf0Value<'a>>, Amf0Error> {
         let mut values = Vec::new();
 
-        while self.reader.has_remaining() {
-            let value = self.decode_value()?;
-            values.push(value);
+        loop {
+            match self.decode_value() {
+                Ok(value) => values.push(value),
+                Err(Amf0Error::Io(e)) if e.kind() == io::ErrorKind::UnexpectedEof => {
+                    // End of buffer reached
+                    break;
+                }
+                Err(err) => {
+                    // Other errors
+                    return Err(err);
+                }
+            }
         }
 
         Ok(values)

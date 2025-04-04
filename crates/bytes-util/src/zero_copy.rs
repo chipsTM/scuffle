@@ -2,8 +2,6 @@
 
 use std::io;
 
-use bytes::Buf;
-
 use crate::BytesCow;
 
 /// A trait for zero-copy readers.
@@ -16,9 +14,6 @@ pub trait ZeroCopyReader<'a> {
 
     /// Returns a standard [`io::Read`] interface for the reader.
     fn as_std(&mut self) -> impl io::Read;
-
-    /// Checks if there are remaining bytes to read.
-    fn has_remaining(&self) -> bool;
 }
 
 /// A zero-copy reader that wraps a [`bytes::Buf`].
@@ -41,10 +36,6 @@ impl<'a, B: bytes::Buf> ZeroCopyReader<'a> for BytesBuf<B> {
 
     fn as_std(&mut self) -> impl io::Read {
         bytes::Buf::reader(&mut self.0)
-    }
-
-    fn has_remaining(&self) -> bool {
-        self.0.has_remaining()
     }
 }
 
@@ -70,11 +61,6 @@ impl<'a, R: io::Read> ZeroCopyReader<'a> for IoRead<R> {
 
     fn as_std(&mut self) -> impl io::Read {
         &mut self.0
-    }
-
-    fn has_remaining(&self) -> bool {
-        // This is a naive implementation.
-        true
     }
 }
 
@@ -103,9 +89,5 @@ impl<'a> ZeroCopyReader<'a> for Slice<'a> {
 
     fn as_std(&mut self) -> impl io::Read {
         &mut self.0
-    }
-
-    fn has_remaining(&self) -> bool {
-        self.0.has_remaining()
     }
 }

@@ -7,6 +7,7 @@ use std::io::{self, Read};
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
 use metadata::VideoPacketMetadataEntry;
+use scuffle_amf0::Amf0Error;
 use scuffle_amf0::decoder::Amf0Decoder;
 use scuffle_av1::{AV1CodecConfigurationRecord, AV1VideoDescriptor};
 use scuffle_bytes_util::BytesCursorExt;
@@ -118,8 +119,18 @@ impl<'a> VideoPacket<'a> {
 
                 let mut metadata = Vec::new();
 
-                while decoder.has_remaining() {
-                    metadata.push(metadata::VideoPacketMetadataEntry::read(&mut decoder)?);
+                loop {
+                    match metadata::VideoPacketMetadataEntry::read(&mut decoder) {
+                        Ok(value) => metadata.push(value),
+                        Err(FlvError::Amf0(Amf0Error::Io(e))) if e.kind() == io::ErrorKind::UnexpectedEof => {
+                            // End of buffer reached
+                            break;
+                        }
+                        Err(err) => {
+                            // Other errors
+                            return Err(err);
+                        }
+                    }
                 }
 
                 Ok(Self::Metadata(metadata))
