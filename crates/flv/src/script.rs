@@ -211,7 +211,7 @@ impl ScriptData<'_> {
     /// Demux the [`ScriptData`] from the given reader.
     pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, FlvError> {
         let buf = reader.extract_remaining();
-        let mut decoder = Amf0Decoder::new(buf);
+        let mut decoder = Amf0Decoder::from_buf(buf);
 
         let name = decoder.decode_string()?;
 

@@ -1,7 +1,9 @@
 //! AMF0 decoder
 
+use byteorder::{BigEndian, ReadBytesExt};
 use num_traits::FromPrimitive;
 use scuffle_bytes_util::StringCow;
+use scuffle_bytes_util::zero_copy::ZeroCopyReader;
 
 use crate::{Amf0Array, Amf0Error, Amf0Marker, Amf0Object, Amf0Value};
 
@@ -9,8 +11,8 @@ use crate::{Amf0Array, Amf0Error, Amf0Marker, Amf0Object, Amf0Value};
 ///
 /// Provides various functions to decode different types of AMF0 values from a buffer implementing [`bytes::Buf`].
 #[derive(Debug, Clone)]
-pub struct Amf0Decoder<B> {
-    pub(crate) buf: B,
+pub struct Amf0Decoder<R> {
+    pub(crate) reader: R,
     pub(crate) next_marker: Option<Amf0Marker>,
 }
 
@@ -21,23 +23,54 @@ pub(crate) enum ObjectHeader<'a> {
     EcmaArray { size: u32 },
 }
 
-impl<B> Amf0Decoder<B>
+impl<B> Amf0Decoder<scuffle_bytes_util::zero_copy::BytesBuf<B>>
 where
     B: bytes::Buf,
 {
     /// Create a new deserializer from a buffer implementing [`bytes::Buf`].
-    pub fn new(buf: B) -> Self {
-        Self { buf, next_marker: None }
+    pub fn from_buf(buf: B) -> Amf0Decoder<scuffle_bytes_util::zero_copy::BytesBuf<B>> {
+        Self {
+            reader: buf.into(),
+            next_marker: None,
+        }
     }
+}
 
+impl<R> Amf0Decoder<scuffle_bytes_util::zero_copy::IoRead<R>>
+where
+    R: std::io::Read,
+{
+    /// Create a new deserializer from a reader implementing [`std::io::Read`].
+    pub fn from_reader(reader: R) -> Amf0Decoder<scuffle_bytes_util::zero_copy::IoRead<R>> {
+        Self {
+            reader: reader.into(),
+            next_marker: None,
+        }
+    }
+}
+
+impl<'a> Amf0Decoder<scuffle_bytes_util::zero_copy::Slice<'a>> {
+    /// Create a new deserializer from a byte slice.
+    pub fn from_slice(slice: &'a [u8]) -> Amf0Decoder<scuffle_bytes_util::zero_copy::Slice<'a>> {
+        Self {
+            reader: slice.into(),
+            next_marker: None,
+        }
+    }
+}
+
+impl<'a, R> Amf0Decoder<R>
+where
+    R: ZeroCopyReader<'a>,
+{
     /// Check if there are remaining bytes to read.
     #[inline]
     pub fn has_remaining(&self) -> bool {
-        self.buf.has_remaining()
+        self.reader.has_remaining()
     }
 
     /// Decode a [`Amf0Value`] from the buffer.
-    pub fn decode_value(&mut self) -> Result<Amf0Value<'static>, Amf0Error> {
+    pub fn decode_value(&mut self) -> Result<Amf0Value<'a>, Amf0Error> {
         let marker = self.peek_marker()?;
 
         match marker {
@@ -52,10 +85,10 @@ where
     }
 
     /// Decode all values from the buffer until the end.
-    pub fn decode_all(&mut self) -> Result<Vec<Amf0Value<'static>>, Amf0Error> {
+    pub fn decode_all(&mut self) -> Result<Vec<Amf0Value<'a>>, Amf0Error> {
         let mut values = Vec::new();
 
-        while self.buf.has_remaining() {
+        while self.reader.has_remaining() {
             let value = self.decode_value()?;
             values.push(value);
         }
@@ -77,7 +110,7 @@ where
             return Ok(marker);
         }
 
-        let marker = self.buf.get_u8();
+        let marker = self.reader.as_std().read_u8()?;
         let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
         Ok(marker)
     }
@@ -99,11 +132,11 @@ where
     pub fn decode_number(&mut self) -> Result<f64, Amf0Error> {
         let marker = self.expect_marker(&[Amf0Marker::Number, Amf0Marker::Date])?;
 
-        let number = self.buf.get_f64();
+        let number = self.reader.as_std().read_f64::<BigEndian>()?;
 
         if marker == Amf0Marker::Date {
             // Skip the timezone
-            self.buf.get_i16();
+            self.reader.as_std().read_i16::<BigEndian>()?;
         }
 
         Ok(number)
@@ -112,32 +145,32 @@ where
     /// Decode a boolean from the buffer.
     pub fn decode_boolean(&mut self) -> Result<bool, Amf0Error> {
         self.expect_marker(&[Amf0Marker::Boolean])?;
-        let value = self.buf.get_u8();
+        let value = self.reader.as_std().read_u8()?;
         Ok(value != 0)
     }
 
-    pub(crate) fn decode_normal_string(&mut self) -> Result<StringCow<'static>, Amf0Error> {
-        let len = self.buf.get_u16() as usize;
+    pub(crate) fn decode_normal_string(&mut self) -> Result<StringCow<'a>, Amf0Error> {
+        let len = self.reader.as_std().read_u16::<BigEndian>()? as usize;
 
-        let bytes = self.buf.copy_to_bytes(len);
-        Ok(StringCow::from_bytes(bytes.try_into()?))
+        let bytes = self.reader.try_read(len)?;
+        Ok(StringCow::from_bytes(bytes.into_bytes().try_into()?))
     }
 
     /// Decode a string from the buffer.
     ///
     /// This function can decode both normal strings and long strings.
-    pub fn decode_string(&mut self) -> Result<StringCow<'static>, Amf0Error> {
+    pub fn decode_string(&mut self) -> Result<StringCow<'a>, Amf0Error> {
         let marker = self.expect_marker(&[Amf0Marker::String, Amf0Marker::LongString, Amf0Marker::XmlDocument])?;
 
         let len = if marker == Amf0Marker::String {
-            self.buf.get_u16() as usize
+            self.reader.as_std().read_u16::<BigEndian>()? as usize
         } else {
             // LongString or XmlDocument
-            self.buf.get_u32() as usize
+            self.reader.as_std().read_u32::<BigEndian>()? as usize
         };
 
-        let bytes = self.buf.copy_to_bytes(len);
-        Ok(StringCow::from_bytes(bytes.try_into()?))
+        let bytes = self.reader.try_read(len)?;
+        Ok(StringCow::from_bytes(bytes.into_bytes().try_into()?))
     }
 
     /// Decode a null value from the buffer.
@@ -151,16 +184,16 @@ where
     /// Deserialize a value from the buffer using [serde].
     #[cfg(feature = "serde")]
     #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
-    pub fn deserialize<'de, T>(&mut self) -> Result<T, Amf0Error>
+    pub fn deserialize<T>(&mut self) -> Result<T, Amf0Error>
     where
-        T: serde::de::Deserialize<'de>,
+        T: serde::de::Deserialize<'a>,
     {
         T::deserialize(self)
     }
 
     // --- Object and Ecma array ---
 
-    pub(crate) fn decode_object_header(&mut self) -> Result<ObjectHeader<'static>, Amf0Error> {
+    pub(crate) fn decode_object_header(&mut self) -> Result<ObjectHeader<'a>, Amf0Error> {
         let marker = self.expect_marker(&[Amf0Marker::Object, Amf0Marker::TypedObject, Amf0Marker::EcmaArray])?;
 
         if marker == Amf0Marker::Object {
@@ -170,12 +203,12 @@ where
             Ok(ObjectHeader::TypedObject { name })
         } else {
             // EcmaArray
-            let size = self.buf.get_u32();
+            let size = self.reader.as_std().read_u32::<BigEndian>()?;
             Ok(ObjectHeader::EcmaArray { size })
         }
     }
 
-    pub(crate) fn decode_object_key(&mut self) -> Result<Option<StringCow<'static>>, Amf0Error> {
+    pub(crate) fn decode_object_key(&mut self) -> Result<Option<StringCow<'a>>, Amf0Error> {
         // Object keys are not preceeded with a marker and are always normal strings
         let key = self.decode_normal_string()?;
 
@@ -196,7 +229,7 @@ where
     /// Decode an object from the buffer.
     ///
     /// This function can decode normal objects, typed objects and ECMA arrays.
-    pub fn decode_object(&mut self) -> Result<Amf0Object<'static>, Amf0Error> {
+    pub fn decode_object(&mut self) -> Result<Amf0Object<'a>, Amf0Error> {
         let header = self.decode_object_header()?;
 
         match header {
@@ -235,13 +268,13 @@ where
 
     pub(crate) fn decode_strict_array_header(&mut self) -> Result<u32, Amf0Error> {
         self.expect_marker(&[Amf0Marker::StrictArray])?;
-        let size = self.buf.get_u32();
+        let size = self.reader.as_std().read_u32::<BigEndian>()?;
 
         Ok(size)
     }
 
     /// Decode a strict array from the buffer.
-    pub fn decode_strict_array(&mut self) -> Result<Amf0Array<'static>, Amf0Error> {
+    pub fn decode_strict_array(&mut self) -> Result<Amf0Array<'a>, Amf0Error> {
         let size = self.decode_strict_array_header()? as usize;
 
         let mut array = Vec::with_capacity(size);

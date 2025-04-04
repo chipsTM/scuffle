@@ -98,12 +98,7 @@ impl Hash for BytesCow<'_> {
 
 impl AsRef<[u8]> for BytesCow<'_> {
     fn as_ref(&self) -> &[u8] {
-        match self {
-            BytesCow::Slice(slice) => slice,
-            BytesCow::StaticSlice(slice) => slice,
-            BytesCow::Vec(bytes) => bytes.as_slice(),
-            BytesCow::Bytes(bytes) => bytes.as_ref(),
-        }
+        self.as_bytes()
     }
 }
 

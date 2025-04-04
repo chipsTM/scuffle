@@ -49,7 +49,7 @@ mod tests {
         .write(&mut (&mut buf).writer(), 1.0)
         .expect("write");
 
-        let values = Amf0Decoder::new(buf.freeze()).decode_all().unwrap();
+        let values = Amf0Decoder::from_buf(buf.freeze()).decode_all().unwrap();
 
         assert_eq!(values.len(), 4);
         assert_eq!(values[0], Amf0Value::String("onStatus".into())); // command name

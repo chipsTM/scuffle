@@ -2,6 +2,7 @@
 
 use bytes::Bytes;
 use scuffle_amf0::decoder::Amf0Decoder;
+use scuffle_bytes_util::zero_copy::BytesBuf;
 
 use super::NetConnectionCommand;
 use crate::command_messages::error::CommandError;
@@ -10,7 +11,7 @@ impl NetConnectionCommand<'_> {
     /// Reads a [`NetConnectionCommand`] from the given decoder.
     ///
     /// Returns `Ok(None)` if the `command_name` is not recognized.
-    pub fn read(command_name: &str, decoder: &mut Amf0Decoder<Bytes>) -> Result<Option<Self>, CommandError> {
+    pub fn read(command_name: &str, decoder: &mut Amf0Decoder<BytesBuf<Bytes>>) -> Result<Option<Self>, CommandError> {
         match command_name {
             "connect" => {
                 let command_object = decoder.deserialize()?;
@@ -44,7 +45,7 @@ mod tests {
         let mut encoder = Amf0Encoder::new(&mut command_object);
         encoder.encode_object(&Amf0Object::new()).unwrap();
 
-        let mut decoder = Amf0Decoder::new(Bytes::from_owner(command_object));
+        let mut decoder = Amf0Decoder::from_buf(Bytes::from_owner(command_object));
         let result = NetConnectionCommand::read("connect", &mut decoder).unwrap_err();
 
         assert!(matches!(result, CommandError::Amf0(scuffle_amf0::Amf0Error::Custom(_))));

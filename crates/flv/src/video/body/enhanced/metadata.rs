@@ -4,6 +4,7 @@ use bytes::Bytes;
 use scuffle_amf0::Amf0Object;
 use scuffle_amf0::decoder::Amf0Decoder;
 use scuffle_bytes_util::StringCow;
+use scuffle_bytes_util::zero_copy::BytesBuf;
 
 use crate::error::FlvError;
 
@@ -159,7 +160,7 @@ pub enum VideoPacketMetadataEntry<'a> {
 
 impl VideoPacketMetadataEntry<'_> {
     /// Read a video packet metadata entry from the given [`Amf0Decoder`].
-    pub fn read(decoder: &mut Amf0Decoder<Bytes>) -> Result<Self, FlvError> {
+    pub fn read(decoder: &mut Amf0Decoder<BytesBuf<Bytes>>) -> Result<Self, FlvError> {
         let key = decoder.decode_string()?;
 
         match key.as_ref() {
@@ -234,7 +235,7 @@ mod tests {
         encoder.encode_string("colorInfo").unwrap();
         encoder.serialize(object).unwrap();
 
-        let mut deserializer = Amf0Decoder::new(buf.into());
+        let mut deserializer = Amf0Decoder::from_buf(buf.into());
         let entry = VideoPacketMetadataEntry::read(&mut deserializer).unwrap();
 
         assert_eq!(

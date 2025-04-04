@@ -2,6 +2,7 @@
 
 use bytes::Bytes;
 use scuffle_amf0::decoder::Amf0Decoder;
+use scuffle_bytes_util::zero_copy::BytesBuf;
 
 use super::NetStreamCommand;
 use crate::command_messages::error::CommandError;
@@ -10,7 +11,7 @@ impl NetStreamCommand<'_> {
     /// Reads a [`NetStreamCommand`] from the given decoder.
     ///
     /// Returns `Ok(None)` if the `command_name` is not recognized.
-    pub fn read(command_name: &str, decoder: &mut Amf0Decoder<Bytes>) -> Result<Option<Self>, CommandError> {
+    pub fn read(command_name: &str, decoder: &mut Amf0Decoder<BytesBuf<Bytes>>) -> Result<Option<Self>, CommandError> {
         match command_name {
             "play" => {
                 // skip command object
@@ -93,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_command_no_payload() {
-        let command = NetStreamCommand::read("closeStream", &mut Amf0Decoder::new(Bytes::new()))
+        let command = NetStreamCommand::read("closeStream", &mut Amf0Decoder::from_buf(Bytes::new()))
             .unwrap()
             .unwrap();
         assert_eq!(command, NetStreamCommand::CloseStream);
@@ -108,7 +109,7 @@ mod tests {
         encoder.encode_number(0.0).unwrap();
         encoder.encode_string("test").unwrap();
 
-        let command = NetStreamCommand::read("play", &mut Amf0Decoder::new(Bytes::from_owner(payload)))
+        let command = NetStreamCommand::read("play", &mut Amf0Decoder::from_buf(Bytes::from_owner(payload)))
             .unwrap()
             .unwrap();
 
@@ -135,7 +136,7 @@ mod tests {
         .collect();
         encoder.encode_object(&object).unwrap();
 
-        let command = NetStreamCommand::read("play2", &mut Amf0Decoder::new(Bytes::from_owner(payload)))
+        let command = NetStreamCommand::read("play2", &mut Amf0Decoder::from_buf(Bytes::from_owner(payload)))
             .unwrap()
             .unwrap();
 
@@ -149,7 +150,7 @@ mod tests {
         encoder.encode_null().unwrap();
         encoder.encode_boolean(true).unwrap();
 
-        let command = NetStreamCommand::read("receiveAudio", &mut Amf0Decoder::new(Bytes::from_owner(payload)))
+        let command = NetStreamCommand::read("receiveAudio", &mut Amf0Decoder::from_buf(Bytes::from_owner(payload)))
             .unwrap()
             .unwrap();
         assert_eq!(command, NetStreamCommand::ReceiveAudio { receive_audio: true });
@@ -162,7 +163,7 @@ mod tests {
         encoder.encode_null().unwrap();
         encoder.encode_boolean(true).unwrap();
 
-        let command = NetStreamCommand::read("receiveVideo", &mut Amf0Decoder::new(Bytes::from_owner(payload)))
+        let command = NetStreamCommand::read("receiveVideo", &mut Amf0Decoder::from_buf(Bytes::from_owner(payload)))
             .unwrap()
             .unwrap();
         assert_eq!(command, NetStreamCommand::ReceiveVideo { receive_video: true });
@@ -173,7 +174,7 @@ mod tests {
         let mut payload = vec![Amf0Marker::Null as u8, Amf0Marker::Number as u8];
         payload.extend_from_slice(0.0f64.to_be_bytes().as_ref());
 
-        let command = NetStreamCommand::read("deleteStream", &mut Amf0Decoder::new(Bytes::from_owner(payload)))
+        let command = NetStreamCommand::read("deleteStream", &mut Amf0Decoder::from_buf(Bytes::from_owner(payload)))
             .unwrap()
             .unwrap();
         assert_eq!(command, NetStreamCommand::DeleteStream { stream_id: 0.0 });
@@ -188,7 +189,7 @@ mod tests {
         encoder.encode_string("live").unwrap();
         encoder.serialize(NetStreamCommandPublishPublishingType::Record).unwrap();
 
-        let command = NetStreamCommand::read("publish", &mut Amf0Decoder::new(Bytes::from_owner(payload)))
+        let command = NetStreamCommand::read("publish", &mut Amf0Decoder::from_buf(Bytes::from_owner(payload)))
             .unwrap()
             .unwrap();
 
@@ -208,7 +209,7 @@ mod tests {
         encoder.encode_null().unwrap();
         encoder.encode_number(0.0).unwrap();
 
-        let command = NetStreamCommand::read("seek", &mut Amf0Decoder::new(Bytes::from_owner(payload)))
+        let command = NetStreamCommand::read("seek", &mut Amf0Decoder::from_buf(Bytes::from_owner(payload)))
             .unwrap()
             .unwrap();
         assert_eq!(command, NetStreamCommand::Seek { milliseconds: 0.0 });
@@ -222,7 +223,7 @@ mod tests {
         encoder.encode_boolean(true).unwrap();
         encoder.encode_number(0.0).unwrap();
 
-        let command = NetStreamCommand::read("pause", &mut Amf0Decoder::new(Bytes::from_owner(payload)))
+        let command = NetStreamCommand::read("pause", &mut Amf0Decoder::from_buf(Bytes::from_owner(payload)))
             .unwrap()
             .unwrap();
         assert_eq!(

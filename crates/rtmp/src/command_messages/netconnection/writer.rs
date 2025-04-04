@@ -51,7 +51,7 @@ mod tests {
             .write(&mut (&mut buf).writer(), 1.0)
             .expect("write");
 
-        let mut deserializer = Amf0Decoder::new(buf.freeze());
+        let mut deserializer = Amf0Decoder::from_buf(buf.freeze());
         let values = deserializer.decode_all().unwrap();
 
         assert_eq!(values.len(), 4);
@@ -91,7 +91,7 @@ mod tests {
             .write(&mut (&mut buf).writer(), 1.0)
             .expect("write");
 
-        let mut deserializer = Amf0Decoder::new(buf.freeze());
+        let mut deserializer = Amf0Decoder::from_buf(buf.freeze());
         let values = deserializer.decode_all().unwrap();
 
         assert_eq!(values.len(), 4);

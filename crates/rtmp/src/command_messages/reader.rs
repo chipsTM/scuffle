@@ -6,6 +6,7 @@ use std::str::FromStr;
 use bytes::Bytes;
 use scuffle_amf0::decoder::Amf0Decoder;
 use scuffle_bytes_util::StringCow;
+use scuffle_bytes_util::zero_copy::BytesBuf;
 
 use super::error::CommandError;
 use super::netconnection::NetConnectionCommand;
@@ -15,7 +16,7 @@ use super::{Command, CommandResultLevel, CommandType, UnknownCommand};
 impl Command<'_> {
     /// Reads a [`Command`] from the given payload.
     pub fn read(payload: Bytes) -> Result<Self, CommandError> {
-        let mut decoder = Amf0Decoder::new(payload);
+        let mut decoder = Amf0Decoder::from_buf(payload);
 
         let command_name = decoder.decode_string()?;
         let transaction_id = decoder.decode_number()?;
@@ -30,7 +31,7 @@ impl Command<'_> {
 }
 
 impl<'a> CommandType<'a> {
-    fn read(command_name: StringCow<'a>, decoder: &mut Amf0Decoder<Bytes>) -> Result<Self, CommandError> {
+    fn read(command_name: StringCow<'a>, decoder: &mut Amf0Decoder<BytesBuf<Bytes>>) -> Result<Self, CommandError> {
         if let Some(command) = NetConnectionCommand::read(command_name.as_str(), decoder)? {
             return Ok(Self::NetConnection(command));
         }

@@ -16,6 +16,7 @@ mod bit_read;
 mod bit_write;
 mod bytes_cursor;
 mod cow;
+pub mod zero_copy;
 
 pub use bit_read::BitReader;
 pub use bit_write::BitWriter;

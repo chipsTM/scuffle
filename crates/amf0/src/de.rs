@@ -1,5 +1,6 @@
 //! Deserialize AMF0 data to a Rust data structure.
 
+use scuffle_bytes_util::zero_copy::ZeroCopyReader;
 use serde::de::{EnumAccess, IntoDeserializer, MapAccess, SeqAccess, VariantAccess};
 
 use crate::decoder::{Amf0Decoder, ObjectHeader};
@@ -10,14 +11,14 @@ pub fn from_bytes<'de, T>(buf: impl bytes::Buf) -> crate::Result<T>
 where
     T: serde::de::Deserialize<'de>,
 {
-    let mut de = Amf0Decoder::new(buf);
+    let mut de = Amf0Decoder::from_buf(buf);
     let value = T::deserialize(&mut de)?;
     Ok(value)
 }
 
-impl<'de, B> serde::de::Deserializer<'de> for &mut Amf0Decoder<B>
+impl<'de, R> serde::de::Deserializer<'de> for &mut Amf0Decoder<R>
 where
-    B: bytes::Buf,
+    R: ZeroCopyReader<'de>,
 {
     type Error = Amf0Error;
 
@@ -286,14 +287,14 @@ where
     }
 }
 
-struct StrictArray<'a, B> {
-    de: &'a mut Amf0Decoder<B>,
+struct StrictArray<'a, R> {
+    de: &'a mut Amf0Decoder<R>,
     remaining: usize,
 }
 
-impl<'a, 'de, B> SeqAccess<'de> for StrictArray<'a, B>
+impl<'a, 'de, R> SeqAccess<'de> for StrictArray<'a, R>
 where
-    B: bytes::Buf,
+    R: ZeroCopyReader<'de>,
 {
     type Error = Amf0Error;
 
@@ -314,13 +315,13 @@ where
     }
 }
 
-struct Object<'a, B> {
-    de: &'a mut Amf0Decoder<B>,
+struct Object<'a, R> {
+    de: &'a mut Amf0Decoder<R>,
 }
 
-impl<'a, 'de, B> MapAccess<'de> for Object<'a, B>
+impl<'a, 'de, R> MapAccess<'de> for Object<'a, R>
 where
-    B: bytes::Buf,
+    R: ZeroCopyReader<'de>,
 {
     type Error = Amf0Error;
 
@@ -345,14 +346,14 @@ where
     }
 }
 
-struct EcmaArray<'a, B> {
-    de: &'a mut Amf0Decoder<B>,
+struct EcmaArray<'a, R> {
+    de: &'a mut Amf0Decoder<R>,
     remaining: usize,
 }
 
-impl<'a, 'de, B> MapAccess<'de> for EcmaArray<'a, B>
+impl<'a, 'de, R> MapAccess<'de> for EcmaArray<'a, R>
 where
-    B: bytes::Buf,
+    R: ZeroCopyReader<'de>,
 {
     type Error = Amf0Error;
 
@@ -389,13 +390,13 @@ where
     }
 }
 
-struct Enum<'a, B> {
-    de: &'a mut Amf0Decoder<B>,
+struct Enum<'a, R> {
+    de: &'a mut Amf0Decoder<R>,
 }
 
-impl<'a, 'de, B> EnumAccess<'de> for Enum<'a, B>
+impl<'a, 'de, R> EnumAccess<'de> for Enum<'a, R>
 where
-    B: bytes::Buf,
+    R: ZeroCopyReader<'de>,
 {
     type Error = Amf0Error;
     type Variant = Self;
@@ -412,9 +413,9 @@ where
     }
 }
 
-impl<'a, 'de, B> VariantAccess<'de> for Enum<'a, B>
+impl<'a, 'de, R> VariantAccess<'de> for Enum<'a, R>
 where
-    B: bytes::Buf,
+    R: ZeroCopyReader<'de>,
 {
     type Error = Amf0Error;
 
@@ -450,7 +451,6 @@ mod tests {
     use core::f64;
     use std::collections::HashMap;
     use std::fmt::Debug;
-    use std::io;
 
     use bytes::Bytes;
     use scuffle_bytes_util::StringCow;
@@ -862,7 +862,7 @@ mod tests {
         ];
         bytes.extend_from_slice(&f64::consts::PI.to_be_bytes());
 
-        let mut de = Amf0Decoder::new(io::Cursor::new(Bytes::from_owner(bytes)));
+        let mut de = Amf0Decoder::from_buf(Bytes::from_owner(bytes));
         let value: String = serde::de::Deserialize::deserialize(&mut de).unwrap();
         assert_eq!(value, "hello");
         let value: bool = serde::de::Deserialize::deserialize(&mut de).unwrap();
@@ -939,7 +939,7 @@ mod tests {
             Amf0Marker::ObjectEnd as u8,
         ];
 
-        let mut de = Amf0Decoder::new(io::Cursor::new(Bytes::from_owner(bytes)));
+        let mut de = Amf0Decoder::from_buf(Bytes::from_owner(bytes));
         let values = de.decode_all().unwrap();
         assert_eq!(
             values,

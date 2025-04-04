@@ -114,7 +114,7 @@ impl<'a> VideoPacket<'a> {
         match header.video_packet_type {
             VideoPacketType::Metadata => {
                 let data = reader.extract_bytes(size_of_video_track.unwrap_or(reader.remaining()))?;
-                let mut decoder = Amf0Decoder::new(data);
+                let mut decoder = Amf0Decoder::from_buf(data);
 
                 let mut metadata = Vec::new();
 
