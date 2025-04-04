@@ -56,7 +56,7 @@ where
     type SerializeTupleVariant = Self;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
-        self.encoder.encode_bool(v)
+        self.encoder.encode_boolean(v)
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {

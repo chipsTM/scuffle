@@ -1,3 +1,5 @@
+//! AMF0 decoder
+
 use std::io::{self, Seek};
 
 use byteorder::{BigEndian, ReadBytesExt};
@@ -7,22 +9,28 @@ use scuffle_bytes_util::{BytesCursorExt, StringCow};
 
 use crate::{Amf0Array, Amf0Error, Amf0Marker, Amf0Object, Amf0Value};
 
+/// AMF0 decoder.
+///
+/// Provides various functions to decode different types of AMF0 values from a [`Bytes`] buffer.
 pub struct Amf0Decoder {
     pub(crate) reader: io::Cursor<Bytes>,
 }
 
 impl Amf0Decoder {
-    /// Create a new deserializer from a reader.
+    /// Create a new deserializer from a [`Bytes`] buffer.
     pub fn new(bytes: Bytes) -> Self {
         Self {
             reader: io::Cursor::new(bytes),
         }
     }
 
+    /// Check if there are remaining bytes to read.
+    #[inline]
     pub fn has_remaining(&self) -> bool {
         self.reader.has_remaining()
     }
 
+    /// Peek the next marker in the buffer without consuming it.
     pub fn peek_marker(&mut self) -> Result<Amf0Marker, Amf0Error> {
         let marker = self.reader.read_u8()?;
         let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
@@ -33,6 +41,7 @@ impl Amf0Decoder {
         Ok(marker)
     }
 
+    /// Decode a [`Amf0Value`] from the buffer.
     pub fn decode_value<'de>(&mut self) -> Result<Amf0Value<'de>, Amf0Error> {
         let marker = self.peek_marker()?;
 
@@ -47,6 +56,7 @@ impl Amf0Decoder {
         }
     }
 
+    /// Decode all values from the buffer until the end.
     pub fn decode_all<'de>(&mut self) -> Result<Vec<Amf0Value<'de>>, Amf0Error> {
         let mut values = Vec::new();
 
@@ -72,6 +82,7 @@ impl Amf0Decoder {
         }
     }
 
+    /// Decode a number from the buffer.
     pub fn decode_number(&mut self) -> Result<f64, Amf0Error> {
         let marker = self.expect_marker(&[Amf0Marker::Number, Amf0Marker::Date])?;
 
@@ -85,6 +96,7 @@ impl Amf0Decoder {
         Ok(number)
     }
 
+    /// Decode a boolean from the buffer.
     pub fn decode_boolean(&mut self) -> Result<bool, Amf0Error> {
         self.expect_marker(&[Amf0Marker::Boolean])?;
         let value = self.reader.read_u8()?;
@@ -97,6 +109,9 @@ impl Amf0Decoder {
         Ok(StringCow::from_bytes(self.reader.extract_bytes(len)?.try_into()?))
     }
 
+    /// Decode a string from the buffer.
+    ///
+    /// This function can decode both normal strings and long strings.
     pub fn decode_string<'de>(&mut self) -> Result<StringCow<'de>, Amf0Error> {
         let marker = self.expect_marker(&[Amf0Marker::String, Amf0Marker::LongString, Amf0Marker::XmlDocument])?;
 
@@ -111,6 +126,9 @@ impl Amf0Decoder {
         Ok(s)
     }
 
+    /// Decode a null value from the buffer.
+    ///
+    /// This function can also decode undefined values.
     pub fn decode_null(&mut self) -> Result<(), Amf0Error> {
         self.expect_marker(&[Amf0Marker::Null, Amf0Marker::Undefined])?;
         Ok(())
@@ -160,6 +178,9 @@ impl Amf0Decoder {
         }
     }
 
+    /// Decode an object from the buffer.
+    ///
+    /// This function can decode normal objects, typed objects and ECMA arrays.
     pub fn decode_object<'de>(&mut self) -> Result<Amf0Object<'de>, Amf0Error> {
         let header = self.decode_object_header()?;
 
@@ -202,6 +223,7 @@ impl Amf0Decoder {
         Ok(size)
     }
 
+    /// Decode a strict array from the buffer.
     pub fn decode_strict_array<'de>(&mut self) -> Result<Amf0Array<'de>, Amf0Error> {
         let size = self.decode_strict_array_header()? as usize;
 

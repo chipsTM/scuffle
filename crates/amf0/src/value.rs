@@ -46,10 +46,11 @@ impl<'a> Amf0Value<'a> {
         }
     }
 
+    /// Encode this AMF0 value with the given encoder.
     pub fn encode<W: io::Write>(&self, encoder: &mut Amf0Encoder<W>) -> Result<(), Amf0Error> {
         match self {
             Amf0Value::Number(v) => encoder.encode_number(*v),
-            Amf0Value::Boolean(v) => encoder.encode_bool(*v),
+            Amf0Value::Boolean(v) => encoder.encode_boolean(*v),
             Amf0Value::String(v) => encoder.encode_string(v.as_str()),
             Amf0Value::Object(v) => encoder.encode_object(v),
             Amf0Value::Null => encoder.encode_null(),
