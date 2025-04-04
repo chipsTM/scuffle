@@ -3,7 +3,6 @@
 use std::io;
 
 use scuffle_amf0::encoder::Amf0Encoder;
-use scuffle_amf0::{Amf0Object, Amf0Value};
 
 use super::{NetConnectionCommand, NetConnectionCommandConnectResult};
 use crate::command_messages::error::CommandError;
@@ -14,33 +13,11 @@ impl NetConnectionCommand<'_> {
         let mut encoder = Amf0Encoder::new(buf);
 
         match self {
-            Self::ConnectResult(NetConnectionCommandConnectResult {
-                fmsver,
-                capabilities,
-                level,
-                code,
-                description,
-                encoding,
-            }) => {
+            Self::ConnectResult(NetConnectionCommandConnectResult { properties, information }) => {
                 encoder.encode_string("_result")?;
                 encoder.encode_number(transaction_id)?;
-                let object: Amf0Object = [
-                    ("fmsVer".into(), Amf0Value::String(fmsver)),
-                    ("capabilities".into(), Amf0Value::Number(capabilities)),
-                ]
-                .into_iter()
-                .collect();
-                encoder.encode_object(&object)?;
-
-                let parameters: Amf0Object = [
-                    ("level".into(), Amf0Value::String(level.as_ref().into())),
-                    ("code".into(), Amf0Value::String(code.0.into())),
-                    ("description".into(), Amf0Value::String(description)),
-                    ("objectEncoding".into(), Amf0Value::Number(encoding)),
-                ]
-                .into_iter()
-                .collect();
-                encoder.encode_object(&parameters)?;
+                encoder.serialize(&properties)?;
+                encoder.serialize(&information)?;
             }
             Self::CreateStreamResult { stream_id } => {
                 encoder.encode_string("_result")?;
@@ -61,25 +38,18 @@ impl NetConnectionCommand<'_> {
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
     use bytes::{BufMut, BytesMut};
+    use scuffle_amf0::Amf0Value;
     use scuffle_amf0::decoder::Amf0Decoder;
 
     use super::*;
-    use crate::command_messages::CommandResultLevel;
 
     #[test]
     fn test_netconnection_connect_response() {
         let mut buf = BytesMut::new();
 
-        NetConnectionCommand::ConnectResult(NetConnectionCommandConnectResult {
-            fmsver: "flashver".into(),
-            capabilities: 31.0,
-            level: CommandResultLevel::Status,
-            code: "idk".into(),
-            description: "description".into(),
-            encoding: 0.0,
-        })
-        .write(&mut (&mut buf).writer(), 1.0)
-        .expect("write");
+        NetConnectionCommand::ConnectResult(NetConnectionCommandConnectResult::default())
+            .write(&mut (&mut buf).writer(), 1.0)
+            .expect("write");
 
         let mut deserializer = Amf0Decoder::new(buf.freeze());
         let values = deserializer.decode_all().unwrap();
@@ -91,26 +61,26 @@ mod tests {
             values[2],
             Amf0Value::Object(
                 [
-                    ("fmsVer".into(), Amf0Value::String("flashver".into())),
+                    ("fmsVer".into(), Amf0Value::String("FMS/3,0,1,123".into())),
                     ("capabilities".into(), Amf0Value::Number(31.0)),
                 ]
                 .into_iter()
                 .collect()
             )
-        ); // command object
+        );
         assert_eq!(
             values[3],
             Amf0Value::Object(
                 [
                     ("level".into(), Amf0Value::String("status".into())),
-                    ("code".into(), Amf0Value::String("idk".into())),
-                    ("description".into(), Amf0Value::String("description".into())),
+                    ("code".into(), Amf0Value::String("NetConnection.Connect.Success".into())),
+                    ("description".into(), Amf0Value::String("Connection Succeeded.".into())),
                     ("objectEncoding".into(), Amf0Value::Number(0.0)),
                 ]
                 .into_iter()
                 .collect()
             )
-        ); // info object
+        );
     }
 
     #[test]

@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use scuffle_amf0::{Amf0Object, Amf0Value};
 use scuffle_bytes_util::StringCow;
 
-use super::on_status::OnStatusCode;
+use super::on_status::{OnStatus, OnStatusCode};
 use crate::command_messages::CommandResultLevel;
 
 pub mod reader;
@@ -58,39 +58,50 @@ pub enum CapsExMask {
 /// - Legacy RTMP spec, 7.2.1.1
 #[derive(Debug, Clone, PartialEq)]
 pub struct NetConnectionCommandConnectResult<'a> {
+    /// Properties of the connection.
+    pub properties: NetConnectionCommandConnectResultProperties<'a>,
+    /// Information about the connection.
+    pub information: OnStatus<'a>,
+}
+
+/// NetConnection command `connect` result properties.
+///
+/// > Name-value pairs that describe the properties(fmsver etc.) of the connection.
+///
+/// Defined by:
+/// - Legacy RTMP spec, 7.2.1.1
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetConnectionCommandConnectResultProperties<'a> {
     /// Flash Media Server version.
     ///
     /// Usually set to "FMS/3,0,1,123".
-    fmsver: StringCow<'a>,
+    pub fms_ver: StringCow<'a>,
     /// No idea what this means, but it is used by other media servers as well.
     ///
     /// Usually set to 31.0.
-    capabilities: f64,
-    /// Result level.
-    level: CommandResultLevel,
-    /// Result code.
-    ///
-    /// Usually set to [`OnStatusCode::NET_CONNECTION_CONNECT_SUCCESS`].
-    code: OnStatusCode,
-    /// Result description.
-    ///
-    /// Usually set to "Connection Succeeded.".
-    description: StringCow<'a>,
-    /// Not sure what this means but it may stand for the AMF encoding version.
-    ///
-    /// Usually set to 0.0.
-    encoding: f64,
+    pub capabilities: f64,
 }
 
-impl Default for NetConnectionCommandConnectResult<'static> {
+impl Default for NetConnectionCommandConnectResultProperties<'static> {
     fn default() -> Self {
         Self {
-            fmsver: "FMS/3,0,1,123".into(),
+            fms_ver: "FMS/3,0,1,123".into(),
             capabilities: 31.0,
-            level: CommandResultLevel::Status,
-            code: OnStatusCode::NET_CONNECTION_CONNECT_SUCCESS,
-            description: "Connection Succeeded.".into(),
-            encoding: 0.0,
+        }
+    }
+}
+
+impl Default for NetConnectionCommandConnectResult<'_> {
+    fn default() -> Self {
+        Self {
+            information: OnStatus {
+                level: CommandResultLevel::Status,
+                code: OnStatusCode::NET_CONNECTION_CONNECT_SUCCESS,
+                description: Some("Connection Succeeded.".into()),
+                others: Some([("objectEncoding".into(), Amf0Value::Number(0.0))].into_iter().collect()),
+            },
+            properties: Default::default(),
         }
     }
 }

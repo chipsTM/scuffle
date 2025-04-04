@@ -3,7 +3,6 @@
 use std::io;
 
 use scuffle_amf0::encoder::Amf0Encoder;
-use scuffle_amf0::{Amf0Object, Amf0Value};
 
 use super::OnStatus;
 use crate::command_messages::error::CommandError;
@@ -17,21 +16,7 @@ impl OnStatus<'_> {
         encoder.encode_number(transaction_id)?;
         // command object is null
         encoder.encode_null()?;
-
-        let mut info_object = Amf0Object::new();
-
-        info_object.insert("level".into(), Amf0Value::String(self.level.to_string().into()));
-        info_object.insert("code".into(), Amf0Value::String(self.code.0.into()));
-
-        if let Some(description) = self.description {
-            info_object.insert("description".into(), Amf0Value::String(description));
-        }
-
-        if let Some(others) = self.others {
-            info_object.extend(others);
-        }
-
-        encoder.encode_object(&info_object)?;
+        encoder.serialize(self)?;
 
         Ok(())
     }

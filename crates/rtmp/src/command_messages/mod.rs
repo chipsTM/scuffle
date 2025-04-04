@@ -60,7 +60,8 @@ pub struct UnknownCommand<'a> {
 }
 
 /// NetStream onStatus level (7.2.2.) and NetConnection connect result level (7.2.1.1.)
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum CommandResultLevel {
     /// Warning level.
     ///
@@ -75,5 +76,6 @@ pub enum CommandResultLevel {
     /// Not further explained in any spec.
     Error,
     /// Any other level.
+    #[serde(untagged)]
     Unknown(String),
 }

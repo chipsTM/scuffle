@@ -34,7 +34,7 @@ num-derive = "0.4"
 bitmask-enum = "2.2.5"
 
 nutype-enum.workspace = true
-scuffle-amf0.workspace = true
+scuffle-amf0 = { workspace = true, features = ["serde"] }
 scuffle-bytes-util.workspace = true
 scuffle-future-ext.workspace = true
 scuffle-context.workspace = true

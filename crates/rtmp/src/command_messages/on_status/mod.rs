@@ -15,7 +15,8 @@ use crate::command_messages::CommandResultLevel;
 pub mod writer;
 
 /// The `onStatus` command is used to send status information from the server to the client.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OnStatus<'a> {
     /// The status code.
     ///
@@ -26,11 +27,14 @@ pub struct OnStatus<'a> {
     /// The level of the status update.
     pub level: CommandResultLevel,
     /// Any other additional information that should be sent as part of the object.
+    #[serde(flatten)]
     pub others: Option<Amf0Object<'a>>,
 }
 
 nutype_enum! {
     /// Common status codes used in the `onStatus` command.
+    #[derive(serde::Serialize)]
+    #[serde(transparent)]
     pub enum OnStatusCode(&'static str) {
         /// The `NetConnection.call()` method was not able to invoke the server-side method or command.
         NET_CONNECTION_CALL_FAILED = "NetConnection.Call.Failed",
