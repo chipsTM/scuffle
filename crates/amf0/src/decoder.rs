@@ -7,10 +7,7 @@ use crate::{Amf0Array, Amf0Error, Amf0Marker, Amf0Object, Amf0Value};
 
 /// AMF0 decoder.
 ///
-/// Provides various functions to decode different types of AMF0 values from a [`Bytes`] buffer.
-///
-/// Cheaply cloneable because it only contains an `io::Cursor<Bytes>`.
-/// See [`Bytes`] for more details about cloning.
+/// Provides various functions to decode different types of AMF0 values from a buffer implementing [`bytes::Buf`].
 #[derive(Debug, Clone)]
 pub struct Amf0Decoder<B> {
     pub(crate) buf: B,
@@ -28,7 +25,7 @@ impl<B> Amf0Decoder<B>
 where
     B: bytes::Buf,
 {
-    /// Create a new deserializer from a [`Bytes`] buffer.
+    /// Create a new deserializer from a buffer implementing [`bytes::Buf`].
     pub fn new(buf: B) -> Self {
         Self { buf, next_marker: None }
     }
