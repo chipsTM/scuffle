@@ -2,9 +2,13 @@
 
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::io;
 
 use scuffle_bytes_util::StringCow;
 use serde::ser::{SerializeMap, SerializeSeq};
+
+use crate::Amf0Error;
+use crate::encoder::Amf0Encoder;
 
 /// Represents any AMF0 object.
 pub type Amf0Object<'a> = HashMap<StringCow<'a>, Amf0Value<'a>>;
@@ -40,6 +44,17 @@ impl<'a> Amf0Value<'a> {
             }
             Amf0Value::Null => Amf0Value::Null,
             Amf0Value::Array(v) => Amf0Value::Array(v.into_owned().into_iter().map(|v| v.into_owned()).collect()),
+        }
+    }
+
+    pub fn encode<W: io::Write>(&self, encoder: &mut Amf0Encoder<W>) -> Result<(), Amf0Error> {
+        match self {
+            Amf0Value::Number(v) => encoder.encode_number(*v),
+            Amf0Value::Boolean(v) => encoder.encode_bool(*v),
+            Amf0Value::String(v) => encoder.encode_string(v.as_str()),
+            Amf0Value::Object(v) => encoder.encode_object(v),
+            Amf0Value::Null => encoder.encode_null(),
+            Amf0Value::Array(v) => encoder.encode_array(v),
         }
     }
 }
@@ -96,6 +111,8 @@ impl<'a> FromIterator<Amf0Value<'a>> for Amf0Value<'a> {
     }
 }
 
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<'de> serde::de::Deserialize<'de> for Amf0Value<'de> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -229,6 +246,8 @@ impl<'de> serde::de::Deserialize<'de> for Amf0Value<'de> {
     }
 }
 
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<'a> serde::ser::Serialize for Amf0Value<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -410,6 +429,7 @@ mod tests {
         assert_eq!(owned_value, value);
     }
 
+    #[cfg(feature = "serde")]
     #[test]
     fn deserialize() {
         #[derive(Debug)]

@@ -1,13 +1,13 @@
 //! Deserialize AMF0 data to a Rust data structure.
 
-use std::io::{self, Seek};
+use std::io::Seek;
 
-use byteorder::{BigEndian, ReadBytesExt};
-use bytes::{Buf, Bytes};
+use byteorder::ReadBytesExt;
+use bytes::Bytes;
 use num_traits::FromPrimitive;
-use scuffle_bytes_util::{BytesCursorExt, StringCow};
 use serde::de::{EnumAccess, IntoDeserializer, MapAccess, SeqAccess, VariantAccess};
 
+use crate::decoder::{Amf0Decoder, ObjectHeader};
 use crate::{Amf0Error, Amf0Marker, Amf0Value};
 
 /// Deserialize a value from bytes.
@@ -22,81 +22,27 @@ where
 
 /// Deserializer for AMF0 data.
 pub struct Deserializer {
-    reader: io::Cursor<Bytes>,
+    decoder: Amf0Decoder,
 }
 
 impl Deserializer {
     /// Create a new deserializer from a reader.
     pub fn new(bytes: Bytes) -> Self {
-        Deserializer {
-            reader: io::Cursor::new(bytes),
+        Self {
+            decoder: Amf0Decoder::new(bytes),
         }
     }
 
-    fn expect_marker(&mut self, expect: &'static [Amf0Marker]) -> Result<Amf0Marker, Amf0Error> {
-        let marker = self.reader.read_u8()?;
-        let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
-
-        if !expect.contains(&marker) {
-            Err(Amf0Error::UnexpectedType {
-                expected: expect,
-                got: marker,
-            })
-        } else {
-            Ok(marker)
-        }
-    }
-
-    fn read_number(&mut self) -> Result<f64, Amf0Error> {
-        let marker = self.expect_marker(&[Amf0Marker::Number, Amf0Marker::Date])?;
-
-        let number = self.reader.read_f64::<BigEndian>()?;
-
-        if marker == Amf0Marker::Date {
-            // Skip the timezone
-            self.reader.read_i16::<BigEndian>()?;
-        }
-
-        Ok(number)
-    }
-
-    fn read_normal_string<'de>(&mut self) -> Result<StringCow<'de>, Amf0Error> {
-        let len = self.reader.read_u16::<BigEndian>()? as usize;
-
-        Ok(StringCow::from_bytes(self.reader.extract_bytes(len)?.try_into()?))
-    }
-
-    fn read_string<'de>(&mut self) -> Result<StringCow<'de>, Amf0Error> {
-        let marker = self.expect_marker(&[Amf0Marker::String, Amf0Marker::LongString, Amf0Marker::XmlDocument])?;
-
-        let len = if marker == Amf0Marker::String {
-            self.reader.read_u16::<BigEndian>()? as usize
-        } else {
-            // LongString or XmlDocument
-            self.reader.read_u32::<BigEndian>()? as usize
-        };
-
-        let s = StringCow::from_bytes(self.reader.extract_bytes(len)?.try_into()?);
-        Ok(s)
-    }
-}
-
-impl Deserializer {
     /// Deserialize the remaining values from the reader and return them as a vector of [`Amf0Value`]s.
+    #[inline]
     pub fn deserialize_all<'de>(&mut self) -> Result<Vec<Amf0Value<'de>>, Amf0Error> {
-        let mut values = Vec::new();
-
-        while self.reader.has_remaining() {
-            let value = serde::de::Deserialize::deserialize(&mut *self)?;
-            values.push(value);
-        }
-
-        Ok(values)
+        self.decoder.decode_all()
     }
 
     /// Check if there are remaining bytes to read in this deserializer.
+    #[inline]
     pub fn has_remaining(&self) -> bool {
-        self.reader.has_remaining()
+        self.decoder.has_remaining()
     }
 }
 
@@ -107,10 +53,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let marker = self.reader.read_u8()?;
-        let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
-
-        self.reader.seek_relative(-1)?;
+        let marker = self.decoder.peek_marker()?;
 
         match marker {
             Amf0Marker::Boolean => self.deserialize_bool(visitor),
@@ -127,9 +70,8 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        self.expect_marker(&[Amf0Marker::Boolean])?;
-        let value = self.reader.read_u8()?;
-        visitor.visit_bool(value != 0)
+        let value = self.decoder.decode_boolean()?;
+        visitor.visit_bool(value)
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -157,7 +99,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let value = self.read_number()?;
+        let value = self.decoder.decode_number()?;
         visitor.visit_i64(value as i64)
     }
 
@@ -186,7 +128,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let value = self.read_number()?;
+        let value = self.decoder.decode_number()?;
         visitor.visit_u64(value as u64)
     }
 
@@ -201,7 +143,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let value = self.read_number()?;
+        let value = self.decoder.decode_number()?;
         visitor.visit_f64(value)
     }
 
@@ -209,7 +151,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let value = self.read_number()?;
+        let value = self.decoder.decode_number()?;
         visitor.visit_char(value as u8 as char)
     }
 
@@ -217,16 +159,16 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let s = self.read_string()?;
-        s.into_deserializer().deserialize_string(visitor)
+        let value = self.decoder.decode_string()?;
+        value.into_deserializer().deserialize_string(visitor)
     }
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        let s = self.read_string()?;
-        s.into_deserializer().deserialize_str(visitor)
+        let value = self.decoder.decode_string()?;
+        value.into_deserializer().deserialize_str(visitor)
     }
 
     fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -247,14 +189,14 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let marker = self.reader.read_u8()?;
+        let marker = self.decoder.reader.read_u8()?;
         let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
 
         if marker == Amf0Marker::Null || marker == Amf0Marker::Undefined {
             visitor.visit_none()
         } else {
             // We have to seek back because the marker is part of the next value
-            self.reader.seek_relative(-1)?;
+            self.decoder.reader.seek_relative(-1)?;
             visitor.visit_some(self)
         }
     }
@@ -263,7 +205,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        self.expect_marker(&[Amf0Marker::Null, Amf0Marker::Undefined])?;
+        self.decoder.decode_null()?;
         visitor.visit_unit()
     }
 
@@ -285,8 +227,8 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        self.expect_marker(&[Amf0Marker::StrictArray])?;
-        let size = self.reader.read_u32::<BigEndian>()? as usize;
+        let size = self.decoder.decode_strict_array_header()? as usize;
+
         visitor.visit_seq(StrictArray {
             de: self,
             remaining: size,
@@ -297,8 +239,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        self.expect_marker(&[Amf0Marker::StrictArray])?;
-        let size = self.reader.read_u32::<BigEndian>()? as usize;
+        let size = self.decoder.decode_strict_array_header()? as usize;
 
         if len != size {
             return Err(Amf0Error::WrongArrayLength {
@@ -324,23 +265,14 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let marker = self.expect_marker(&[Amf0Marker::Object, Amf0Marker::TypedObject, Amf0Marker::EcmaArray])?;
+        let header = self.decoder.decode_object_header()?;
 
-        if marker == Amf0Marker::TypedObject {
-            // Skip the class name
-            self.read_normal_string()?;
-        }
-
-        if marker == Amf0Marker::Object || marker == Amf0Marker::TypedObject {
-            visitor.visit_map(Object { de: self })
-        } else {
-            // EcmaArray
-            let size = self.reader.read_u32::<BigEndian>()? as usize;
-
-            visitor.visit_map(EcmaArray {
+        match header {
+            ObjectHeader::Object | ObjectHeader::TypedObject { .. } => visitor.visit_map(Object { de: self }),
+            ObjectHeader::EcmaArray { size } => visitor.visit_map(EcmaArray {
                 de: self,
-                remaining: size,
-            })
+                remaining: size as usize,
+            }),
         }
     }
 
@@ -372,7 +304,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let s = self.read_string()?;
+        let s = self.decoder.decode_string()?;
         s.into_deserializer().deserialize_identifier(visitor)
     }
 
@@ -420,17 +352,12 @@ impl<'a, 'de> MapAccess<'de> for Object<'a> {
     where
         K: serde::de::DeserializeSeed<'de>,
     {
-        let end_marker = self.de.reader.read_u24::<BigEndian>()?;
-        if end_marker == Amf0Marker::ObjectEnd as u32 {
+        let Some(key) = self.de.decoder.decode_object_key()? else {
+            // Reached ObjectEnd marker
             return Ok(None);
-        }
+        };
 
-        // Seek back to the start of the key
-        self.de.reader.seek_relative(-3)?;
-
-        // Object keys are not preceeded with a marker and are always normal strings
-        let s = self.de.read_normal_string()?;
-        let string_de = IntoDeserializer::<Self::Error>::into_deserializer(s);
+        let string_de = key.into_deserializer();
         seed.deserialize(string_de).map(Some)
     }
 
@@ -455,22 +382,14 @@ impl<'a, 'de> MapAccess<'de> for EcmaArray<'a> {
         K: serde::de::DeserializeSeed<'de>,
     {
         if self.remaining == 0 {
-            // It seems like the object end marker is optional here?
-            // Anyway, we don't need it because we know the length of the array
-
-            if self.de.reader.remaining() >= 3 && self.de.reader.read_u24::<BigEndian>()? != Amf0Marker::ObjectEnd as u32 {
-                // Seek back if this wasn't an end marker
-                self.de.reader.seek_relative(-3)?;
-            }
-
+            self.de.decoder.decode_optional_object_end()?;
             return Ok(None);
         }
 
         self.remaining -= 1;
 
-        // Object keys are not preceeded with a marker and are always normal strings
-        let s = self.de.read_normal_string()?;
-        let string_de = IntoDeserializer::<Self::Error>::into_deserializer(s);
+        let s = self.de.decoder.decode_ecma_array_key()?;
+        let string_de = s.into_deserializer();
         seed.deserialize(string_de).map(Some)
     }
 
@@ -498,7 +417,7 @@ impl<'a, 'de> EnumAccess<'de> for Enum<'a> {
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        let variant = self.de.read_string()?;
+        let variant = self.de.decoder.decode_string()?;
         let string_de = IntoDeserializer::<Self::Error>::into_deserializer(variant);
         let value = seed.deserialize(string_de)?;
 

@@ -51,16 +51,22 @@ pub enum Amf0Error {
         got: usize,
     },
     /// Custom error message.
+    #[cfg(feature = "serde")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
     #[error("{0}")]
     Custom(String),
 }
 
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl serde::ser::Error for Amf0Error {
     fn custom<T: Display>(msg: T) -> Self {
         Amf0Error::Custom(msg.to_string())
     }
 }
 
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl serde::de::Error for Amf0Error {
     fn custom<T: Display>(msg: T) -> Self {
         Amf0Error::Custom(msg.to_string())

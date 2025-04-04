@@ -11,15 +11,22 @@ keywords = ["amf0", "rtmp", "flash", "video", "flv"]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 
 [dependencies]
-serde = "1.0.219"
+serde = { version = "1.0.219", optional = true }
 bytes = "1.10.1"
 byteorder = "1.5"
 num-traits = "0.2"
 num-derive = "0.4"
 thiserror = "2.0"
 bytestring = "1.4.0"
-scuffle-bytes-util = { features = ["serde"], workspace = true }
+scuffle-bytes-util = { workspace = true, optional = true }
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 serde = { version = "1.0.219", features = ["derive"] }
+
+[features]
+serde = ["dep:serde", "scuffle-bytes-util/serde"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

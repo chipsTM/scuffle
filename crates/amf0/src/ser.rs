@@ -2,14 +2,14 @@
 
 use std::io;
 
-use byteorder::{BigEndian, WriteBytesExt};
 use serde::Serialize;
 use serde::ser::{
     Impossible, SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple, SerializeTupleStruct,
     SerializeTupleVariant,
 };
 
-use crate::{Amf0Error, Amf0Marker};
+use crate::Amf0Error;
+use crate::encoder::Amf0Encoder;
 
 /// Serialize a value into a given writer.
 pub fn to_writer<W>(writer: W, value: &impl serde::Serialize) -> crate::Result<()>
@@ -29,13 +29,15 @@ pub fn to_bytes(value: &impl serde::Serialize) -> crate::Result<Vec<u8>> {
 
 /// Serializer for AMF0 data.
 pub struct Serializer<W> {
-    writer: W,
+    encoder: Amf0Encoder<W>,
 }
 
 impl<W> Serializer<W> {
     /// Create a new AMF0 serializer from a writer.
     pub fn new(writer: W) -> Self {
-        Self { writer }
+        Self {
+            encoder: Amf0Encoder::new(writer),
+        }
     }
 }
 
@@ -54,9 +56,7 @@ where
     type SerializeTupleVariant = Self;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
-        self.writer.write_u8(Amf0Marker::Boolean as u8)?;
-        self.writer.write_u8(v as u8)?;
-        Ok(())
+        self.encoder.encode_bool(v)
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {
@@ -96,9 +96,7 @@ where
     }
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok, Self::Error> {
-        self.writer.write_u8(Amf0Marker::Number as u8)?;
-        self.writer.write_f64::<BigEndian>(v)?;
-        Ok(())
+        self.encoder.encode_number(v)
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
@@ -106,23 +104,7 @@ where
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        if v.len() <= (u16::MAX as usize) {
-            // Normal string
-            self.writer.write_u8(Amf0Marker::String as u8)?;
-            self.writer.write_u16::<BigEndian>(v.len() as u16)?;
-            self.writer.write_all(v.as_bytes())?;
-        } else {
-            // Long string
-
-            // This try_into fails if the length is greater than u32::MAX
-            let len: u32 = v.len().try_into()?;
-
-            self.writer.write_u8(Amf0Marker::LongString as u8)?;
-            self.writer.write_u32::<BigEndian>(len)?;
-            self.writer.write_all(v.as_bytes())?;
-        }
-
-        Ok(())
+        self.encoder.encode_string(v)
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
@@ -150,15 +132,12 @@ where
 
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
         // Serialize unit as null
-        self.writer.write_u8(Amf0Marker::Null as u8)?;
-        Ok(())
+        self.encoder.encode_null()
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        let len: u32 = len.ok_or(Amf0Error::UnknownLength)?.try_into()?;
-
-        self.writer.write_u8(Amf0Marker::StrictArray as u8)?;
-        self.writer.write_u32::<BigEndian>(len)?;
+        let len = len.ok_or(Amf0Error::UnknownLength)?.try_into()?;
+        self.encoder.encode_array_header(len)?;
         Ok(self)
     }
 
@@ -173,7 +152,7 @@ where
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        self.writer.write_u8(Amf0Marker::Object as u8)?;
+        self.encoder.encode_object_header()?;
         Ok(self)
     }
 
@@ -231,8 +210,7 @@ where
         let len: u32 = len.try_into()?;
 
         variant.serialize(&mut *self)?;
-        self.writer.write_u8(Amf0Marker::StrictArray as u8)?;
-        self.writer.write_u32::<BigEndian>(len)?;
+        self.encoder.encode_array_header(len)?;
 
         Ok(self)
     }
@@ -245,7 +223,7 @@ where
         _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         variant.serialize(&mut *self)?;
-        self.writer.write_u8(Amf0Marker::Object as u8)?;
+        self.encoder.encode_object_header()?;
 
         Ok(self)
     }
@@ -324,7 +302,7 @@ where
         T: ?Sized + serde::Serialize,
     {
         key.serialize(&mut MapKeySerializer {
-            writer: &mut self.writer,
+            encoder: &mut self.encoder,
         })
     }
 
@@ -347,8 +325,7 @@ where
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.writer.write_u24::<BigEndian>(Amf0Marker::ObjectEnd as u32)?;
-        Ok(())
+        self.encoder.encode_object_trailer()
     }
 }
 
@@ -364,7 +341,7 @@ where
         T: ?Sized + serde::Serialize,
     {
         key.serialize(&mut MapKeySerializer {
-            writer: &mut self.writer,
+            encoder: &mut self.encoder,
         })?;
         value.serialize(&mut **self)?;
 
@@ -372,16 +349,15 @@ where
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.writer.write_u24::<BigEndian>(Amf0Marker::ObjectEnd as u32)?;
-        Ok(())
+        self.encoder.encode_object_trailer()
     }
 }
 
-struct MapKeySerializer<W> {
-    writer: W,
+struct MapKeySerializer<'a, W> {
+    encoder: &'a mut Amf0Encoder<W>,
 }
 
-impl<W> serde::ser::Serializer for &mut MapKeySerializer<W>
+impl<W> serde::ser::Serializer for &mut MapKeySerializer<'_, W>
 where
     W: io::Write,
 {
@@ -444,12 +420,7 @@ where
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        let len: u16 = v.len().try_into()?;
-
-        self.writer.write_u16::<BigEndian>(len)?;
-        self.writer.write_all(v.as_bytes())?;
-
-        Ok(())
+        self.encoder.encode_object_key(v)
     }
 
     fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
@@ -580,7 +551,7 @@ where
         T: ?Sized + Serialize,
     {
         key.serialize(&mut MapKeySerializer {
-            writer: &mut self.writer,
+            encoder: &mut self.encoder,
         })?;
         value.serialize(&mut **self)?;
 
@@ -588,8 +559,7 @@ where
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.writer.write_u24::<BigEndian>(Amf0Marker::ObjectEnd as u32)?;
-        Ok(())
+        self.encoder.encode_object_trailer()
     }
 }
 

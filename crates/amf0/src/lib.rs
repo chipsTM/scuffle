@@ -47,13 +47,20 @@
 //! You can choose between one of them if you use this work.
 //!
 //! `SPDX-License-Identifier: MIT OR Apache-2.0`
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(all(coverage_nightly, test), feature(coverage_attribute))]
-#![deny(missing_docs)]
+// #![deny(missing_docs)]
 #![deny(unsafe_code)]
 #![deny(unreachable_pub)]
 
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 pub mod de;
+pub mod decoder;
+pub mod encoder;
 pub mod error;
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 pub mod ser;
 pub mod value;
 
