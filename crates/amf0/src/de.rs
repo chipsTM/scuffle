@@ -543,7 +543,6 @@ mod tests {
     #[test]
     fn numbers() {
         number_test(1u8);
-        number_test(1u8 as char);
         number_test(1u16);
         number_test(1u32);
         number_test(1u64);
@@ -569,6 +568,12 @@ mod tests {
                 got: Amf0Marker::Boolean
             }
         ));
+    }
+
+    #[test]
+    fn char() {
+        let err = from_bytes::<char>(Bytes::from_owner([])).unwrap_err();
+        assert!(matches!(err, Amf0Error::CharNotSupported));
     }
 
     #[test]
