@@ -4,9 +4,9 @@ use std::collections::HashMap;
 use std::io;
 
 use bytes::Bytes;
+use scuffle_amf0::decoder::Amf0Decoder;
 use scuffle_amf0::{Amf0Object, Amf0Value};
 use scuffle_bytes_util::{BytesCursorExt, StringCow};
-use serde::Deserialize;
 
 use crate::audio::header::enhanced::AudioFourCc;
 use crate::audio::header::legacy::SoundFormat;
@@ -212,23 +212,23 @@ impl ScriptData<'_> {
     /// Demux the [`ScriptData`] from the given reader.
     pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, FlvError> {
         let buf = reader.extract_remaining();
-        let mut amf0_deserializer = scuffle_amf0::Deserializer::new(buf);
+        let mut decoder = Amf0Decoder::new(buf);
 
-        let name = StringCow::deserialize(&mut amf0_deserializer)?;
+        let name = decoder.decode_string()?;
 
         match name.as_ref() {
             // We might also want to handle "@setDataFrame" the same way as onMetaData.
             // I'm not sure right now if that is the intended behavior though.
             "onMetaData" => {
-                let data = OnMetaData::deserialize(&mut amf0_deserializer)?;
+                let data = decoder.deserialize()?;
                 Ok(Self::OnMetaData(Box::new(data)))
             }
             "onXMPData" => {
-                let data = OnXmpData::deserialize(&mut amf0_deserializer)?;
+                let data = decoder.deserialize()?;
                 Ok(Self::OnXmpData(data))
             }
             _ => {
-                let data = amf0_deserializer.deserialize_all()?;
+                let data = decoder.decode_all()?;
                 Ok(Self::Other { name, data })
             }
         }
@@ -239,7 +239,7 @@ impl ScriptData<'_> {
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
     use scuffle_amf0::Amf0Marker;
-    use serde::Serialize;
+    use scuffle_amf0::encoder::Amf0Encoder;
 
     use super::*;
 
@@ -302,12 +302,12 @@ mod tests {
     #[test]
     fn script_on_meta_data_full() {
         let mut data = Vec::new();
-        let mut serializer = scuffle_amf0::Serializer::new(&mut data);
+        let mut encoder = Amf0Encoder::new(&mut data);
 
         let audio_track_id_info_map = [("test".into(), Amf0Value::Number(1.0))].into_iter().collect();
         let video_track_id_info_map = [("test2".into(), Amf0Value::Number(2.0))].into_iter().collect();
 
-        "onMetaData".serialize(&mut serializer).unwrap();
+        encoder.encode_string("onMetaData").unwrap();
         let object: Amf0Object = [
             (
                 "audiocodecid".into(),
@@ -335,11 +335,9 @@ mod tests {
         ]
         .into_iter()
         .collect();
-        Amf0Value::Object(object).serialize(&mut serializer).unwrap();
+        encoder.encode_object(&object).unwrap();
 
-        println!("{:?}", data);
         let mut reader = io::Cursor::new(Bytes::from_owner(data));
-
         let script_data = ScriptData::demux(&mut reader).unwrap();
 
         let ScriptData::OnMetaData(metadata) = script_data else {

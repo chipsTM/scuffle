@@ -2,8 +2,8 @@
 
 use std::io;
 
+use scuffle_amf0::encoder::Amf0Encoder;
 use scuffle_amf0::{Amf0Object, Amf0Value};
-use serde::Serialize;
 
 use super::{NetConnectionCommand, NetConnectionCommandConnectResult};
 use crate::command_messages::error::CommandError;
@@ -11,7 +11,7 @@ use crate::command_messages::error::CommandError;
 impl NetConnectionCommand<'_> {
     /// Writes a [`NetConnectionCommand`] to the given writer.
     pub fn write(self, buf: &mut impl io::Write, transaction_id: f64) -> Result<(), CommandError> {
-        let mut serializer = scuffle_amf0::Serializer::new(buf);
+        let mut encoder = Amf0Encoder::new(buf);
 
         match self {
             Self::ConnectResult(NetConnectionCommandConnectResult {
@@ -22,31 +22,31 @@ impl NetConnectionCommand<'_> {
                 description,
                 encoding,
             }) => {
-                "_result".serialize(&mut serializer)?;
-                transaction_id.serialize(&mut serializer)?;
-                [
+                encoder.encode_string("_result")?;
+                encoder.encode_number(transaction_id)?;
+                let object: Amf0Object = [
                     ("fmsVer".into(), Amf0Value::String(fmsver)),
                     ("capabilities".into(), Amf0Value::Number(capabilities)),
                 ]
                 .into_iter()
-                .collect::<Amf0Object>()
-                .serialize(&mut serializer)?;
+                .collect();
+                encoder.encode_object(&object)?;
 
-                [
+                let parameters: Amf0Object = [
                     ("level".into(), Amf0Value::String(level.as_ref().into())),
                     ("code".into(), Amf0Value::String(code.0.into())),
                     ("description".into(), Amf0Value::String(description)),
                     ("objectEncoding".into(), Amf0Value::Number(encoding)),
                 ]
                 .into_iter()
-                .collect::<Amf0Object>()
-                .serialize(&mut serializer)?;
+                .collect();
+                encoder.encode_object(&parameters)?;
             }
             Self::CreateStreamResult { stream_id } => {
-                "_result".serialize(&mut serializer)?;
-                transaction_id.serialize(&mut serializer)?;
-                ().serialize(&mut serializer)?;
-                stream_id.serialize(&mut serializer)?;
+                encoder.encode_string("_result")?;
+                encoder.encode_number(transaction_id)?;
+                encoder.encode_null()?;
+                encoder.encode_number(stream_id)?;
             }
             Self::Connect { .. } | Self::Call { .. } | Self::Close | Self::CreateStream => {
                 return Err(CommandError::NoClientImplementation);
@@ -61,6 +61,7 @@ impl NetConnectionCommand<'_> {
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
     use bytes::{BufMut, BytesMut};
+    use scuffle_amf0::decoder::Amf0Decoder;
 
     use super::*;
     use crate::command_messages::CommandResultLevel;
@@ -80,8 +81,8 @@ mod tests {
         .write(&mut (&mut buf).writer(), 1.0)
         .expect("write");
 
-        let mut deserializer = scuffle_amf0::Deserializer::new(buf.freeze());
-        let values = deserializer.deserialize_all().unwrap();
+        let mut deserializer = Amf0Decoder::new(buf.freeze());
+        let values = deserializer.decode_all().unwrap();
 
         assert_eq!(values.len(), 4);
         assert_eq!(values[0], Amf0Value::String("_result".into())); // command name
@@ -120,8 +121,8 @@ mod tests {
             .write(&mut (&mut buf).writer(), 1.0)
             .expect("write");
 
-        let mut deserializer = scuffle_amf0::Deserializer::new(buf.freeze());
-        let values = deserializer.deserialize_all().unwrap();
+        let mut deserializer = Amf0Decoder::new(buf.freeze());
+        let values = deserializer.decode_all().unwrap();
 
         assert_eq!(values.len(), 4);
         assert_eq!(values[0], Amf0Value::String("_result".into())); // command name

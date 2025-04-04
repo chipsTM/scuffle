@@ -1,10 +1,9 @@
 //! Writing [`OnStatus`].
 
-use std::collections::HashMap;
 use std::io;
 
-use scuffle_amf0::Amf0Value;
-use serde::Serialize;
+use scuffle_amf0::encoder::Amf0Encoder;
+use scuffle_amf0::{Amf0Object, Amf0Value};
 
 use super::OnStatus;
 use crate::command_messages::error::CommandError;
@@ -12,14 +11,14 @@ use crate::command_messages::error::CommandError;
 impl OnStatus<'_> {
     /// Writes an [`OnStatus`] command to the given writer.
     pub fn write(self, buf: &mut impl io::Write, transaction_id: f64) -> Result<(), CommandError> {
-        let mut serializer = scuffle_amf0::Serializer::new(buf);
+        let mut encoder = Amf0Encoder::new(buf);
 
-        "onStatus".serialize(&mut serializer)?;
-        transaction_id.serialize(&mut serializer)?;
+        encoder.encode_string("onStatus")?;
+        encoder.encode_number(transaction_id)?;
         // command object is null
-        ().serialize(&mut serializer)?;
+        encoder.encode_null()?;
 
-        let mut info_object = HashMap::new();
+        let mut info_object = Amf0Object::new();
 
         info_object.insert("level".into(), Amf0Value::String(self.level.to_string().into()));
         info_object.insert("code".into(), Amf0Value::String(self.code.0.into()));
@@ -32,7 +31,7 @@ impl OnStatus<'_> {
             info_object.extend(others);
         }
 
-        info_object.serialize(&mut serializer)?;
+        encoder.encode_object(&info_object)?;
 
         Ok(())
     }
@@ -43,6 +42,7 @@ impl OnStatus<'_> {
 mod tests {
     use bytes::{BufMut, BytesMut};
     use scuffle_amf0::Amf0Value;
+    use scuffle_amf0::decoder::Amf0Decoder;
 
     use crate::command_messages::CommandResultLevel;
     use crate::command_messages::on_status::OnStatus;
@@ -64,7 +64,7 @@ mod tests {
         .write(&mut (&mut buf).writer(), 1.0)
         .expect("write");
 
-        let values = scuffle_amf0::Deserializer::new(buf.freeze()).deserialize_all().unwrap();
+        let values = Amf0Decoder::new(buf.freeze()).decode_all().unwrap();
 
         assert_eq!(values.len(), 4);
         assert_eq!(values[0], Amf0Value::String("onStatus".into())); // command name

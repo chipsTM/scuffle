@@ -53,8 +53,8 @@ impl MessageData<'_> {
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
     use bytes::Bytes;
+    use scuffle_amf0::encoder::Amf0Encoder;
     use scuffle_amf0::{Amf0Object, Amf0Value};
-    use serde::Serialize;
 
     use super::*;
     use crate::command_messages::CommandType;
@@ -63,15 +63,12 @@ mod tests {
     #[test]
     fn test_parse_command() {
         let mut buf = Vec::new();
-        let mut serializer = scuffle_amf0::Serializer::new(&mut buf);
+        let mut encoder = Amf0Encoder::new(&mut buf);
 
-        "connect".serialize(&mut serializer).unwrap();
-        1.0f64.serialize(&mut serializer).unwrap();
-        [("app".into(), Amf0Value::String("testapp".into()))]
-            .into_iter()
-            .collect::<Amf0Object>()
-            .serialize(&mut serializer)
-            .unwrap();
+        encoder.encode_string("onStatus").unwrap();
+        encoder.encode_number(1.0).unwrap();
+        let object: Amf0Object = [("app".into(), Amf0Value::String("testapp".into()))].into_iter().collect();
+        encoder.encode_object(&object).unwrap();
 
         let amf_data = Bytes::from(buf);
 
@@ -160,13 +157,10 @@ mod tests {
     fn test_parse_metadata() {
         let mut buf = Vec::new();
 
-        let mut serializer = scuffle_amf0::Serializer::new(&mut buf);
-        "onMetaData".serialize(&mut serializer).unwrap();
-        [("duration".into(), Amf0Value::Number(0.0))]
-            .into_iter()
-            .collect::<Amf0Object>()
-            .serialize(&mut serializer)
-            .unwrap();
+        let mut encoder = Amf0Encoder::new(&mut buf);
+        encoder.encode_string("onMetaData").unwrap();
+        let object: Amf0Object = [("duration".into(), Amf0Value::Number(0.0))].into_iter().collect();
+        encoder.encode_object(&object).unwrap();
 
         let amf_data = Bytes::from(buf);
         let chunk = Chunk::new(0, 0, MessageType::DataAMF0, 0, amf_data.clone());

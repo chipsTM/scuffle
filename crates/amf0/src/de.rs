@@ -25,6 +25,12 @@ pub struct Deserializer {
     decoder: Amf0Decoder,
 }
 
+impl From<Amf0Decoder> for Deserializer {
+    fn from(decoder: Amf0Decoder) -> Self {
+        Self { decoder }
+    }
+}
+
 impl Deserializer {
     /// Create a new deserializer from a reader.
     pub fn new(bytes: Bytes) -> Self {

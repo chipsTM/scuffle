@@ -7,6 +7,7 @@ use std::io::{self, Read};
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
 use metadata::VideoPacketMetadataEntry;
+use scuffle_amf0::decoder::Amf0Decoder;
 use scuffle_av1::{AV1CodecConfigurationRecord, AV1VideoDescriptor};
 use scuffle_bytes_util::BytesCursorExt;
 use scuffle_h264::AVCDecoderConfigurationRecord;
@@ -113,12 +114,12 @@ impl<'a> VideoPacket<'a> {
         match header.video_packet_type {
             VideoPacketType::Metadata => {
                 let data = reader.extract_bytes(size_of_video_track.unwrap_or(reader.remaining()))?;
-                let mut amf_deserializer = scuffle_amf0::Deserializer::new(data);
+                let mut decoder = Amf0Decoder::new(data);
 
                 let mut metadata = Vec::new();
 
-                while amf_deserializer.has_remaining() {
-                    metadata.push(metadata::VideoPacketMetadataEntry::read(&mut amf_deserializer)?);
+                while decoder.has_remaining() {
+                    metadata.push(metadata::VideoPacketMetadataEntry::read(&mut decoder)?);
                 }
 
                 Ok(Self::Metadata(metadata))

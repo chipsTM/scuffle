@@ -1,8 +1,8 @@
 //! Types and functions for working with metadata video packets.
 
 use scuffle_amf0::Amf0Object;
+use scuffle_amf0::decoder::Amf0Decoder;
 use scuffle_bytes_util::StringCow;
-use serde::Deserialize;
 
 use crate::error::FlvError;
 
@@ -157,17 +157,14 @@ pub enum VideoPacketMetadataEntry<'a> {
 }
 
 impl VideoPacketMetadataEntry<'_> {
-    /// Read a video packet metadata entry from the given [`scuffle_amf0::Deserializer`].
-    pub fn read(deserializer: &mut scuffle_amf0::Deserializer) -> Result<Self, FlvError> {
-        let key = StringCow::deserialize(&mut *deserializer)?;
+    /// Read a video packet metadata entry from the given [`Amf0Decoder`].
+    pub fn read(decoder: &mut Amf0Decoder) -> Result<Self, FlvError> {
+        let key = decoder.decode_string()?;
 
         match key.as_ref() {
-            "colorInfo" => Ok(VideoPacketMetadataEntry::ColorInfo(MetadataColorInfo::deserialize(
-                deserializer,
-            )?)),
+            "colorInfo" => Ok(VideoPacketMetadataEntry::ColorInfo(decoder.deserialize()?)),
             _ => {
-                let object = Amf0Object::deserialize(deserializer)?;
-
+                let object = decoder.decode_object()?;
                 Ok(VideoPacketMetadataEntry::Other { key, object })
             }
         }
@@ -177,8 +174,9 @@ impl VideoPacketMetadataEntry<'_> {
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
+    use scuffle_amf0::decoder::Amf0Decoder;
+    use scuffle_amf0::encoder::Amf0Encoder;
     use scuffle_amf0::{Amf0Object, Amf0Value};
-    use serde::Serialize;
 
     use super::VideoPacketMetadataEntry;
     use crate::video::body::enhanced::metadata::MetadataColorInfo;
@@ -231,11 +229,11 @@ mod tests {
         .collect();
 
         let mut buf = Vec::new();
-        let mut serializer = scuffle_amf0::Serializer::new(&mut buf);
-        "colorInfo".serialize(&mut serializer).unwrap();
-        object.serialize(&mut serializer).unwrap();
+        let mut encoder = Amf0Encoder::new(&mut buf);
+        encoder.encode_string("colorInfo").unwrap();
+        encoder.serialize(object).unwrap();
 
-        let mut deserializer = scuffle_amf0::Deserializer::new(buf.into());
+        let mut deserializer = Amf0Decoder::new(buf.into());
         let entry = VideoPacketMetadataEntry::read(&mut deserializer).unwrap();
 
         assert_eq!(

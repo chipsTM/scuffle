@@ -4,7 +4,8 @@ use std::convert::Infallible;
 use std::str::FromStr;
 
 use bytes::Bytes;
-use serde::Deserialize;
+use scuffle_amf0::decoder::Amf0Decoder;
+use scuffle_bytes_util::StringCow;
 
 use super::error::CommandError;
 use super::netconnection::NetConnectionCommand;
@@ -14,12 +15,12 @@ use super::{Command, CommandResultLevel, CommandType, UnknownCommand};
 impl Command<'_> {
     /// Reads a [`Command`] from the given payload.
     pub fn read(payload: Bytes) -> Result<Self, CommandError> {
-        let mut deserializer = scuffle_amf0::Deserializer::new(payload);
+        let mut decoder = Amf0Decoder::new(payload);
 
-        let command_name = String::deserialize(&mut deserializer)?;
-        let transaction_id = f64::deserialize(&mut deserializer)?;
+        let command_name = decoder.decode_string()?;
+        let transaction_id = decoder.decode_number()?;
 
-        let command_type = CommandType::read(command_name, &mut deserializer)?;
+        let command_type = CommandType::read(command_name, &mut decoder)?;
 
         Ok(Self {
             transaction_id,
@@ -28,17 +29,17 @@ impl Command<'_> {
     }
 }
 
-impl CommandType<'_> {
-    fn read(command_name: String, deserializer: &mut scuffle_amf0::Deserializer) -> Result<Self, CommandError> {
-        if let Some(command) = NetConnectionCommand::read(&command_name, deserializer)? {
+impl<'a> CommandType<'a> {
+    fn read(command_name: StringCow<'a>, decoder: &mut Amf0Decoder) -> Result<Self, CommandError> {
+        if let Some(command) = NetConnectionCommand::read(command_name.as_str(), decoder)? {
             return Ok(Self::NetConnection(command));
         }
 
-        if let Some(command) = NetStreamCommand::read(&command_name, deserializer)? {
+        if let Some(command) = NetStreamCommand::read(command_name.as_str(), decoder)? {
             return Ok(Self::NetStream(command));
         }
 
-        let values = deserializer.deserialize_all()?;
+        let values = decoder.decode_all()?;
         Ok(Self::Unknown(UnknownCommand { command_name, values }))
     }
 }

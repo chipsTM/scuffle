@@ -1,23 +1,23 @@
 //! Reading [`NetConnectionCommand`].
 
-use serde::Deserialize;
+use scuffle_amf0::decoder::Amf0Decoder;
 
-use super::{NetConnectionCommand, NetConnectionCommandConnect};
+use super::NetConnectionCommand;
 use crate::command_messages::error::CommandError;
 
 impl NetConnectionCommand<'_> {
     /// Reads a [`NetConnectionCommand`] from the given decoder.
     ///
     /// Returns `Ok(None)` if the `command_name` is not recognized.
-    pub fn read(command_name: &str, deserializer: &mut scuffle_amf0::Deserializer) -> Result<Option<Self>, CommandError> {
+    pub fn read(command_name: &str, decoder: &mut Amf0Decoder) -> Result<Option<Self>, CommandError> {
         match command_name {
             "connect" => {
-                let command_object = NetConnectionCommandConnect::deserialize(deserializer)?;
+                let command_object = decoder.deserialize()?;
                 Ok(Some(Self::Connect(command_object)))
             }
             "call" => Ok(Some(Self::Call {
-                command_object: serde::Deserialize::deserialize(&mut *deserializer)?,
-                optional_arguments: serde::Deserialize::deserialize(deserializer)?,
+                command_object: decoder.deserialize()?,
+                optional_arguments: decoder.deserialize()?,
             })),
             "close" => Ok(Some(Self::Close)),
             "createStream" => Ok(Some(Self::CreateStream)),
@@ -31,7 +31,8 @@ impl NetConnectionCommand<'_> {
 mod tests {
     use bytes::Bytes;
     use scuffle_amf0::Amf0Object;
-    use serde::Serialize;
+    use scuffle_amf0::decoder::Amf0Decoder;
+    use scuffle_amf0::encoder::Amf0Encoder;
 
     use super::NetConnectionCommand;
     use crate::command_messages::error::CommandError;
@@ -39,10 +40,10 @@ mod tests {
     #[test]
     fn test_read_no_app() {
         let mut command_object = Vec::new();
-        let mut serializer = scuffle_amf0::Serializer::new(&mut command_object);
-        Amf0Object::new().serialize(&mut serializer).unwrap();
+        let mut encoder = Amf0Encoder::new(&mut command_object);
+        encoder.encode_object(&Amf0Object::new()).unwrap();
 
-        let mut decoder = scuffle_amf0::Deserializer::new(Bytes::from_owner(command_object));
+        let mut decoder = Amf0Decoder::new(Bytes::from_owner(command_object));
         let result = NetConnectionCommand::read("connect", &mut decoder).unwrap_err();
 
         assert!(matches!(result, CommandError::Amf0(scuffle_amf0::Amf0Error::Custom(_))));
