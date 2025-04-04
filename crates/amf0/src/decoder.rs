@@ -145,9 +145,7 @@ impl Amf0Decoder {
     where
         T: serde::de::Deserialize<'de>,
     {
-        // Amf0Decoder is cheaply cloneable
-        let mut deserializer = crate::de::Deserializer::from(self.clone());
-        T::deserialize(&mut deserializer)
+        T::deserialize(self)
     }
 }
 

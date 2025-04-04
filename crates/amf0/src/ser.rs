@@ -16,7 +16,7 @@ pub fn to_writer<W>(writer: W, value: &impl serde::Serialize) -> crate::Result<(
 where
     W: io::Write,
 {
-    let mut serializer = Serializer::new(writer);
+    let mut serializer = Amf0Encoder::new(writer);
     value.serialize(&mut serializer)
 }
 
@@ -27,21 +27,7 @@ pub fn to_bytes(value: &impl serde::Serialize) -> crate::Result<Vec<u8>> {
     Ok(writer)
 }
 
-/// Serializer for AMF0 data.
-pub struct Serializer<W> {
-    encoder: Amf0Encoder<W>,
-}
-
-impl<W> Serializer<W> {
-    /// Create a new AMF0 serializer from a writer.
-    pub fn new(writer: W) -> Self {
-        Self {
-            encoder: Amf0Encoder::new(writer),
-        }
-    }
-}
-
-impl<W> serde::ser::Serializer for &mut Serializer<W>
+impl<W> serde::ser::Serializer for &mut Amf0Encoder<W>
 where
     W: io::Write,
 {
@@ -56,7 +42,7 @@ where
     type SerializeTupleVariant = Self;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
-        self.encoder.encode_boolean(v)
+        self.encode_boolean(v)
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {
@@ -96,7 +82,7 @@ where
     }
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok, Self::Error> {
-        self.encoder.encode_number(v)
+        self.encode_number(v)
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
@@ -104,7 +90,7 @@ where
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        self.encoder.encode_string(v)
+        self.encode_string(v)
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
@@ -132,12 +118,12 @@ where
 
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
         // Serialize unit as null
-        self.encoder.encode_null()
+        self.encode_null()
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
         let len = len.ok_or(Amf0Error::UnknownLength)?.try_into()?;
-        self.encoder.encode_array_header(len)?;
+        self.encode_array_header(len)?;
         Ok(self)
     }
 
@@ -152,7 +138,7 @@ where
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        self.encoder.encode_object_header()?;
+        self.encode_object_header()?;
         Ok(self)
     }
 
@@ -210,7 +196,7 @@ where
         let len: u32 = len.try_into()?;
 
         variant.serialize(&mut *self)?;
-        self.encoder.encode_array_header(len)?;
+        self.encode_array_header(len)?;
 
         Ok(self)
     }
@@ -223,7 +209,7 @@ where
         _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         variant.serialize(&mut *self)?;
-        self.encoder.encode_object_header()?;
+        self.encode_object_header()?;
 
         Ok(self)
     }
@@ -233,7 +219,7 @@ where
     }
 }
 
-impl<W> SerializeSeq for &mut Serializer<W>
+impl<W> SerializeSeq for &mut Amf0Encoder<W>
 where
     W: io::Write,
 {
@@ -252,7 +238,7 @@ where
     }
 }
 
-impl<W> SerializeTuple for &mut Serializer<W>
+impl<W> SerializeTuple for &mut Amf0Encoder<W>
 where
     W: io::Write,
 {
@@ -271,7 +257,7 @@ where
     }
 }
 
-impl<W> SerializeTupleStruct for &mut Serializer<W>
+impl<W> SerializeTupleStruct for &mut Amf0Encoder<W>
 where
     W: io::Write,
 {
@@ -290,7 +276,7 @@ where
     }
 }
 
-impl<W> SerializeMap for &mut Serializer<W>
+impl<W> SerializeMap for &mut Amf0Encoder<W>
 where
     W: io::Write,
 {
@@ -301,9 +287,7 @@ where
     where
         T: ?Sized + serde::Serialize,
     {
-        key.serialize(&mut MapKeySerializer {
-            encoder: &mut self.encoder,
-        })
+        key.serialize(&mut MapKeySerializer { ser: self })
     }
 
     fn serialize_value<T>(&mut self, value: &T) -> Result<(), Self::Error>
@@ -325,11 +309,11 @@ where
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.encoder.encode_object_trailer()
+        self.encode_object_trailer()
     }
 }
 
-impl<W> SerializeStruct for &mut Serializer<W>
+impl<W> SerializeStruct for &mut Amf0Encoder<W>
 where
     W: io::Write,
 {
@@ -340,21 +324,19 @@ where
     where
         T: ?Sized + serde::Serialize,
     {
-        key.serialize(&mut MapKeySerializer {
-            encoder: &mut self.encoder,
-        })?;
+        key.serialize(&mut MapKeySerializer { ser: *self })?;
         value.serialize(&mut **self)?;
 
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.encoder.encode_object_trailer()
+        self.encode_object_trailer()
     }
 }
 
 struct MapKeySerializer<'a, W> {
-    encoder: &'a mut Amf0Encoder<W>,
+    ser: &'a mut Amf0Encoder<W>,
 }
 
 impl<W> serde::ser::Serializer for &mut MapKeySerializer<'_, W>
@@ -420,7 +402,7 @@ where
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        self.encoder.encode_object_key(v)
+        self.ser.encode_object_key(v)
     }
 
     fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
@@ -520,7 +502,7 @@ where
     }
 }
 
-impl<W> SerializeTupleVariant for &mut Serializer<W>
+impl<W> SerializeTupleVariant for &mut Amf0Encoder<W>
 where
     W: io::Write,
 {
@@ -539,7 +521,7 @@ where
     }
 }
 
-impl<W> SerializeStructVariant for &mut Serializer<W>
+impl<W> SerializeStructVariant for &mut Amf0Encoder<W>
 where
     W: io::Write,
 {
@@ -550,16 +532,14 @@ where
     where
         T: ?Sized + Serialize,
     {
-        key.serialize(&mut MapKeySerializer {
-            encoder: &mut self.encoder,
-        })?;
+        key.serialize(&mut MapKeySerializer { ser: *self })?;
         value.serialize(&mut **self)?;
 
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.encoder.encode_object_trailer()
+        self.encode_object_trailer()
     }
 }
 

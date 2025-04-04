@@ -8,58 +8,26 @@ use num_traits::{AsPrimitive, FromPrimitive};
 use serde::de::{EnumAccess, IntoDeserializer, MapAccess, SeqAccess, VariantAccess};
 
 use crate::decoder::{Amf0Decoder, ObjectHeader};
-use crate::{Amf0Error, Amf0Marker, Amf0Value};
+use crate::{Amf0Error, Amf0Marker};
 
 /// Deserialize a value from bytes.
 pub fn from_bytes<'de, T>(bytes: Bytes) -> crate::Result<T>
 where
     T: serde::de::Deserialize<'de>,
 {
-    let mut de = Deserializer::new(bytes);
+    let mut de = Amf0Decoder::new(bytes);
     let value = T::deserialize(&mut de)?;
     Ok(value)
 }
 
-/// Deserializer for AMF0 data.
-pub struct Deserializer {
-    decoder: Amf0Decoder,
-}
-
-impl From<Amf0Decoder> for Deserializer {
-    fn from(decoder: Amf0Decoder) -> Self {
-        Self { decoder }
-    }
-}
-
-impl Deserializer {
-    /// Create a new deserializer from a reader.
-    pub fn new(bytes: Bytes) -> Self {
-        Self {
-            decoder: Amf0Decoder::new(bytes),
-        }
-    }
-
-    /// Deserialize the remaining values from the reader and return them as a vector of [`Amf0Value`]s.
-    #[inline]
-    pub fn deserialize_all<'de>(&mut self) -> Result<Vec<Amf0Value<'de>>, Amf0Error> {
-        self.decoder.decode_all()
-    }
-
-    /// Check if there are remaining bytes to read in this deserializer.
-    #[inline]
-    pub fn has_remaining(&self) -> bool {
-        self.decoder.has_remaining()
-    }
-}
-
-impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
+impl<'de> serde::de::Deserializer<'de> for &mut Amf0Decoder {
     type Error = Amf0Error;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        let marker = self.decoder.peek_marker()?;
+        let marker = self.peek_marker()?;
 
         match marker {
             Amf0Marker::Boolean => self.deserialize_bool(visitor),
@@ -76,7 +44,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let value = self.decoder.decode_boolean()?;
+        let value = self.decode_boolean()?;
         visitor.visit_bool(value)
     }
 
@@ -105,7 +73,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let value = self.decoder.decode_number()?;
+        let value = self.decode_number()?;
         visitor.visit_i64(value.as_())
     }
 
@@ -134,7 +102,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let value = self.decoder.decode_number()?;
+        let value = self.decode_number()?;
         visitor.visit_u64(value as u64)
     }
 
@@ -149,7 +117,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let value = self.decoder.decode_number()?;
+        let value = self.decode_number()?;
         visitor.visit_f64(value)
     }
 
@@ -164,7 +132,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let value = self.decoder.decode_string()?;
+        let value = self.decode_string()?;
         value.into_deserializer().deserialize_string(visitor)
     }
 
@@ -172,7 +140,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let value = self.decoder.decode_string()?;
+        let value = self.decode_string()?;
         value.into_deserializer().deserialize_str(visitor)
     }
 
@@ -194,14 +162,14 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let marker = self.decoder.reader.read_u8()?;
+        let marker = self.reader.read_u8()?;
         let marker = Amf0Marker::from_u8(marker).ok_or(Amf0Error::UnknownMarker(marker))?;
 
         if marker == Amf0Marker::Null || marker == Amf0Marker::Undefined {
             visitor.visit_none()
         } else {
             // We have to seek back because the marker is part of the next value
-            self.decoder.reader.seek_relative(-1)?;
+            self.reader.seek_relative(-1)?;
             visitor.visit_some(self)
         }
     }
@@ -210,7 +178,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        self.decoder.decode_null()?;
+        self.decode_null()?;
         visitor.visit_unit()
     }
 
@@ -232,7 +200,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let size = self.decoder.decode_strict_array_header()? as usize;
+        let size = self.decode_strict_array_header()? as usize;
 
         visitor.visit_seq(StrictArray {
             de: self,
@@ -244,7 +212,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let size = self.decoder.decode_strict_array_header()? as usize;
+        let size = self.decode_strict_array_header()? as usize;
 
         if len != size {
             return Err(Amf0Error::WrongArrayLength {
@@ -270,7 +238,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let header = self.decoder.decode_object_header()?;
+        let header = self.decode_object_header()?;
 
         match header {
             ObjectHeader::Object | ObjectHeader::TypedObject { .. } => visitor.visit_map(Object { de: self }),
@@ -309,7 +277,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
     where
         V: serde::de::Visitor<'de>,
     {
-        let s = self.decoder.decode_string()?;
+        let s = self.decode_string()?;
         s.into_deserializer().deserialize_identifier(visitor)
     }
 
@@ -322,7 +290,7 @@ impl<'de> serde::de::Deserializer<'de> for &mut Deserializer {
 }
 
 struct StrictArray<'a> {
-    de: &'a mut Deserializer,
+    de: &'a mut Amf0Decoder,
     remaining: usize,
 }
 
@@ -347,7 +315,7 @@ impl<'a, 'de> SeqAccess<'de> for StrictArray<'a> {
 }
 
 struct Object<'a> {
-    de: &'a mut Deserializer,
+    de: &'a mut Amf0Decoder,
 }
 
 impl<'a, 'de> MapAccess<'de> for Object<'a> {
@@ -357,7 +325,7 @@ impl<'a, 'de> MapAccess<'de> for Object<'a> {
     where
         K: serde::de::DeserializeSeed<'de>,
     {
-        let Some(key) = self.de.decoder.decode_object_key()? else {
+        let Some(key) = self.de.decode_object_key()? else {
             // Reached ObjectEnd marker
             return Ok(None);
         };
@@ -375,7 +343,7 @@ impl<'a, 'de> MapAccess<'de> for Object<'a> {
 }
 
 struct EcmaArray<'a> {
-    de: &'a mut Deserializer,
+    de: &'a mut Amf0Decoder,
     remaining: usize,
 }
 
@@ -387,14 +355,14 @@ impl<'a, 'de> MapAccess<'de> for EcmaArray<'a> {
         K: serde::de::DeserializeSeed<'de>,
     {
         if self.remaining == 0 {
-            self.de.decoder.decode_optional_object_end()?;
+            self.de.decode_optional_object_end()?;
             return Ok(None);
         }
 
         self.remaining -= 1;
 
         // Object keys are not preceeded with a marker and are always normal strings
-        let s = self.de.decoder.decode_normal_string()?;
+        let s = self.de.decode_normal_string()?;
         let string_de = s.into_deserializer();
         seed.deserialize(string_de).map(Some)
     }
@@ -412,7 +380,7 @@ impl<'a, 'de> MapAccess<'de> for EcmaArray<'a> {
 }
 
 struct Enum<'a> {
-    de: &'a mut Deserializer,
+    de: &'a mut Amf0Decoder,
 }
 
 impl<'a, 'de> EnumAccess<'de> for Enum<'a> {
@@ -423,7 +391,7 @@ impl<'a, 'de> EnumAccess<'de> for Enum<'a> {
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        let variant = self.de.decoder.decode_string()?;
+        let variant = self.de.decode_string()?;
         let string_de = IntoDeserializer::<Self::Error>::into_deserializer(variant);
         let value = seed.deserialize(string_de)?;
 
@@ -470,7 +438,7 @@ mod tests {
     use bytes::Bytes;
     use scuffle_bytes_util::StringCow;
 
-    use super::Deserializer;
+    use crate::decoder::Amf0Decoder;
     use crate::{Amf0Error, Amf0Marker, Amf0Value, from_bytes};
 
     #[test]
@@ -877,7 +845,7 @@ mod tests {
         ];
         bytes.extend_from_slice(&f64::consts::PI.to_be_bytes());
 
-        let mut de = Deserializer::new(Bytes::from_owner(bytes));
+        let mut de = Amf0Decoder::new(Bytes::from_owner(bytes));
         let value: String = serde::de::Deserialize::deserialize(&mut de).unwrap();
         assert_eq!(value, "hello");
         let value: bool = serde::de::Deserialize::deserialize(&mut de).unwrap();
@@ -954,8 +922,8 @@ mod tests {
             Amf0Marker::ObjectEnd as u8,
         ];
 
-        let mut de = Deserializer::new(Bytes::from_owner(bytes));
-        let values = de.deserialize_all().unwrap();
+        let mut de = Amf0Decoder::new(Bytes::from_owner(bytes));
+        let values = de.decode_all().unwrap();
         assert_eq!(
             values,
             vec![

@@ -130,9 +130,7 @@ where
     where
         T: serde::Serialize,
     {
-        // Serialize the value using serde
-        let mut serializer = crate::ser::Serializer::new(&mut self.writer);
-        value.serialize(&mut serializer)?;
+        value.serialize(self)?;
         Ok(())
     }
 }

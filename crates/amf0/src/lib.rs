@@ -17,7 +17,6 @@
 //!
 //! ```rust
 //! # fn test() -> Result<(), Box<dyn std::error::Error>> {
-//! use scuffle_amf0::{Deserializer, Serializer};
 //! # let payload = &[0x02, 0, 1, b'a'];
 //! # let bytes = bytes::Bytes::from_static(payload);
 //! # let mut writer = Vec::new();
@@ -66,11 +65,11 @@ pub mod value;
 
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
-pub use de::{Deserializer, from_bytes};
+pub use de::from_bytes;
 pub use error::{Amf0Error, Result};
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
-pub use ser::{Serializer, to_bytes, to_writer};
+pub use ser::{to_bytes, to_writer};
 pub use value::{Amf0Array, Amf0Object, Amf0Value};
 
 /// AMF0 marker types.
