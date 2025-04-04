@@ -65,7 +65,7 @@ mod tests {
         let mut buf = Vec::new();
         let mut encoder = Amf0Encoder::new(&mut buf);
 
-        encoder.encode_string("onStatus").unwrap();
+        encoder.encode_string("connect").unwrap();
         encoder.encode_number(1.0).unwrap();
         let object: Amf0Object = [("app".into(), Amf0Value::String("testapp".into()))].into_iter().collect();
         encoder.encode_object(&object).unwrap();
