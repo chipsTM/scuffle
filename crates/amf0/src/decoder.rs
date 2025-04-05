@@ -30,7 +30,7 @@ where
     B: bytes::Buf,
 {
     /// Create a new deserializer from a buffer implementing [`bytes::Buf`].
-    pub fn from_buf(buf: B) -> Amf0Decoder<scuffle_bytes_util::zero_copy::BytesBuf<B>> {
+    pub fn from_buf(buf: B) -> Self {
         Self {
             reader: buf.into(),
             next_marker: None,
@@ -43,7 +43,7 @@ where
     R: std::io::Read,
 {
     /// Create a new deserializer from a reader implementing [`std::io::Read`].
-    pub fn from_reader(reader: R) -> Amf0Decoder<scuffle_bytes_util::zero_copy::IoRead<R>> {
+    pub fn from_reader(reader: R) -> Self {
         Self {
             reader: reader.into(),
             next_marker: None,
@@ -73,7 +73,7 @@ where
             Amf0Marker::Boolean => self.decode_boolean().map(Into::into),
             Amf0Marker::Number | Amf0Marker::Date => self.decode_number().map(Into::into),
             Amf0Marker::String | Amf0Marker::LongString | Amf0Marker::XmlDocument => self.decode_string().map(Into::into),
-            Amf0Marker::Null | Amf0Marker::Undefined => self.decode_null().map(|()| Amf0Value::Null),
+            Amf0Marker::Null | Amf0Marker::Undefined => self.decode_null().map(|_| Amf0Value::Null),
             Amf0Marker::Object | Amf0Marker::TypedObject | Amf0Marker::EcmaArray => self.decode_object().map(Into::into),
             Amf0Marker::StrictArray => self.decode_strict_array().map(Into::into),
             _ => Err(Amf0Error::UnsupportedMarker(marker)),
@@ -84,21 +84,20 @@ where
     pub fn decode_all(&mut self) -> Result<Vec<Amf0Value<'a>>, Amf0Error> {
         let mut values = Vec::new();
 
-        loop {
-            match self.decode_value() {
-                Ok(value) => values.push(value),
-                Err(Amf0Error::Io(e)) if e.kind() == io::ErrorKind::UnexpectedEof => {
-                    // End of buffer reached
-                    break;
-                }
-                Err(err) => {
-                    // Other errors
-                    return Err(err);
-                }
-            }
+        while self.has_remaining()? {
+            values.push(self.decode_value()?);
         }
 
         Ok(values)
+    }
+
+    /// Check if there are any values left in the buffer.
+    pub fn has_remaining(&mut self) -> Result<bool, Amf0Error> {
+        match self.peek_marker() {
+            Ok(_) => Ok(true),
+            Err(Amf0Error::Io(e)) if e.kind() == io::ErrorKind::UnexpectedEof => Ok(false),
+            Err(err) => Err(err),
+        }
     }
 
     /// Peek the next marker in the buffer without consuming it.
@@ -291,4 +290,43 @@ where
 
         Ok(Amf0Array::from(array))
     }
+
+    /// Deserialize a stream of values from the buffer using [serde].
+    #[cfg(feature = "serde")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+    pub fn deserialize_stream<T>(&mut self) -> crate::de::Amf0DeserializerStream<'_, R, T>
+    where
+        T: serde::de::Deserialize<'a>,
+    {
+        crate::de::Amf0DeserializerStream::new(self)
+    }
+
+    /// Convert the decoder into an iterator over the values in the buffer.
+    pub fn stream(&mut self) -> Amf0DecoderStream<'_, 'a, R> {
+        Amf0DecoderStream {
+            decoder: self,
+            _marker: std::marker::PhantomData,
+        }
+    }
 }
+
+/// An iterator over the values in the buffer.
+#[must_use = "Iterators are lazy and do nothing unless consumed"]
+pub struct Amf0DecoderStream<'a, 'de, R> {
+    decoder: &'a mut Amf0Decoder<R>,
+    _marker: std::marker::PhantomData<&'de ()>,
+}
+
+impl<'de, R: ZeroCopyReader<'de>> Iterator for Amf0DecoderStream<'_, 'de, R> {
+    type Item = Result<Amf0Value<'de>, Amf0Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.decoder.has_remaining() {
+            Ok(true) => Some(self.decoder.decode_value()),
+            Ok(false) => None,
+            Err(err) => Some(Err(err)),
+        }
+    }
+}
+
+impl<'de, R: ZeroCopyReader<'de>> std::iter::FusedIterator for Amf0DecoderStream<'_, 'de, R> {}

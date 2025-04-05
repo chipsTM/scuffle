@@ -7,7 +7,6 @@ use std::io::{self, Read};
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, Bytes};
 use metadata::VideoPacketMetadataEntry;
-use scuffle_amf0::Amf0Error;
 use scuffle_amf0::decoder::Amf0Decoder;
 use scuffle_av1::{AV1CodecConfigurationRecord, AV1VideoDescriptor};
 use scuffle_bytes_util::BytesCursorExt;
@@ -94,7 +93,7 @@ pub enum VideoPacket<'a> {
     },
 }
 
-impl<'a> VideoPacket<'a> {
+impl VideoPacket<'_> {
     /// Demux a [`VideoPacket`] from the given reader.
     ///
     /// This is implemented as per spec, Enhanced RTMP page 29-31, ExVideoTagBody.
@@ -117,21 +116,9 @@ impl<'a> VideoPacket<'a> {
                 let data = reader.extract_bytes(size_of_video_track.unwrap_or(reader.remaining()))?;
                 let mut decoder = Amf0Decoder::from_buf(data);
 
-                let mut metadata = Vec::new();
-
-                loop {
-                    match metadata::VideoPacketMetadataEntry::read(&mut decoder) {
-                        Ok(value) => metadata.push(value),
-                        Err(FlvError::Amf0(Amf0Error::Io(e))) if e.kind() == io::ErrorKind::UnexpectedEof => {
-                            // End of buffer reached
-                            break;
-                        }
-                        Err(err) => {
-                            // Other errors
-                            return Err(err);
-                        }
-                    }
-                }
+                let metadata = decoder
+                    .deserialize_stream::<metadata::VideoPacketMetadataEntry>()
+                    .collect::<Result<Vec<_>, _>>()?;
 
                 Ok(Self::Metadata(metadata))
             }

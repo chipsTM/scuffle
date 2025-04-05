@@ -1,12 +1,10 @@
 //! Types and functions for working with metadata video packets.
 
-use bytes::Bytes;
-use scuffle_amf0::Amf0Object;
-use scuffle_amf0::decoder::Amf0Decoder;
-use scuffle_bytes_util::StringCow;
-use scuffle_bytes_util::zero_copy::BytesBuf;
+use core::fmt;
 
-use crate::error::FlvError;
+use scuffle_amf0::{Amf0Object, Amf0Value};
+use scuffle_bytes_util::StringCow;
+use serde::de::{Error, VariantAccess};
 
 /// Color configuration metadata.
 ///
@@ -158,27 +156,53 @@ pub enum VideoPacketMetadataEntry<'a> {
     },
 }
 
-impl VideoPacketMetadataEntry<'_> {
-    /// Read a video packet metadata entry from the given [`Amf0Decoder`].
-    pub fn read(decoder: &mut Amf0Decoder<BytesBuf<Bytes>>) -> Result<Self, FlvError> {
-        let key = decoder.decode_string()?;
+impl<'de> serde::Deserialize<'de> for VideoPacketMetadataEntry<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct Visitor;
 
-        match key.as_ref() {
-            "colorInfo" => Ok(VideoPacketMetadataEntry::ColorInfo(decoder.deserialize()?)),
-            _ => {
-                let object = decoder.decode_object()?;
-                Ok(VideoPacketMetadataEntry::Other { key, object })
+        const VIDEO_PACKET_METADATA_ENTRY: &str = "VideoPacketMetadataEntry";
+        const COLOR_INFO: &str = "colorInfo";
+
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = VideoPacketMetadataEntry<'de>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str(VIDEO_PACKET_METADATA_ENTRY)
+            }
+
+            fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::EnumAccess<'de>,
+            {
+                let (key, content): (StringCow<'de>, A::Variant) = data.variant()?;
+                match key.as_ref() {
+                    COLOR_INFO => Ok(VideoPacketMetadataEntry::ColorInfo(content.newtype_variant()?)),
+                    _ => Ok(VideoPacketMetadataEntry::Other {
+                        key,
+                        object: match content.newtype_variant::<Amf0Value>()?.into_owned() {
+                            Amf0Value::Object(object) => object,
+                            _ => return Err(A::Error::custom(format!("expected {} object", VIDEO_PACKET_METADATA_ENTRY))),
+                        },
+                    }),
+                }
             }
         }
+
+        deserializer.deserialize_enum(VIDEO_PACKET_METADATA_ENTRY, &[COLOR_INFO], Visitor)
     }
 }
 
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
+    use bytes::Bytes;
     use scuffle_amf0::decoder::Amf0Decoder;
     use scuffle_amf0::encoder::Amf0Encoder;
     use scuffle_amf0::{Amf0Object, Amf0Value};
+    use serde::Deserialize;
 
     use super::VideoPacketMetadataEntry;
     use crate::video::body::enhanced::metadata::MetadataColorInfo;
@@ -235,8 +259,8 @@ mod tests {
         encoder.encode_string("colorInfo").unwrap();
         encoder.serialize(object).unwrap();
 
-        let mut deserializer = Amf0Decoder::from_buf(buf.into());
-        let entry = VideoPacketMetadataEntry::read(&mut deserializer).unwrap();
+        let mut deserializer = Amf0Decoder::from_buf(Bytes::from(buf));
+        let entry = VideoPacketMetadataEntry::deserialize(&mut deserializer).unwrap();
 
         assert_eq!(
             entry,

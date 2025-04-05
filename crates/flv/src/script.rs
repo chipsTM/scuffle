@@ -1,11 +1,14 @@
 //! Script data structures
 
+use core::fmt;
 use std::io;
 
 use bytes::Bytes;
+use scuffle_amf0::de::MultiValue;
 use scuffle_amf0::decoder::Amf0Decoder;
 use scuffle_amf0::{Amf0Object, Amf0Value};
 use scuffle_bytes_util::{BytesCursorExt, StringCow};
+use serde::de::VariantAccess;
 
 use crate::audio::header::enhanced::AudioFourCc;
 use crate::audio::header::legacy::SoundFormat;
@@ -207,30 +210,57 @@ pub enum ScriptData<'a> {
     },
 }
 
+impl<'de> serde::Deserialize<'de> for ScriptData<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct Visitor;
+
+        const SCRIPT_DATA: &str = "ScriptData";
+        const ON_META_DATA: &str = "onMetaData";
+        const ON_XMP_DATA: &str = "onXMPData";
+
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = ScriptData<'de>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str(SCRIPT_DATA)
+            }
+
+            fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::EnumAccess<'de>,
+            {
+                let (name, content): (StringCow<'de>, A::Variant) = data.variant()?;
+
+                match name.as_ref() {
+                    ON_META_DATA => Ok(ScriptData::OnMetaData(Box::new(content.newtype_variant()?))),
+                    ON_XMP_DATA => Ok(ScriptData::OnXmpData(content.newtype_variant()?)),
+                    _ => Ok(ScriptData::Other {
+                        name,
+                        data: content
+                            .newtype_variant::<MultiValue<Vec<Amf0Value>>>()?
+                            .0
+                            .into_iter()
+                            .map(|v| v.into_owned())
+                            .collect(),
+                    }),
+                }
+            }
+        }
+
+        deserializer.deserialize_enum(SCRIPT_DATA, &[ON_META_DATA, ON_XMP_DATA], Visitor)
+    }
+}
+
 impl ScriptData<'_> {
     /// Demux the [`ScriptData`] from the given reader.
     pub fn demux(reader: &mut io::Cursor<Bytes>) -> Result<Self, FlvError> {
         let buf = reader.extract_remaining();
         let mut decoder = Amf0Decoder::from_buf(buf);
 
-        let name = decoder.decode_string()?;
-
-        match name.as_ref() {
-            // We might also want to handle "@setDataFrame" the same way as onMetaData.
-            // I'm not sure right now if that is the intended behavior though.
-            "onMetaData" => {
-                let data = decoder.deserialize()?;
-                Ok(Self::OnMetaData(Box::new(data)))
-            }
-            "onXMPData" => {
-                let data = decoder.deserialize()?;
-                Ok(Self::OnXmpData(data))
-            }
-            _ => {
-                let data = decoder.decode_all()?;
-                Ok(Self::Other { name, data })
-            }
-        }
+        serde::de::Deserialize::deserialize(&mut decoder).map_err(FlvError::Amf0)
     }
 }
 

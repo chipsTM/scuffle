@@ -31,7 +31,7 @@ pub enum Amf0Value<'a> {
     Array(Amf0Array<'a>),
 }
 
-impl<'a> Amf0Value<'a> {
+impl Amf0Value<'_> {
     /// Converts this AMF0 value into an owned version (static lifetime).
     pub fn into_owned(self) -> Amf0Value<'static> {
         match self {
@@ -248,7 +248,7 @@ impl<'de> serde::de::Deserialize<'de> for Amf0Value<'de> {
 
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
-impl<'a> serde::ser::Serialize for Amf0Value<'a> {
+impl serde::ser::Serialize for Amf0Value<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
