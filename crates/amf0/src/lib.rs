@@ -17,17 +17,16 @@
 //!
 //! ```rust
 //! # fn test() -> Result<(), Box<dyn std::error::Error>> {
-//! # let payload = &[0x02, 0, 1, b'a'];
-//! # let bytes = bytes::Bytes::from_static(payload);
+//! # let bytes = &[0x02, 0, 1, b'a'];
 //! # let mut writer = Vec::new();
 //! // Decode a string value from bytes
-//! let value: String = scuffle_amf0::from_bytes(bytes)?;
+//! let value: String = scuffle_amf0::from_slice(bytes)?;
 //!
 //! // .. do something with the value
 //!
 //! // Encode a value into a writer
 //! scuffle_amf0::to_writer(&mut writer, &value)?;
-//! # assert_eq!(writer, payload);
+//! # assert_eq!(writer, bytes);
 //! # Ok(())
 //! # }
 //! # test().expect("test failed");

@@ -26,7 +26,7 @@ This crate provides serde support for serialization and deserialization of AMF0 
 
 ```rust
 // Decode a string value from bytes
-let value: String = scuffle_amf0::from_bytes(bytes)?;
+let value: String = scuffle_amf0::from_slice(bytes)?;
 
 // .. do something with the value
 
