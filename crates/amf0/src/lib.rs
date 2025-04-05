@@ -64,7 +64,9 @@ pub mod value;
 
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
-pub use de::from_bytes;
+pub use de::{from_buf, from_reader, from_slice};
+pub use decoder::Amf0Decoder;
+pub use encoder::Amf0Encoder;
 pub use error::{Amf0Error, Result};
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]

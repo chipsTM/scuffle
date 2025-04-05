@@ -292,7 +292,7 @@ mod tests {
     use serde::de::{IntoDeserializer, MapAccess, SeqAccess};
 
     use super::Amf0Value;
-    use crate::{Amf0Array, Amf0Error, Amf0Marker, Amf0Object, from_bytes, to_bytes};
+    use crate::{Amf0Array, Amf0Error, Amf0Marker, Amf0Object, from_buf, to_bytes};
 
     #[test]
     fn from() {
@@ -330,7 +330,7 @@ mod tests {
     fn unsupported_marker() {
         let bytes = [Amf0Marker::MovieClipMarker as u8];
 
-        let err = from_bytes::<Amf0Value>(Bytes::from_owner(bytes)).unwrap_err();
+        let err = from_buf::<Amf0Value>(Bytes::from_owner(bytes)).unwrap_err();
         assert!(matches!(err, Amf0Error::UnsupportedMarker(Amf0Marker::MovieClipMarker)));
     }
 
@@ -343,7 +343,7 @@ mod tests {
             b'a', b'b', b'c',
         ];
 
-        let value: Amf0Value = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Amf0Value = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, Amf0Value::String("abc".into()));
     }
 
@@ -351,7 +351,7 @@ mod tests {
     fn bool() {
         let bytes = [Amf0Marker::Boolean as u8, 0];
 
-        let value: Amf0Value = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Amf0Value = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, Amf0Value::Boolean(false));
     }
 
@@ -367,7 +367,7 @@ mod tests {
             0, 0, Amf0Marker::ObjectEnd as u8,
         ];
 
-        let value: Amf0Value = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Amf0Value = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(
             value,
             Amf0Value::Object([("a".into(), Amf0Value::Boolean(true))].into_iter().collect())
@@ -384,7 +384,7 @@ mod tests {
             1,
         ];
 
-        let value: Amf0Value = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Amf0Value = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, Amf0Value::Array(Cow::Borrowed(&[Amf0Value::Boolean(true)])));
 
         let serialized = to_bytes(&value).unwrap();
@@ -395,7 +395,7 @@ mod tests {
     fn null() {
         let bytes = [Amf0Marker::Null as u8];
 
-        let value: Amf0Value = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Amf0Value = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, Amf0Value::Null);
 
         let serialized = to_bytes(&value).unwrap();

@@ -1,5 +1,7 @@
 //! Deserialize AMF0 data to a Rust data structure.
 
+use std::io;
+
 use scuffle_bytes_util::zero_copy::ZeroCopyReader;
 use serde::de::{EnumAccess, IntoDeserializer, MapAccess, SeqAccess, VariantAccess};
 
@@ -11,11 +13,31 @@ mod stream;
 pub use stream::*;
 
 /// Deserialize a value from a given [`bytes::Buf`].
-pub fn from_bytes<'de, T>(buf: impl bytes::Buf) -> crate::Result<T>
+pub fn from_buf<'de, T>(buf: impl bytes::Buf) -> crate::Result<T>
 where
     T: serde::de::Deserialize<'de>,
 {
     let mut de = Amf0Decoder::from_buf(buf);
+    let value = T::deserialize(&mut de)?;
+    Ok(value)
+}
+
+/// Deserialize a value from a given [`io::Read`].
+pub fn from_reader<'de, T>(reader: impl io::Read) -> crate::Result<T>
+where
+    T: serde::de::Deserialize<'de>,
+{
+    let mut de = Amf0Decoder::from_reader(reader);
+    let value = T::deserialize(&mut de)?;
+    Ok(value)
+}
+
+/// Deserialize a value from a given byte slice.
+pub fn from_slice<'de, T>(bytes: &'de [u8]) -> crate::Result<T>
+where
+    T: serde::de::Deserialize<'de>,
+{
+    let mut de = Amf0Decoder::from_slice(bytes);
     let value = T::deserialize(&mut de)?;
     Ok(value)
 }
@@ -465,7 +487,7 @@ mod tests {
 
     use crate::de::MultiValue;
     use crate::decoder::Amf0Decoder;
-    use crate::{Amf0Error, Amf0Marker, Amf0Object, Amf0Value, from_bytes};
+    use crate::{Amf0Error, Amf0Marker, Amf0Object, Amf0Value, from_buf};
 
     #[test]
     fn string() {
@@ -476,7 +498,7 @@ mod tests {
             b'h', b'e', b'l', b'l', b'o',
         ];
 
-        let value: String = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: String = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, "hello");
 
         #[rustfmt::skip]
@@ -486,11 +508,11 @@ mod tests {
             b'h', b'e', b'l', b'l', b'o',
         ];
 
-        let value: String = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: String = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, "hello");
 
         let bytes = [Amf0Marker::Boolean as u8];
-        let err = from_bytes::<String>(Bytes::from_owner(bytes)).unwrap_err();
+        let err = from_buf::<String>(Bytes::from_owner(bytes)).unwrap_err();
         assert!(matches!(
             err,
             Amf0Error::UnexpectedType {
@@ -503,11 +525,11 @@ mod tests {
     #[test]
     fn bool() {
         let bytes = [Amf0Marker::Boolean as u8, 1];
-        let value: bool = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: bool = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert!(value);
 
         let bytes = [Amf0Marker::String as u8];
-        let err = from_bytes::<bool>(Bytes::from_owner(bytes)).unwrap_err();
+        let err = from_buf::<bool>(Bytes::from_owner(bytes)).unwrap_err();
         assert!(matches!(
             err,
             Amf0Error::UnexpectedType {
@@ -536,7 +558,7 @@ mod tests {
             ]
         };
 
-        let value: T = from_bytes(Bytes::from_static(&NUMBER_ONE)).unwrap();
+        let value: T = from_buf(Bytes::from_static(&NUMBER_ONE)).unwrap();
         assert_eq!(value, one);
     }
 
@@ -556,11 +578,11 @@ mod tests {
         let mut bytes = vec![Amf0Marker::Date as u8];
         bytes.extend_from_slice(&f64::consts::PI.to_be_bytes());
         bytes.extend_from_slice(&0u16.to_be_bytes()); // timezone
-        let value: f64 = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: f64 = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, f64::consts::PI);
 
         let bytes = [Amf0Marker::Boolean as u8];
-        let err = from_bytes::<f64>(Bytes::from_owner(bytes)).unwrap_err();
+        let err = from_buf::<f64>(Bytes::from_owner(bytes)).unwrap_err();
         assert!(matches!(
             err,
             Amf0Error::UnexpectedType {
@@ -572,21 +594,21 @@ mod tests {
 
     #[test]
     fn char() {
-        let err = from_bytes::<char>(Bytes::from_owner([])).unwrap_err();
+        let err = from_buf::<char>(Bytes::from_owner([])).unwrap_err();
         assert!(matches!(err, Amf0Error::CharNotSupported));
     }
 
     #[test]
     fn optional() {
         let bytes = [Amf0Marker::Null as u8];
-        let value: Option<bool> = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Option<bool> = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, None);
 
         let bytes = [Amf0Marker::Null as u8];
-        from_bytes::<()>(Bytes::from_owner(bytes)).unwrap();
+        from_buf::<()>(Bytes::from_owner(bytes)).unwrap();
 
         let bytes = [Amf0Marker::String as u8];
-        let err = from_bytes::<()>(Bytes::from_owner(bytes)).unwrap_err();
+        let err = from_buf::<()>(Bytes::from_owner(bytes)).unwrap_err();
         assert!(matches!(
             err,
             Amf0Error::UnexpectedType {
@@ -596,18 +618,18 @@ mod tests {
         ));
 
         let bytes = [Amf0Marker::Undefined as u8];
-        let value: Option<bool> = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Option<bool> = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, None);
 
         let bytes = [Amf0Marker::Boolean as u8, 0];
-        let value: Option<bool> = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Option<bool> = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, Some(false));
 
         #[derive(serde::Deserialize, PartialEq, Debug)]
         struct Unit;
 
         let bytes = [Amf0Marker::Null as u8];
-        let value: Unit = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Unit = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, Unit);
     }
 
@@ -622,7 +644,7 @@ mod tests {
             0, 5, // length
             b'h', b'e', b'l', b'l', b'o',
         ];
-        let value: Test = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Test = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, Test("hello".to_string()));
     }
 
@@ -641,7 +663,7 @@ mod tests {
             0, 5, // length
             b'h', b'e', b'l', b'l', b'o',
         ];
-        let value: Test = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Test = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, Test(true, "hello".to_string()));
 
         #[rustfmt::skip]
@@ -651,7 +673,7 @@ mod tests {
             Amf0Marker::Boolean as u8,
             1,
         ];
-        let err = from_bytes::<Test>(Bytes::from_owner(bytes)).unwrap_err();
+        let err = from_buf::<Test>(Bytes::from_owner(bytes)).unwrap_err();
         assert!(matches!(err, Amf0Error::WrongArrayLength { expected: 2, got: 1 }));
     }
 
@@ -679,7 +701,7 @@ mod tests {
             b'h', b'e', b'l', b'l', b'o',
             0, 0, Amf0Marker::ObjectEnd as u8,
         ];
-        let value: Test = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Test = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(
             value,
             Test {
@@ -716,7 +738,7 @@ mod tests {
         ];
         bytes.extend_from_slice(&f64::consts::PI.to_be_bytes());
         bytes.extend_from_slice(&[0, 0, Amf0Marker::ObjectEnd as u8]);
-        let value: Test = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Test = from_buf(Bytes::from_owner(bytes)).unwrap();
 
         assert_eq!(
             value,
@@ -746,7 +768,7 @@ mod tests {
         ];
         bytes.extend_from_slice(&f64::consts::PI.to_be_bytes());
         bytes.extend_from_slice(&[0, 0, 0]); // not object end marker
-        let value: Test = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Test = from_buf(Bytes::from_owner(bytes)).unwrap();
 
         assert_eq!(
             value,
@@ -757,7 +779,7 @@ mod tests {
             }
         );
 
-        let err = from_bytes::<Test>(Bytes::from_owner([Amf0Marker::String as u8])).unwrap_err();
+        let err = from_buf::<Test>(Bytes::from_owner([Amf0Marker::String as u8])).unwrap_err();
         assert!(matches!(
             err,
             Amf0Error::UnexpectedType {
@@ -781,7 +803,7 @@ mod tests {
             0, 1, // length
             b'A',
         ];
-        let value: Test = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Test = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, Test::A);
 
         #[rustfmt::skip]
@@ -790,7 +812,7 @@ mod tests {
             0, 1, // length
             b'B',
         ];
-        let value: Test = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Test = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, Test::B);
     }
 
@@ -811,7 +833,7 @@ mod tests {
             Amf0Marker::Boolean as u8,
             1,
         ];
-        let value: Test = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Test = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, Test::A(true));
 
         #[rustfmt::skip]
@@ -832,7 +854,7 @@ mod tests {
             b'w', b'o', b'r', b'l', b'd',
             0, 0, Amf0Marker::ObjectEnd as u8,
         ];
-        let value: Test = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Test = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(
             value,
             Test::B {
@@ -854,7 +876,7 @@ mod tests {
             0, 5, // length
             b'h', b'e', b'l', b'l', b'o',
         ];
-        let value: Test = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Test = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, Test::C(true, "hello".to_string()));
     }
 
@@ -909,7 +931,7 @@ mod tests {
             other: HashMap<StringCow<'a>, Amf0Value<'a>>,
         }
 
-        let value: Test = from_bytes(Bytes::from_owner(bytes)).unwrap();
+        let value: Test = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(
             value,
             Test {
