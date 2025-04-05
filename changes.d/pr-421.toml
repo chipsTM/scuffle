@@ -2,7 +2,7 @@
 category = "feat"
 description = "rewrite with serde support"
 breaking = true
-authors = ["@lennartkloock"]
+authors = ["@lennartkloock", "@TroyKomodo"]
 
 [[scuffle-bytes-util]]
 category = "feat"
@@ -17,14 +17,12 @@ authors = ["@TroyKomodo", "@lennartkloock"]
 [[scuffle-flv]]
 category = "chore"
 description = "update to use new version of scuffle-amf0"
-# breaking because I add a bunch of lifetimes
 breaking = true
-authors = ["@lennartkloock"]
+authors = ["@lennartkloock", "@TroyKomodo"]
 
 [[scuffle-rtmp]]
 category = "chore"
 description = "update to use new version of scuffle-amf0"
-# breaking because I add a bunch of lifetimes
 breaking = true
 authors = ["@lennartkloock"]
 
