@@ -20,7 +20,6 @@
 //! # let payload = &[0x02, 0, 1, b'a'];
 //! # let bytes = bytes::Bytes::from_static(payload);
 //! # let mut writer = Vec::new();
-//!
 //! // Decode a string value from bytes
 //! let value: String = scuffle_amf0::from_bytes(bytes)?;
 //!

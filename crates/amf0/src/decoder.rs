@@ -11,7 +11,7 @@ use crate::{Amf0Array, Amf0Error, Amf0Marker, Amf0Object, Amf0Value};
 
 /// AMF0 decoder.
 ///
-/// Provides various functions to decode different types of AMF0 values from a buffer implementing [`bytes::Buf`].
+/// Provides various functions to decode different types of AMF0 values.
 #[derive(Debug, Clone)]
 pub struct Amf0Decoder<R> {
     pub(crate) reader: R,
