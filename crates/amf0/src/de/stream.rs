@@ -42,6 +42,13 @@ where
     }
 }
 
+impl<'de, R, T> std::iter::FusedIterator for Amf0DeserializerStream<'_, R, T>
+where
+    R: ZeroCopyReader<'de>,
+    T: serde::de::Deserialize<'de>,
+{
+}
+
 pub(crate) struct MultiValueDe<'a, R> {
     pub(crate) de: &'a mut Amf0Decoder<R>,
 }

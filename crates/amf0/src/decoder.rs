@@ -331,7 +331,7 @@ impl<'de, R: ZeroCopyReader<'de>> Iterator for Amf0DecoderStream<'_, 'de, R> {
     }
 }
 
-impl<'de, R: ZeroCopyReader<'de>> std::iter::FusedIterator for Amf0DecoderStream<'_, 'de, R> {}
+impl<'de, R> std::iter::FusedIterator for Amf0DecoderStream<'_, 'de, R> where R: ZeroCopyReader<'de> {}
 
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
