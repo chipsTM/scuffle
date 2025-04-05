@@ -91,6 +91,14 @@ where
         Ok(values)
     }
 
+    /// Convert the decoder into an iterator over the values in the buffer.
+    pub fn stream(&mut self) -> Amf0DecoderStream<'_, 'a, R> {
+        Amf0DecoderStream {
+            decoder: self,
+            _marker: std::marker::PhantomData,
+        }
+    }
+
     /// Check if there are any values left in the buffer.
     pub fn has_remaining(&mut self) -> Result<bool, Amf0Error> {
         match self.peek_marker() {
@@ -195,6 +203,16 @@ where
         T::deserialize(self)
     }
 
+    /// Deserialize a stream of values from the buffer using [serde].
+    #[cfg(feature = "serde")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+    pub fn deserialize_stream<T>(&mut self) -> crate::de::Amf0DeserializerStream<'_, R, T>
+    where
+        T: serde::de::Deserialize<'a>,
+    {
+        crate::de::Amf0DeserializerStream::new(self)
+    }
+
     // --- Object and Ecma array ---
 
     pub(crate) fn decode_object_header(&mut self) -> Result<ObjectHeader<'a>, Amf0Error> {
@@ -290,27 +308,11 @@ where
 
         Ok(Amf0Array::from(array))
     }
-
-    /// Deserialize a stream of values from the buffer using [serde].
-    #[cfg(feature = "serde")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
-    pub fn deserialize_stream<T>(&mut self) -> crate::de::Amf0DeserializerStream<'_, R, T>
-    where
-        T: serde::de::Deserialize<'a>,
-    {
-        crate::de::Amf0DeserializerStream::new(self)
-    }
-
-    /// Convert the decoder into an iterator over the values in the buffer.
-    pub fn stream(&mut self) -> Amf0DecoderStream<'_, 'a, R> {
-        Amf0DecoderStream {
-            decoder: self,
-            _marker: std::marker::PhantomData,
-        }
-    }
 }
 
 /// An iterator over the values in the buffer.
+///
+/// Yields values of type [`Amf0Value`] until the end of the buffer is reached.
 #[must_use = "Iterators are lazy and do nothing unless consumed"]
 pub struct Amf0DecoderStream<'a, 'de, R> {
     decoder: &'a mut Amf0Decoder<R>,
