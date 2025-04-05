@@ -5,7 +5,7 @@ export RUST_TOOLCHAIN := env_var_or_default('RUST_TOOLCHAIN', 'nightly')
 
 # An alias for cargo xtask check
 powerset *args:
-    cargo +{{RUST_TOOLCHAIN}} xtask powerset -- --all-targets {{args}}
+    cargo +{{RUST_TOOLCHAIN}} xtask powerset {{args}}
 
 # An alias for cargo fmt --all
 fmt *args:
