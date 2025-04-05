@@ -276,7 +276,7 @@ where
                 }
 
                 // There might be an object end marker after the last key
-                if self.peek_marker()? == Amf0Marker::ObjectEnd {
+                if self.has_remaining()? && self.peek_marker()? == Amf0Marker::ObjectEnd {
                     // Clear the next marker buffer
                     self.next_marker = None;
                 }
@@ -332,3 +332,69 @@ impl<'de, R: ZeroCopyReader<'de>> Iterator for Amf0DecoderStream<'_, 'de, R> {
 }
 
 impl<'de, R: ZeroCopyReader<'de>> std::iter::FusedIterator for Amf0DecoderStream<'_, 'de, R> {}
+
+#[cfg(test)]
+#[cfg_attr(all(test, coverage_nightly), coverage(off))]
+mod tests {
+    use super::Amf0Decoder;
+    use crate::{Amf0Marker, Amf0Value};
+
+    #[test]
+    fn strict_array() {
+        #[rustfmt::skip]
+        let bytes = [
+            Amf0Marker::StrictArray as u8,
+            0, 0, 0, 2, // size
+            Amf0Marker::String as u8,
+            0, 3, b'v', b'a', b'l', // value
+            Amf0Marker::Boolean as u8,
+            1, // value
+        ];
+
+        let mut decoder = Amf0Decoder::from_slice(&bytes);
+        let array = decoder.decode_strict_array().unwrap();
+        assert_eq!(array.len(), 2);
+        assert_eq!(array[0], Amf0Value::String("val".into()));
+        assert_eq!(array[1], Amf0Value::Boolean(true));
+    }
+
+    #[test]
+    fn ecma_array() {
+        #[rustfmt::skip]
+        let bytes = [
+            Amf0Marker::EcmaArray as u8,
+            0, 0, 0, 2, // size
+            0, 3, b'a', b'b', b'c', // key
+            Amf0Marker::String as u8,
+            0, 3, b'v', b'a', b'l', // value
+            0, 4, b'd', b'e', b'f', b'g', // key
+            Amf0Marker::Boolean as u8,
+            1, // value
+        ];
+
+        let mut decoder = Amf0Decoder::from_slice(&bytes);
+        let object = decoder.decode_object().unwrap();
+        assert_eq!(object.len(), 2);
+        assert_eq!(*object.get(&"abc".into()).unwrap(), Amf0Value::String("val".into()));
+        assert_eq!(*object.get(&"defg".into()).unwrap(), Amf0Value::Boolean(true));
+    }
+
+    #[test]
+    fn decoder_stream() {
+        #[rustfmt::skip]
+        let bytes = [
+            Amf0Marker::Boolean as u8,
+            1, // value
+            Amf0Marker::String as u8,
+            0, 3, b'a', b'b', b'c', // value
+            Amf0Marker::Null as u8,
+        ];
+
+        let mut decoder = Amf0Decoder::from_slice(&bytes);
+        let mut stream = decoder.stream();
+        assert_eq!(stream.next().unwrap().unwrap(), Amf0Value::Boolean(true));
+        assert_eq!(stream.next().unwrap().unwrap(), Amf0Value::String("abc".into()));
+        assert_eq!(stream.next().unwrap().unwrap(), Amf0Value::Null);
+        assert!(stream.next().is_none());
+    }
+}

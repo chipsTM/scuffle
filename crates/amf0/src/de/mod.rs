@@ -371,7 +371,7 @@ where
     {
         if self.remaining == 0 {
             // There might be an object end marker after the last key
-            if self.de.peek_marker()? == Amf0Marker::ObjectEnd {
+            if self.de.has_remaining()? && self.de.peek_marker()? == Amf0Marker::ObjectEnd {
                 self.de.next_marker = None; // clear the marker buffer
             }
 
@@ -463,8 +463,9 @@ mod tests {
     use bytes::Bytes;
     use scuffle_bytes_util::StringCow;
 
+    use crate::de::MultiValue;
     use crate::decoder::Amf0Decoder;
-    use crate::{Amf0Error, Amf0Marker, Amf0Value, from_bytes};
+    use crate::{Amf0Error, Amf0Marker, Amf0Object, Amf0Value, from_bytes};
 
     #[test]
     fn string() {
@@ -957,5 +958,55 @@ mod tests {
                 Amf0Value::Object([("a".into(), Amf0Value::Boolean(true))].into_iter().collect())
             ]
         );
+    }
+
+    #[test]
+    fn multi_value() {
+        #[rustfmt::skip]
+        let bytes = [
+            Amf0Marker::String as u8,
+            0, 5, // length
+            b'h', b'e', b'l', b'l', b'o',
+            Amf0Marker::Boolean as u8,
+            1,
+            Amf0Marker::Object as u8,
+            0, 1, // length
+            b'a',
+            Amf0Marker::Boolean as u8,
+            1,
+            0, 0, Amf0Marker::ObjectEnd as u8,
+        ];
+
+        let mut de = Amf0Decoder::from_buf(Bytes::from_owner(bytes));
+        let values: MultiValue<(String, bool, Amf0Object)> = de.deserialize().unwrap();
+        assert_eq!(values.0.0, "hello");
+        assert!(values.0.1);
+        assert_eq!(
+            values.0.2,
+            [("a".into(), Amf0Value::Boolean(true))].into_iter().collect::<Amf0Object>()
+        );
+    }
+
+    #[test]
+    fn deserializer_stream() {
+        #[rustfmt::skip]
+        let bytes = [
+            Amf0Marker::String as u8,
+            0, 5, // length
+            b'h', b'e', b'l', b'l', b'o',
+            Amf0Marker::String as u8,
+            0, 5, // length
+            b'w', b'o', b'r', b'l', b'd',
+            Amf0Marker::String as u8,
+            0, 1, // length
+            b'a',
+        ];
+
+        let mut de = Amf0Decoder::from_buf(Bytes::from_owner(bytes));
+        let mut stream = de.deserialize_stream::<String>();
+        assert_eq!(stream.next().unwrap().unwrap(), "hello");
+        assert_eq!(stream.next().unwrap().unwrap(), "world");
+        assert_eq!(stream.next().unwrap().unwrap(), "a");
+        assert_eq!(stream.next().transpose().unwrap(), None);
     }
 }
