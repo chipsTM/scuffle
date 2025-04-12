@@ -2910,8 +2910,10 @@ dependencies = [
  "byteorder",
  "bytes",
  "insta",
+ "nutype-enum",
  "scuffle-bytes-util",
  "scuffle-expgolomb",
+ "scuffle-h264",
  "scuffle-workspace-hack",
 ]
 
