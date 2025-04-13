@@ -163,7 +163,7 @@ impl SemverChecks {
                 println!("{}", line);
             }
         } else {
-            println!("##✅ No errors found! ✅");
+            println!("## ✅ No errors found! ✅");
         }
 
         // print an empty line to separate output from worktree cleanup line
