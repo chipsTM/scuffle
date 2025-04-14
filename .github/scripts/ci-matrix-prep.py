@@ -2,7 +2,7 @@ import sys
 import os
 import json
 import subprocess
-from typing import Optional # Dict
+from typing import Optional
 from dataclasses import dataclass, asdict
 
 # Stdin is the github context
@@ -564,6 +564,9 @@ def create_hakari_jobs() -> list[Job]:
 
 def create_semver_checks_jobs() -> list[Job]:
     jobs: list[Job] = []
+
+    if is_brawl("merge"):
+        return []
 
     jobs.append(
         Job(
