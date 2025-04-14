@@ -1,4 +1,8 @@
 name: Semver-checks
+inputs:
+  pr_number:
+    description: "The PR number"
+    required: true
 runs:
   using: "composite"
   steps:
@@ -18,3 +22,4 @@ runs:
       with:
         message: ${{ steps.semver_checks.outputs.checks_output }}
         comment-tag: semver-checks
+        pr-number: inputs.pr_number

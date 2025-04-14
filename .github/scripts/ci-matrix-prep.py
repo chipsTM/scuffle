@@ -103,7 +103,7 @@ class HakariMatrix:
 
 @dataclass
 class SemverChecksMatrix:
-    pass
+    pr_number: Optional[int]
 
 
 @dataclass
@@ -571,7 +571,9 @@ def create_semver_checks_jobs() -> list[Job]:
             job_name="Semver-checks",
             job="semver-checks",
             ffmpeg=FfmpegSetup(),
-            inputs=SemverChecksMatrix(),
+            inputs=SemverChecksMatrix(
+                pr_number=pr_number()
+            ),
             rust=RustSetup(
                 toolchain="stable",
                 components="rust-docs",
