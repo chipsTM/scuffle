@@ -11,7 +11,6 @@ pub struct WorktreeCleanup {
 
 impl Drop for WorktreeCleanup {
     fn drop(&mut self) {
-        println!("---");
         println!("<details>");
         println!("<summary> Cleanup details </summary>");
         println!("Cleaning up git worktree at {:?}", self.path);

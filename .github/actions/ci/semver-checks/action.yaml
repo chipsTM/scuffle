@@ -21,5 +21,5 @@ runs:
       uses: thollander/actions-comment-pull-request@v3
       with:
         message: ${{ steps.semver_checks.outputs.checks_output }}
+        pr-number: ${{ inputs.pr_number }}
         comment-tag: semver-checks
-        pr-number: inputs.pr_number
