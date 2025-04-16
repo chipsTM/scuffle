@@ -12,8 +12,7 @@ runs:
       env:
         RUSTFLAGS: "--cfg reqwest_unstable"
       run: |
-        result=$(cargo xtask semver-checks --disable-hakari)
-        cargo xtask semver-checks --disable-hakari | tee /tmp/.semver-checks-body $GITHUB_SUMMARY
+        cargo xtask semver-checks --disable-hakari | tee /tmp/.semver-checks-body $GITHUB_STEP_SUMMARY
 
     - name: Add/update PR comment
       uses: thollander/actions-comment-pull-request@v3
