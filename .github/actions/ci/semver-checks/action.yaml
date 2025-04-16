@@ -13,13 +13,11 @@ runs:
         RUSTFLAGS: "--cfg reqwest_unstable"
       run: |
         result=$(cargo xtask semver-checks --disable-hakari)
-        echo "checks_output<<EOF" >> $GITHUB_OUTPUT
-        echo "$result" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        cargo xtask semver-checks --disable-hakari | tee /tmp/.semver-checks-body $GITHUB_SUMMARY
 
     - name: Add/update PR comment
       uses: thollander/actions-comment-pull-request@v3
       with:
-        message: ${{ steps.semver_checks.outputs.checks_output }}
+        file-path: /tmp/.semver-checks-body
         pr-number: ${{ inputs.pr_number }}
         comment-tag: semver-checks
