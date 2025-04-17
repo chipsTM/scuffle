@@ -12,6 +12,7 @@ runs:
       env:
         RUSTFLAGS: "--cfg reqwest_unstable"
       run: |
+        set -eo pipefail
         cargo xtask semver-checks --disable-hakari | tee /tmp/.semver-checks-body $GITHUB_STEP_SUMMARY
 
     - name: Add/update PR comment
