@@ -164,6 +164,8 @@ impl SemverChecks {
                         is_failed_in_block = false;
                         description.push("</details>".to_string());
                     } else if is_failed_in_block {
+                        // need new line to allow for bullet list
+                        description.push("".to_string());
                         description.push(format!("- {desc_trimmed}"));
                     } else {
                         description.push(desc_trimmed.to_string());
