@@ -200,7 +200,7 @@ impl SemverChecks {
         // Print deferred update and failure block messages.
         println!("# Semver-checks summary");
         if error_count > 0 {
-            println!("\n### 🚩 --- {error_count} ERROR(S) FOUND --- 🚩", );
+            println!("\n### 🚩 --- {error_count} ERROR(S) FOUND --- 🚩");
 
             // if there are 5+ errors, shrink the details by default.
             if error_count >= 5 {
