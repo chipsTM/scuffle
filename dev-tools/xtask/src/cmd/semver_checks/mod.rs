@@ -155,14 +155,17 @@ impl SemverChecks {
                     {
                         break;
                     } else if desc_trimmed.starts_with("Failed in:") {
+                        // create detail block for "Failed in" block
                         is_failed_in_block = true;
                         description.push("<details>".to_string());
                         description.push("<summary> Failed in the following locations </summary>".to_string());
                     } else if desc_trimmed.is_empty() && is_failed_in_block {
+                        // close detail close for "Failed in" block
                         is_failed_in_block = false;
                         description.push("</details>".to_string());
+                    } else if is_failed_in_block {
+                        description.push(format!("- {desc_trimmed}"));
                     } else {
-                        // store the lines into a separate vec
                         description.push(desc_trimmed.to_string());
                     }
                 }
