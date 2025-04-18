@@ -102,6 +102,16 @@ impl SemverChecks {
         let summary_re = Regex::new(r"^Summary semver requires new (?P<update_type>major|minor) version:")
             .context("compiling summary regex")?;
 
+        let commit_hash = std::env::var("GITHUB_SHA").unwrap_or_else(|_| {
+            let output = std::process::Command::new("git")
+                .args(["rev-parse", "HEAD"])
+                .output()
+                .expect("failed to run git rev-parse");
+            String::from_utf8_lossy(&output.stdout).trim().to_string()
+        });
+
+        let scuffle_commit_url = format!("https://github.com/ScuffleCloud/scuffle/blob/{commit_hash}");
+
         let mut current_crate: Option<(String, String)> = None;
         let mut summary: Vec<String> = Vec::new();
         let mut description: Vec<String> = Vec::new();
@@ -126,10 +136,9 @@ impl SemverChecks {
                         error_count += 1;
 
                         summary.push(format!("### 🔖 Error `#{error_count}`"));
-                        summary.push(format!("⚠️ -> {} update required for `{}`.", update_type, crate_name));
+                        summary.push(format!("⚠️ -> {update_type} update required for `{crate_name}`."));
                         summary.push(format!(
-                            "🛠️ -> Please update the version from `v{}` to `{}`.",
-                            current_version, new_version
+                            "🛠️ -> Please update the version from `v{current_version}` to `{new_version}`."
                         ));
 
                         summary.push("<details>".to_string());
@@ -173,7 +182,14 @@ impl SemverChecks {
                     } else if is_failed_in_block {
                         // need new line to allow for bullet list formatting
                         description.push("".to_string());
-                        description.push(format!("- {desc_trimmed}"));
+
+                        let desc_clean = &desc_trimmed.replace("/home/runner/work/scuffle/scuffle/", "");
+
+                        let mut tokens: Vec<&str> = desc_clean.split_whitespace().collect();
+                        let file_loc = tokens.pop().unwrap();
+                        let desc_sans_url = tokens.join(" ");
+
+                        description.push(format!("- {desc_sans_url} [{file_loc}]({scuffle_commit_url}/{file_loc})"));
                     } else {
                         description.push(desc_trimmed.to_string());
                     }
@@ -184,7 +200,7 @@ impl SemverChecks {
         // Print deferred update and failure block messages.
         println!("# Semver-checks summary");
         if error_count > 0 {
-            println!("\n### 🚩 --- {} ERROR(S) FOUND --- 🚩", error_count);
+            println!("\n### 🚩 --- {error_count} ERROR(S) FOUND --- 🚩", );
 
             // if there are 5+ errors, shrink the details by default.
             if error_count >= 5 {
@@ -194,7 +210,7 @@ impl SemverChecks {
             }
 
             for line in summary {
-                println!("{}", line);
+                println!("{line}");
             }
         } else {
             println!("## ✅ No semver violations found! ✅");
@@ -215,7 +231,7 @@ fn new_version_number(version: &str, update_type: &str) -> Result<String> {
         .collect::<Result<_, _>>()
         .context("parsing version numbers")?;
     if parts.len() != 3 {
-        anyhow::bail!("expected version format vX.Y.Z, got: {}", version);
+        anyhow::bail!("expected version format vX.Y.Z, got: {version}");
     }
     match update_type {
         "minor" => parts[2] += 1,
