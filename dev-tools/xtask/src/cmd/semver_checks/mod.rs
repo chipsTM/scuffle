@@ -153,6 +153,11 @@ impl SemverChecks {
                         || desc_trimmed.starts_with("Finished")
                         || desc_trimmed.starts_with("Summary")
                     {
+                        // sometimes an empty new line isn't detected before the description ends
+                        // in that case, add a closing `</details>` for the "Failed in" block.
+                        if is_failed_in_block {
+                            description.push("</details>".to_string());
+                        }
                         break;
                     } else if desc_trimmed.starts_with("Failed in:") {
                         // create detail block for "Failed in" block
@@ -164,7 +169,7 @@ impl SemverChecks {
                         is_failed_in_block = false;
                         description.push("</details>".to_string());
                     } else if is_failed_in_block {
-                        // need new line to allow for bullet list
+                        // need new line to allow for bullet list formatting
                         description.push("".to_string());
                         description.push(format!("- {desc_trimmed}"));
                     } else {
@@ -178,6 +183,13 @@ impl SemverChecks {
         println!("# Semver-checks summary");
         if error_count > 0 {
             println!("\n### 🚩 --- {} ERROR(S) FOUND --- 🚩", error_count);
+
+            // if there are 5+ errors, shrink the details by default.
+            if error_count >= 5 {
+                summary.insert(0, "<details>".to_string());
+                summary.insert(1, "<summary> Open for error description </summary>".to_string());
+                summary.push("</details>".to_string());
+            }
 
             for line in summary {
                 println!("{}", line);
