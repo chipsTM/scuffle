@@ -129,12 +129,19 @@ impl SemverChecks {
                             "🛠️ -> Please update the version from `v{}` to `{}`.",
                             current_version, new_version
                         ));
+
+                        summary.push("<details>".to_string());
+                        summary.push(format!("<summary `{crate_name}` information />"));
                         summary.append(&mut description);
+                        summary.push("</details>".to_string());
+
                         // add a new line after the description
                         summary.push("".to_string());
                     }
                 }
             } else if trimmed.starts_with("---") {
+                let mut is_failed_in_block = false;
+
                 for desc_line in lines.by_ref() {
                     let desc_trimmed = desc_line.trim_start();
 
@@ -147,9 +154,17 @@ impl SemverChecks {
                         || desc_trimmed.starts_with("Summary")
                     {
                         break;
+                    } else if desc_trimmed.starts_with("Failed in:") {
+                        is_failed_in_block = true;
+                        description.push("<details>".to_string());
+                        description.push("<summary Failed in the following locations />".to_string());
+                    } else if desc_trimmed.is_empty() && is_failed_in_block {
+                        is_failed_in_block = false;
+                        description.push("</details>".to_string());
+                    } else {
+                        // store the lines into a separate vec
+                        description.push(desc_trimmed.to_string());
                     }
-                    // store the lines into a separate vec
-                    description.push(desc_trimmed.to_string());
                 }
             }
         }
