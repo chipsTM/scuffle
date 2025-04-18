@@ -30,6 +30,15 @@ use crate::{EmulationPreventionIo, NALUnitType};
 /// ISO/IEC-14496-10-2022 - 7.3.2
 #[derive(Debug, Clone, PartialEq)]
 pub struct Sps {
+    /// test multi breaking change instances for semver checks
+    pub breaking_field_test_1: u8,
+    /// test multi breaking change instances for semver checks
+    pub breaking_field_test_2: u8,
+    /// test multi breaking change instances for semver checks
+    pub breaking_field_test_3: u8,
+    /// test multi breaking change instances for semver checks
+    pub breaking_field_test_4: u8,
+
     /// The `nal_ref_idc` is comprised of 2 bits.
     ///
     /// A nonzero value means the NAL unit has any of the following: SPS, SPS extension,
@@ -508,6 +517,10 @@ impl Sps {
         }
 
         Ok(Sps {
+            breaking_field_test_1: 1,
+            breaking_field_test_2: 2,
+            breaking_field_test_3: 3,
+            breaking_field_test_4: 4,
             nal_ref_idc,
             nal_unit_type: NALUnitType(nal_unit_type),
             profile_idc,
@@ -886,6 +899,10 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
+            breaking_field_test_1: 1,
+            breaking_field_test_2: 2,
+            breaking_field_test_3: 3,
+            breaking_field_test_4: 4,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 100,
@@ -1141,6 +1158,10 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
+            breaking_field_test_1: 1,
+            breaking_field_test_2: 2,
+            breaking_field_test_3: 3,
+            breaking_field_test_4: 4,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 44,
@@ -1337,6 +1358,10 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
+            breaking_field_test_1: 1,
+            breaking_field_test_2: 2,
+            breaking_field_test_3: 3,
+            breaking_field_test_4: 4,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 77,
@@ -1448,6 +1473,10 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
+            breaking_field_test_1: 1,
+            breaking_field_test_2: 2,
+            breaking_field_test_3: 3,
+            breaking_field_test_4: 4,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 77,
@@ -1899,6 +1928,10 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
+            breaking_field_test_1: 1,
+            breaking_field_test_2: 2,
+            breaking_field_test_3: 3,
+            breaking_field_test_4: 4,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 77,
@@ -2369,6 +2402,10 @@ mod tests {
 
         insta::assert_debug_snapshot!(reduced_result, @r"
         Sps {
+            breaking_field_test_1: 1,
+            breaking_field_test_2: 2,
+            breaking_field_test_3: 3,
+            breaking_field_test_4: 4,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 100,

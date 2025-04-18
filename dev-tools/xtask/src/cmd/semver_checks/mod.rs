@@ -131,7 +131,7 @@ impl SemverChecks {
                         ));
 
                         summary.push("<details>".to_string());
-                        summary.push(format!("<summary `{crate_name}` information />"));
+                        summary.push(format!("<summary> `{crate_name}` information </summary>"));
                         summary.append(&mut description);
                         summary.push("</details>".to_string());
 
@@ -157,7 +157,7 @@ impl SemverChecks {
                     } else if desc_trimmed.starts_with("Failed in:") {
                         is_failed_in_block = true;
                         description.push("<details>".to_string());
-                        description.push("<summary Failed in the following locations />".to_string());
+                        description.push("<summary> Failed in the following locations </summary>".to_string());
                     } else if desc_trimmed.is_empty() && is_failed_in_block {
                         is_failed_in_block = false;
                         description.push("</details>".to_string());
