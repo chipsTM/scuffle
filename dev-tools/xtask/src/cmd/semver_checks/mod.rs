@@ -46,6 +46,8 @@ impl SemverChecks {
 
         let mut crates: Vec<_> = common_crates.iter().cloned().collect();
         crates.sort();
+        // need to print an empty line for the bullet list to format correctly
+        println!();
         for krate in crates {
             println!("- {}", krate);
         }
