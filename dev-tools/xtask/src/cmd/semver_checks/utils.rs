@@ -55,7 +55,10 @@ pub fn checkout_baseline(baseline_rev_or_hash: &str, target_dir: &PathBuf) -> Re
     let commit_hash = if rev_parse_output.status.success() {
         String::from_utf8(rev_parse_output.stdout)?.trim().to_string()
     } else {
-        println!("Revision {} not found locally. Fetching from origin...\n", baseline_rev_or_hash);
+        println!(
+            "Revision {} not found locally. Fetching from origin...\n",
+            baseline_rev_or_hash
+        );
 
         Command::new("git")
             .args(["fetch", "--depth", "1", "origin", baseline_rev_or_hash])
