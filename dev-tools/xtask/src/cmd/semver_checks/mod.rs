@@ -25,7 +25,7 @@ pub struct SemverChecks {
 impl SemverChecks {
     pub fn run(self) -> Result<()> {
         println!("<details>");
-        println!("<summary> Startup details </summary>");
+        println!("<summary> 🛫 Startup details 🛫 </summary>");
         let current_metadata = metadata().context("getting current metadata")?;
         let current_crates_set = workspace_crates_in_folder(&current_metadata, "crates");
 
@@ -133,7 +133,7 @@ impl SemverChecks {
                         ));
 
                         summary.push("<details>".to_string());
-                        summary.push(format!("<summary> `{crate_name}` information </summary>"));
+                        summary.push(format!("<summary> 📜 {crate_name} information 📜 </summary>"));
                         summary.append(&mut description);
                         summary.push("</details>".to_string());
 
@@ -165,7 +165,7 @@ impl SemverChecks {
                         // create detail block for "Failed in" block
                         is_failed_in_block = true;
                         description.push("<details>".to_string());
-                        description.push("<summary> Failed in the following locations </summary>".to_string());
+                        description.push("<summary> 🎈 Failed in the following locations 🎈 </summary>".to_string());
                     } else if desc_trimmed.is_empty() && is_failed_in_block {
                         // close detail close for "Failed in" block
                         is_failed_in_block = false;
@@ -189,7 +189,7 @@ impl SemverChecks {
             // if there are 5+ errors, shrink the details by default.
             if error_count >= 5 {
                 summary.insert(0, "<details>".to_string());
-                summary.insert(1, "<summary> Open for error description </summary>".to_string());
+                summary.insert(1, "<summary> 🦗 Open for error description 🦗 </summary>".to_string());
                 summary.push("</details>".to_string());
             }
 
