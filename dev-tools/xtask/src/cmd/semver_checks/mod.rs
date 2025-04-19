@@ -102,13 +102,10 @@ impl SemverChecks {
         let summary_re = Regex::new(r"^Summary semver requires new (?P<update_type>major|minor) version:")
             .context("compiling summary regex")?;
 
-        let commit_hash = std::env::var("GITHUB_SHA").unwrap_or_else(|_| {
-            let output = std::process::Command::new("git")
-                .args(["rev-parse", "HEAD"])
-                .output()
-                .expect("failed to run git rev-parse");
-            String::from_utf8_lossy(&output.stdout).trim().to_string()
-        });
+        let commit_hash = std::env::var("GITHUB_SHA").unwrap();
+        println!("--- test ---");
+        println!("{commit_hash}");
+        println!("--- test ---");
 
         let scuffle_commit_url = format!("https://github.com/ScuffleCloud/scuffle/blob/{commit_hash}");
 
@@ -187,9 +184,12 @@ impl SemverChecks {
 
                         let mut tokens: Vec<&str> = desc_clean.split_whitespace().collect();
                         let file_loc = tokens.pop().unwrap();
+                        let file_loc_url_suffix = file_loc.replace(":", "#L");
                         let desc_sans_url = tokens.join(" ");
 
-                        description.push(format!("- {desc_sans_url} [{file_loc}]({scuffle_commit_url}/{file_loc})"));
+                        description.push(format!(
+                            "- {desc_sans_url} [{file_loc}]({scuffle_commit_url}/{file_loc_url_suffix})"
+                        ));
                     } else {
                         description.push(desc_trimmed.to_string());
                     }
