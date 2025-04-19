@@ -46,11 +46,17 @@ impl SemverChecks {
 
         let mut crates: Vec<_> = common_crates.iter().cloned().collect();
         crates.sort();
+
+        println!("<details>");
+        println!("<summary> 📦 Processing crates 📦 </summary>");
         // need to print an empty line for the bullet list to format correctly
         println!();
         for krate in crates {
-            println!("- {}", krate);
+            println!("- `{}`", krate);
         }
+        // close crate details
+        println!("</details>");
+        // close startup details
         println!("</details>");
 
         if self.disable_hakari {
@@ -86,7 +92,7 @@ impl SemverChecks {
             anyhow::bail!("No semver-checks output received. The command may have failed.");
         }
 
-        // empty print to separate from "info: contents updated"
+        // empty print to separate from startup details
         println!();
 
         // Regex to capture "Checking" lines (ignoring leading whitespace).
@@ -128,14 +134,14 @@ impl SemverChecks {
                         let new_version = new_version_number(&current_version, update_type)?;
                         error_count += 1;
 
-                        summary.push(format!("### 🔖 Error `#{error_count}`"));
-                        summary.push(format!("⚠️ -> {update_type} update required for `{crate_name}`."));
+                        summary.push(format!("### 🔖 Error #{error_count}"));
+                        summary.push(format!("⚠️ {update_type} update required for `{crate_name}`."));
                         summary.push(format!(
-                            "🛠️ -> Please update the version from `v{current_version}` to `{new_version}`."
+                            "🛠️ Please update the version from `v{current_version}` to `{new_version}`."
                         ));
 
                         summary.push("<details>".to_string());
-                        summary.push(format!("<summary> 📜 {crate_name} information 📜 </summary>"));
+                        summary.push(format!("<summary> 📜 {crate_name} logs 📜 </summary>"));
                         summary.append(&mut description);
                         summary.push("</details>".to_string());
 
@@ -195,7 +201,8 @@ impl SemverChecks {
         // Print deferred update and failure block messages.
         println!("# Semver-checks summary");
         if error_count > 0 {
-            println!("\n### 🚩 --- {error_count} ERROR(S) FOUND --- 🚩");
+            let s = if error_count == 1 { "" } else { "S" };
+            println!("\n### 🚩 {error_count} ERROR{s} FOUND 🚩");
 
             // if there are 5+ errors, shrink the details by default.
             if error_count >= 5 {
