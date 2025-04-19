@@ -102,12 +102,8 @@ impl SemverChecks {
         let summary_re = Regex::new(r"^Summary semver requires new (?P<update_type>major|minor) version:")
             .context("compiling summary regex")?;
 
-        let commit_hash = std::env::var("GITHUB_SHA").unwrap();
-        println!("--- test ---");
-        println!("{commit_hash}");
-        println!("--- test ---");
-
-        let scuffle_commit_url = format!("https://github.com/ScuffleCloud/scuffle/blob/{commit_hash}");
+        let branch_name = std::env::var("GITHUB_REF").unwrap();
+        let scuffle_commit_url = format!("https://github.com/ScuffleCloud/scuffle/blob/{branch_name}");
 
         let mut current_crate: Option<(String, String)> = None;
         let mut summary: Vec<String> = Vec::new();
