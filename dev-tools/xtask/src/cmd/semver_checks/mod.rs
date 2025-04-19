@@ -102,8 +102,8 @@ impl SemverChecks {
         let summary_re = Regex::new(r"^Summary semver requires new (?P<update_type>major|minor) version:")
             .context("compiling summary regex")?;
 
-        let branch_name = std::env::var("GITHUB_HEAD_REF").unwrap();
-        let scuffle_commit_url = format!("https://github.com/ScuffleCloud/scuffle/blob/{branch_name}");
+        let commit_hash = std::env::var("SHA").unwrap();
+        let scuffle_commit_url = format!("https://github.com/ScuffleCloud/scuffle/blob/{commit_hash}");
 
         let mut current_crate: Option<(String, String)> = None;
         let mut summary: Vec<String> = Vec::new();
@@ -176,16 +176,15 @@ impl SemverChecks {
                         // need new line to allow for bullet list formatting
                         description.push("".to_string());
 
-                        let desc_clean = &desc_trimmed.replace("/home/runner/work/scuffle/scuffle/", "");
+                        let file_loc = desc_trimmed
+                            .split_whitespace()
+                            .last()
+                            .unwrap()
+                            .strip_prefix("/home/runner/work/scuffle/scuffle/")
+                            .unwrap()
+                            .replace(":", "#L");
 
-                        let mut tokens: Vec<&str> = desc_clean.split_whitespace().collect();
-                        let file_loc = tokens.pop().unwrap();
-                        let file_loc_url_suffix = file_loc.replace(":", "#L");
-                        let desc_sans_url = tokens.join(" ");
-
-                        description.push(format!(
-                            "- {desc_sans_url} [{file_loc}]({scuffle_commit_url}/{file_loc_url_suffix})"
-                        ));
+                        description.push(format!("- {scuffle_commit_url}/{file_loc}"));
                     } else {
                         description.push(desc_trimmed.to_string());
                     }
