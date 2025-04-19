@@ -134,7 +134,8 @@ impl SemverChecks {
                         let new_version = new_version_number(&current_version, update_type)?;
                         error_count += 1;
 
-                        summary.push(format!("### 🔖 Error #{error_count}"));
+                        // need to escape the #{error_count} otherwise it will refer to an actual pr
+                        summary.push(format!("### 🔖 Error `#{error_count}`"));
                         summary.push(format!("⚠️ {update_type} update required for `{crate_name}`."));
                         summary.push(format!(
                             "🛠️ Please update the version from `v{current_version}` to `{new_version}`."
