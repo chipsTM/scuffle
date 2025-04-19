@@ -25,7 +25,7 @@ pub struct SemverChecks {
 impl SemverChecks {
     pub fn run(self) -> Result<()> {
         println!("<details>");
-        println!("<summary> Startup details </summary>");
+        println!("<summary> 🛫 Startup details 🛫 </summary>");
         let current_metadata = metadata().context("getting current metadata")?;
         let current_crates_set = workspace_crates_in_folder(&current_metadata, "crates");
 
@@ -46,9 +46,17 @@ impl SemverChecks {
 
         let mut crates: Vec<_> = common_crates.iter().cloned().collect();
         crates.sort();
+
+        println!("<details>");
+        println!("<summary> 📦 Processing crates 📦 </summary>");
+        // need to print an empty line for the bullet list to format correctly
+        println!();
         for krate in crates {
-            println!("- {}", krate);
+            println!("- `{}`", krate);
         }
+        // close crate details
+        println!("</details>");
+        // close startup details
         println!("</details>");
 
         if self.disable_hakari {
@@ -84,7 +92,7 @@ impl SemverChecks {
             anyhow::bail!("No semver-checks output received. The command may have failed.");
         }
 
-        // empty print to separate from "info: contents updated"
+        // empty print to separate from startup details
         println!();
 
         // Regex to capture "Checking" lines (ignoring leading whitespace).
@@ -99,6 +107,9 @@ impl SemverChecks {
         //   "Summary semver requires new major version: 1 major and 0 minor checks failed"
         let summary_re = Regex::new(r"^Summary semver requires new (?P<update_type>major|minor) version:")
             .context("compiling summary regex")?;
+
+        let commit_hash = std::env::var("SHA").unwrap();
+        let scuffle_commit_url = format!("https://github.com/ScuffleCloud/scuffle/blob/{commit_hash}");
 
         let mut current_crate: Option<(String, String)> = None;
         let mut summary: Vec<String> = Vec::new();
@@ -123,18 +134,25 @@ impl SemverChecks {
                         let new_version = new_version_number(&current_version, update_type)?;
                         error_count += 1;
 
+                        // need to escape the #{error_count} otherwise it will refer to an actual pr
                         summary.push(format!("### 🔖 Error `#{error_count}`"));
-                        summary.push(format!("⚠️ -> {} update required for `{}`.", update_type, crate_name));
+                        summary.push(format!("⚠️ {update_type} update required for `{crate_name}`."));
                         summary.push(format!(
-                            "🛠️ -> Please update the version from `v{}` to `{}`.",
-                            current_version, new_version
+                            "🛠️ Please update the version from `v{current_version}` to `{new_version}`."
                         ));
+
+                        summary.push("<details>".to_string());
+                        summary.push(format!("<summary> 📜 {crate_name} logs 📜 </summary>"));
                         summary.append(&mut description);
+                        summary.push("</details>".to_string());
+
                         // add a new line after the description
                         summary.push("".to_string());
                     }
                 }
             } else if trimmed.starts_with("---") {
+                let mut is_failed_in_block = false;
+
                 for desc_line in lines.by_ref() {
                     let desc_trimmed = desc_line.trim_start();
 
@@ -146,10 +164,37 @@ impl SemverChecks {
                         || desc_trimmed.starts_with("Finished")
                         || desc_trimmed.starts_with("Summary")
                     {
+                        // sometimes an empty new line isn't detected before the description ends
+                        // in that case, add a closing `</details>` for the "Failed in" block.
+                        if is_failed_in_block {
+                            description.push("</details>".to_string());
+                        }
                         break;
+                    } else if desc_trimmed.starts_with("Failed in:") {
+                        // create detail block for "Failed in" block
+                        is_failed_in_block = true;
+                        description.push("<details>".to_string());
+                        description.push("<summary> 🎈 Failed in the following locations 🎈 </summary>".to_string());
+                    } else if desc_trimmed.is_empty() && is_failed_in_block {
+                        // close detail close for "Failed in" block
+                        is_failed_in_block = false;
+                        description.push("</details>".to_string());
+                    } else if is_failed_in_block {
+                        // need new line to allow for bullet list formatting
+                        description.push("".to_string());
+
+                        let file_loc = desc_trimmed
+                            .split_whitespace()
+                            .last()
+                            .unwrap()
+                            .strip_prefix("/home/runner/work/scuffle/scuffle/")
+                            .unwrap()
+                            .replace(":", "#L");
+
+                        description.push(format!("- {scuffle_commit_url}/{file_loc}"));
+                    } else {
+                        description.push(desc_trimmed.to_string());
                     }
-                    // store the lines into a separate vec
-                    description.push(desc_trimmed.to_string());
                 }
             }
         }
@@ -157,10 +202,18 @@ impl SemverChecks {
         // Print deferred update and failure block messages.
         println!("# Semver-checks summary");
         if error_count > 0 {
-            println!("\n### 🚩 --- {} ERROR(S) FOUND --- 🚩", error_count);
+            let s = if error_count == 1 { "" } else { "S" };
+            println!("\n### 🚩 {error_count} ERROR{s} FOUND 🚩");
+
+            // if there are 5+ errors, shrink the details by default.
+            if error_count >= 5 {
+                summary.insert(0, "<details>".to_string());
+                summary.insert(1, "<summary> 🦗 Open for error description 🦗 </summary>".to_string());
+                summary.push("</details>".to_string());
+            }
 
             for line in summary {
-                println!("{}", line);
+                println!("{line}");
             }
         } else {
             println!("## ✅ No semver violations found! ✅");
@@ -181,7 +234,7 @@ fn new_version_number(version: &str, update_type: &str) -> Result<String> {
         .collect::<Result<_, _>>()
         .context("parsing version numbers")?;
     if parts.len() != 3 {
-        anyhow::bail!("expected version format vX.Y.Z, got: {}", version);
+        anyhow::bail!("expected version format vX.Y.Z, got: {version}");
     }
     match update_type {
         "minor" => parts[2] += 1,

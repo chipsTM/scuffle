@@ -12,8 +12,8 @@ pub struct WorktreeCleanup {
 impl Drop for WorktreeCleanup {
     fn drop(&mut self) {
         println!("<details>");
-        println!("<summary> Cleanup details </summary>");
-        println!("Cleaning up git worktree at {:?}", self.path);
+        println!("<summary> 🛬 Cleanup details 🛬 </summary>");
+        println!("Cleaning up git worktree at {:?}\n", self.path);
         let status = Command::new("git")
             .args(["worktree", "remove", "--force", self.path.to_str().unwrap()])
             .status();
@@ -55,7 +55,10 @@ pub fn checkout_baseline(baseline_rev_or_hash: &str, target_dir: &PathBuf) -> Re
     let commit_hash = if rev_parse_output.status.success() {
         String::from_utf8(rev_parse_output.stdout)?.trim().to_string()
     } else {
-        println!("Revision {} not found locally. Fetching from origin...", baseline_rev_or_hash);
+        println!(
+            "Revision {} not found locally. Fetching from origin...\n",
+            baseline_rev_or_hash
+        );
 
         Command::new("git")
             .args(["fetch", "--depth", "1", "origin", baseline_rev_or_hash])
@@ -78,7 +81,7 @@ pub fn checkout_baseline(baseline_rev_or_hash: &str, target_dir: &PathBuf) -> Re
             .context(format!("Failed to resolve revision {}", baseline_rev_or_hash))?
     };
 
-    println!("Checking out commit {} into {:?}", commit_hash, target_dir);
+    println!("Checking out commit {} into {:?}\n", commit_hash, target_dir);
 
     Command::new("git")
         .args(["worktree", "add", "--detach", target_dir.to_str().unwrap(), &commit_hash])
