@@ -514,6 +514,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-link",
 ]
@@ -1641,6 +1642,7 @@ dependencies = [
  "console",
  "once_cell",
  "regex",
+ "serde",
  "similar",
 ]
 
@@ -3551,6 +3553,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_qs"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b417bedc008acbdf6d6b4bc482d29859924114bbe2650b7921fb68a261d0aa6"
+dependencies = [
+ "percent-encoding",
+ "serde",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "serde_repr"
 version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3832,6 +3845,7 @@ dependencies = [
  "itoa",
  "linear-map",
  "mediatype",
+ "memchr",
  "multer",
  "num-traits",
  "ordered-float",
@@ -3843,11 +3857,14 @@ dependencies = [
  "scuffle-workspace-hack",
  "serde",
  "serde_json",
+ "serde_qs",
  "serde_repr",
  "serde_urlencoded",
  "thiserror 2.0.12",
  "tinc-derive",
  "tonic",
+ "tonic-types",
+ "urlencoding",
 ]
 
 [[package]]
@@ -3887,6 +3904,7 @@ dependencies = [
  "insta",
  "prost 0.13.5",
  "prost-build 0.13.5",
+ "prost-types 0.13.5",
  "serde",
  "serde_json",
  "tinc",
@@ -4123,6 +4141,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tonic-types"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e9d18873cc637bb6e435125318958423f7b79a6c62544799e4ab34a74e74352"
+dependencies = [
+ "prost 0.13.5",
+ "prost-types 0.13.5",
+ "tonic",
+]
+
+[[package]]
 name = "tower"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4329,6 +4358,12 @@ dependencies = [
  "idna",
  "percent-encoding",
 ]
+
+[[package]]
+name = "urlencoding"
+version = "2.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "daf8dba3b7eb870caf1ddeed7bc9d2a049f3cfdfae7cb521b087cc33ae4c49da"
 
 [[package]]
 name = "utf-8"
