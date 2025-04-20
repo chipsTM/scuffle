@@ -9,6 +9,8 @@ use scuffle_expgolomb::BitReaderExpGolombExt;
 /// Sequence parameter set
 /// ISO/IEC-14496-10-2022 - 7.3.2
 pub struct Sps {
+    pub temp_breaking_change_3: u8,
+    pub temp_breaking_change_4: u8,
     pub width: u64,
     pub height: u64,
     pub frame_rate: f64,
@@ -336,6 +338,8 @@ impl Sps {
         }
 
         Ok(Sps {
+            temp_breaking_change_3: 3,
+            temp_breaking_change_4: 4,
             width,
             height,
             frame_rate,

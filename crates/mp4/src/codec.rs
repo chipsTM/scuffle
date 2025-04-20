@@ -19,6 +19,8 @@ pub enum VideoCodec {
     },
     /// <https://developer.mozilla.org/en-US/docs/Web/Media/Formats/codecs_parameter#av1>
     Av1 {
+        temp_breaking_change_5: u8,
+        temp_breaking_change_6: u8,
         profile: u8,
         level: u8,
         tier: bool,
@@ -64,6 +66,8 @@ impl fmt::Display for VideoCodec {
                 constraint_indicator,
             ),
             VideoCodec::Av1 {
+                temp_breaking_change_5,
+                temp_breaking_change_6,
                 profile,
                 level,
                 tier,
@@ -77,7 +81,7 @@ impl fmt::Display for VideoCodec {
                 full_range_flag,
             } => write!(
                 f,
-                "av01.{}.{}{}.{:02}.{}.{}{}{}.{:02}.{:02}.{:02}.{}",
+                "av01.{}.{}{}.{:02}.{}.{}{}{}.{:02}.{:02}.{:02}.{}.{}{}",
                 profile,
                 level,
                 if *tier { 'H' } else { 'M' },
@@ -90,6 +94,8 @@ impl fmt::Display for VideoCodec {
                 transfer_characteristics,
                 matrix_coefficients,
                 if *full_range_flag { 1 } else { 0 },
+                temp_breaking_change_5,
+                temp_breaking_change_6,
             ),
         }
     }
@@ -225,6 +231,8 @@ impl FromStr for VideoCodec {
                     == 1;
 
                 Ok(VideoCodec::Av1 {
+                    temp_breaking_change_5: 5,
+                    temp_breaking_change_6: 6,
                     profile,
                     level,
                     tier,

@@ -30,6 +30,12 @@ use crate::{EmulationPreventionIo, NALUnitType};
 /// ISO/IEC-14496-10-2022 - 7.3.2
 #[derive(Debug, Clone, PartialEq)]
 pub struct Sps {
+    /// temp breaking change 1
+    pub temp_breaking_change_1: u8,
+
+    /// temp breaking change 2
+    pub temp_breaking_change_2: u8,
+
     /// The `nal_ref_idc` is comprised of 2 bits.
     ///
     /// A nonzero value means the NAL unit has any of the following: SPS, SPS extension,
@@ -508,6 +514,8 @@ impl Sps {
         }
 
         Ok(Sps {
+            temp_breaking_change_1: 1,
+            temp_breaking_change_2: 2,
             nal_ref_idc,
             nal_unit_type: NALUnitType(nal_unit_type),
             profile_idc,
@@ -886,6 +894,8 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
+            temp_breaking_change_1: 1,
+            temp_breaking_change_2: 2,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 100,
@@ -1141,6 +1151,8 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
+            temp_breaking_change_1: 1,
+            temp_breaking_change_2: 2,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 44,
@@ -1337,6 +1349,8 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
+            temp_breaking_change_1: 1,
+            temp_breaking_change_2: 2,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 77,
@@ -1448,6 +1462,8 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
+            temp_breaking_change_1: 1,
+            temp_breaking_change_2: 2,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 77,
@@ -1899,6 +1915,8 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r"
         Sps {
+            temp_breaking_change_1: 1,
+            temp_breaking_change_2: 2,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 77,
@@ -2369,6 +2387,8 @@ mod tests {
 
         insta::assert_debug_snapshot!(reduced_result, @r"
         Sps {
+            temp_breaking_change_1: 1,
+            temp_breaking_change_2: 2,
             nal_ref_idc: 0,
             nal_unit_type: NALUnitType::SPS,
             profile_idc: 100,

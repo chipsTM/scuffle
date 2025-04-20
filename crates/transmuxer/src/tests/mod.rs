@@ -155,6 +155,8 @@ fn test_transmuxer_av1_aac() {
                         bitrate: 2560000,
                         timescale: 144000,
                         codec: VideoCodec::Av1 {
+                            temp_breaking_change_5: 5,
+                            temp_breaking_change_6: 6,
                             profile: 0,
                             level: 13,
                             tier: false,
@@ -169,7 +171,7 @@ fn test_transmuxer_av1_aac() {
                         }
                     }
                 );
-                assert_eq!(video_settings.codec.to_string(), "av01.0.13M.08.0.110.01.01.01.0");
+                assert_eq!(video_settings.codec.to_string(), "av01.0.13M.08.0.110.01.01.01.0.56");
 
                 assert_eq!(
                     audio_settings,

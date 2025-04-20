@@ -481,6 +481,8 @@ impl<'a> Transmuxer<'a> {
                 let op_point = &seq_obu.operating_points[0];
 
                 video_codec = VideoCodec::Av1 {
+                    temp_breaking_change_5: 5,
+                    temp_breaking_change_6: 6,
                     profile: seq_obu.seq_profile,
                     level: op_point.seq_level_idx,
                     tier: op_point.seq_tier,

@@ -13,6 +13,8 @@ fn test_sps_parse() {
     assert_eq!(
         sps,
         Sps {
+            temp_breaking_change_3: 3,
+            temp_breaking_change_4: 4,
             color_config: Some(ColorConfig {
                 full_range: false,
                 color_primaries: 1,
@@ -65,6 +67,8 @@ fn test_config_demux() {
     assert_eq!(
         sps,
         Sps {
+            temp_breaking_change_3: 3,
+            temp_breaking_change_4: 4,
             color_config: Some(ColorConfig {
                 full_range: false,
                 color_primaries: 1,
