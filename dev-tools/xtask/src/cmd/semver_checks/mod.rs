@@ -1,6 +1,6 @@
 use std::collections::HashSet;
+use std::io::Read;
 use std::path::PathBuf;
-use std::process::Stdio;
 
 use anyhow::{Context, Result};
 use clap::Parser;
@@ -56,8 +56,6 @@ impl SemverChecks {
         }
         // close crate details
         println!("</details>");
-        // close startup details
-        println!("</details>");
 
         if self.disable_hakari {
             cargo_cmd().args(["hakari", "disable"]).status().context("disabling hakari")?;
@@ -76,23 +74,41 @@ impl SemverChecks {
             args.push(package);
         }
 
-        let output = cargo_cmd()
-            .env("CARGO_TERM_COLOR", "never")
-            .args(&args)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .output()
-            .context("running semver-checks")?;
+        // let _output = cargo_cmd().args(&args).status().context("running semver-checks");
+
+        let mut command = cargo_cmd();
+        command.env("CARGO_TERM_COLOR", "never");
+        command.args(&args);
+
+        let (mut reader, writer) = os_pipe::pipe()?;
+        let writer_clone = writer.try_clone()?;
+        command.stdout(writer);
+        command.stderr(writer_clone);
+
+        let mut handle = command.spawn()?;
+
+        drop(command);
 
         let mut semver_output = String::new();
-        semver_output.push_str(&String::from_utf8_lossy(&output.stdout));
-        semver_output.push_str(&String::from_utf8_lossy(&output.stderr));
+        reader.read_to_string(&mut semver_output)?;
+        handle.wait()?;
 
         if semver_output.trim().is_empty() {
             anyhow::bail!("No semver-checks output received. The command may have failed.");
         }
 
-        // empty print to separate from startup details
+        // save the original output for debugging purposes
+        println!("<details>");
+        println!("<summary> Original semver output: </summary>");
+        for line in semver_output.lines() {
+            println!("{line}");
+        }
+        println!("</details>");
+
+        // close startup details
+        println!("</details>");
+
+        // // empty print to separate from startup details
         println!();
 
         // Regex to capture "Checking" lines (ignoring leading whitespace).
@@ -130,6 +146,7 @@ impl SemverChecks {
             } else if trimmed.starts_with("Summary") {
                 if let Some(caps) = summary_re.captures(trimmed) {
                     let update_type = caps.name("update_type").unwrap().as_str();
+
                     if let Some((crate_name, current_version)) = current_crate.take() {
                         let new_version = new_version_number(&current_version, update_type)?;
                         error_count += 1;
@@ -153,17 +170,10 @@ impl SemverChecks {
             } else if trimmed.starts_with("---") {
                 let mut is_failed_in_block = false;
 
-                for desc_line in lines.by_ref() {
+                while let Some(desc_line) = lines.peek() {
                     let desc_trimmed = desc_line.trim_start();
 
-                    if desc_trimmed.starts_with("Checking")
-                        || desc_trimmed.starts_with("Built")
-                        || desc_trimmed.starts_with("Building")
-                        || desc_trimmed.starts_with("Parsing")
-                        || desc_trimmed.starts_with("Parsed")
-                        || desc_trimmed.starts_with("Finished")
-                        || desc_trimmed.starts_with("Summary")
-                    {
+                    if desc_trimmed.starts_with("Summary") {
                         // sometimes an empty new line isn't detected before the description ends
                         // in that case, add a closing `</details>` for the "Failed in" block.
                         if is_failed_in_block {
@@ -195,6 +205,8 @@ impl SemverChecks {
                     } else {
                         description.push(desc_trimmed.to_string());
                     }
+
+                    lines.next();
                 }
             }
         }
@@ -238,7 +250,10 @@ fn new_version_number(version: &str, update_type: &str) -> Result<String> {
     }
     match update_type {
         "minor" => parts[2] += 1,
-        "major" => parts[1] += 1,
+        "major" => {
+            parts[1] += 1;
+            parts[2] = 0;
+        }
         _ => anyhow::bail!("Failed to parse update type: {update_type}"),
     }
     Ok(format!("v{}.{}.{}", parts[0], parts[1], parts[2]))
