@@ -80,12 +80,9 @@ impl SpsSccExtension {
 
                 let num_comps = if chroma_format_idc == 0 { 1 } else { 3 };
 
-                let mut initializers = vec![vec![0; sps_num_palette_predictor_initializers_minus1 as usize]; num_comps];
+                let mut initializers = vec![vec![0; sps_num_palette_predictor_initializers_minus1 as usize + 1]; num_comps];
                 for (comp, initializer) in initializers.iter_mut().enumerate().take(num_comps) {
-                    for sps_palette_predictor_initializer in initializer
-                        .iter_mut()
-                        .take(sps_num_palette_predictor_initializers_minus1 as usize)
-                    {
+                    for sps_palette_predictor_initializer in initializer.iter_mut() {
                         let bit_depth = if comp == 0 { bit_depth_y } else { bit_depth_c };
                         *sps_palette_predictor_initializer = bit_reader.read_bits(bit_depth)?;
                     }
@@ -144,5 +141,72 @@ impl SpsSccExtensionPaletteMode {
     /// ISO/IEC 23008-2 - 7.4.3.2.3
     pub fn palette_max_predictor_size(&self) -> u64 {
         self.palette_max_size + self.delta_palette_max_predictor_size
+    }
+}
+
+#[cfg(test)]
+#[cfg_attr(all(test, coverage_nightly), coverage(off))]
+mod tests {
+    use byteorder::WriteBytesExt;
+    use scuffle_bytes_util::BitWriter;
+    use scuffle_expgolomb::BitWriterExpGolombExt;
+
+    #[test]
+    fn test_parse() {
+        let mut data = Vec::new();
+        let mut bit_writer = BitWriter::new(&mut data);
+
+        bit_writer.write_bit(true).unwrap(); // sps_curr_pic_ref_enabled_flag
+        bit_writer.write_bit(true).unwrap(); // palette_mode_enabled_flag
+
+        bit_writer.write_exp_golomb(5).unwrap(); // palette_max_size
+        bit_writer.write_exp_golomb(2).unwrap(); // delta_palette_max_predictor_size
+        bit_writer.write_bit(true).unwrap(); // sps_palette_predictor_initializers_present_flag
+
+        bit_writer.write_exp_golomb(1).unwrap(); // sps_num_palette_predictor_initializers_minus1
+
+        bit_writer.write_u8(1).unwrap(); // sps_palette_predictor_initializer[0][0]
+        bit_writer.write_u8(2).unwrap(); // sps_palette_predictor_initializer[0][1]
+        bit_writer.write_u8(3).unwrap(); // sps_palette_predictor_initializer[1][0]
+        bit_writer.write_u8(4).unwrap(); // sps_palette_predictor_initializer[1][1]
+        bit_writer.write_u8(5).unwrap(); // sps_palette_predictor_initializer[2][0]
+        bit_writer.write_u8(6).unwrap(); // sps_palette_predictor_initializer[2][1]
+
+        bit_writer.write_bits(0, 2).unwrap(); // motion_vector_resolution_control_idc
+        bit_writer.write_bit(false).unwrap(); // intra_boundary_filtering_disabled_flag
+
+        bit_writer.write_bits(0, 8).unwrap(); // fill the last byte
+
+        let scc_extension = super::SpsSccExtension::parse(
+            &mut scuffle_bytes_util::BitReader::new(&data[..]),
+            1, // chroma_format_idc
+            8, // bit_depth_y
+            8, // bit_depth_c
+        )
+        .unwrap();
+
+        assert_eq!(scc_extension.sps_curr_pic_ref_enabled_flag, true);
+
+        assert_eq!(scc_extension.palette_mode.is_some(), true);
+        let palette_mode = scc_extension.palette_mode.unwrap();
+        assert_eq!(palette_mode.palette_max_size, 5);
+        assert_eq!(palette_mode.delta_palette_max_predictor_size, 2);
+        assert_eq!(palette_mode.palette_max_predictor_size(), 7);
+
+        assert_eq!(palette_mode.sps_palette_predictor_initializers.is_some(), true);
+        let initializers = palette_mode.sps_palette_predictor_initializers.unwrap();
+        assert_eq!(initializers.len(), 3);
+        assert_eq!(initializers[0].len(), 2);
+        assert_eq!(initializers[0][0], 1);
+        assert_eq!(initializers[0][1], 2);
+        assert_eq!(initializers[1].len(), 2);
+        assert_eq!(initializers[1][0], 3);
+        assert_eq!(initializers[1][1], 4);
+        assert_eq!(initializers[2].len(), 2);
+        assert_eq!(initializers[2][0], 5);
+        assert_eq!(initializers[2][1], 6);
+
+        assert_eq!(scc_extension.motion_vector_resolution_control_idc, 0);
+        assert_eq!(scc_extension.intra_boundary_filtering_disabled_flag, false);
     }
 }
