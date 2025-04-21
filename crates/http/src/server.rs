@@ -251,7 +251,7 @@ where
 
                     let hyper = std::pin::pin!(builder.build().run());
 
-                    let mut http3 = crate::backend::h3::Http3Backend::builder()
+                    let http3 = crate::backend::h3::Http3Backend::builder()
                         .ctx(self.ctx)
                         .worker_tasks(self.worker_tasks)
                         .service_factory(self.service_factory)
