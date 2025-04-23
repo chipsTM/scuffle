@@ -99,7 +99,7 @@ impl SemverChecks {
 
         // save the original output for debugging purposes
         println!("<details>");
-        println!("<summary> Original semver output: </summary>");
+        println!("<summary> Original semver output: </summary>\n");
         for line in semver_output.lines() {
             println!("{line}");
         }
