@@ -48,9 +48,8 @@ impl SemverChecks {
         crates.sort();
 
         println!("<details>");
-        println!("<summary> 📦 Processing crates 📦 </summary>");
-        // need to print an empty line for the bullet list to format correctly
-        println!();
+        // need an extra empty line for the bullet list to format correctly
+        println!("<summary> 📦 Processing crates 📦 </summary>\n");
         for krate in crates {
             println!("- `{krate}`");
         }
@@ -73,8 +72,6 @@ impl SemverChecks {
             args.push("--package");
             args.push(package);
         }
-
-        // let _output = cargo_cmd().args(&args).status().context("running semver-checks");
 
         let mut command = cargo_cmd();
         command.env("CARGO_TERM_COLOR", "never");
@@ -106,10 +103,8 @@ impl SemverChecks {
         println!("</details>");
 
         // close startup details
-        println!("</details>");
-
-        // // empty print to separate from startup details
-        println!();
+        // extra line to separate from startup details
+        println!("</details>\n");
 
         // Regex to capture "Checking" lines (ignoring leading whitespace).
         // Supports both formats:
@@ -154,9 +149,9 @@ impl SemverChecks {
 
                         // need to escape the #{error_count} otherwise it will refer to an actual pr
                         summary.push(format!("### 🔖 Error `#{error_count}`"));
-                        summary.push(format!("⚠️ {update_type} update required for `{crate_name}`."));
+                        summary.push(format!("{update_type} update required for `{crate_name}` ⚠️"));
                         summary.push(format!(
-                            "🛠️ Please update the version from `v{current_version}` to `{new_version}`."
+                            "Please update the version from `v{current_version}` to `{new_version}` 🛠️"
                         ));
 
                         summary.push("<details>".to_string());
@@ -231,9 +226,6 @@ impl SemverChecks {
         } else {
             println!("## ✅ No semver violations found! ✅");
         }
-
-        // print an empty line to separate output from worktree cleanup line
-        println!();
 
         Ok(())
     }
