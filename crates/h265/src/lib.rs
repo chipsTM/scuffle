@@ -2,10 +2,6 @@
 //!
 //! This crate is designed to provide a simple and safe interface to decode HEVC/H.265 SPS NALUs.
 //!
-//! ## How is this different from other h265 crates?
-//!
-//! TODO
-//!
 //! ## Notable features
 //!
 //! This crate is a completely safe implementation of HEVC/H.265 SPS NALU decoding.
