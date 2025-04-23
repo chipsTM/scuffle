@@ -21,7 +21,8 @@ pub struct HEVCDecoderConfigurationRecord {
     pub general_profile_idc: u8,
     /// Matches the [`general_profile_compatibility_flag`](crate::Profile::profile_compatibility_flag) field as defined in ISO/IEC 23008-2.
     pub general_profile_compatibility_flags: u32,
-    /// Only the first 48 bits are used.
+    /// This is stored as a 48-bit (6 bytes) unsigned integer.
+    /// Therefore only the first 48 bits of this value are used.
     pub general_constraint_indicator_flags: u64,
     /// Matches the [`general_level_idc`](crate::Profile::level_idc) field as defined in ISO/IEC 23008-2.
     pub general_level_idc: u8,
@@ -91,6 +92,7 @@ impl HEVCDecoderConfigurationRecord {
     pub fn demux(data: impl io::Read) -> io::Result<Self> {
         let mut bit_reader = BitReader::new(data);
 
+        // This demuxer only supports version 1
         let configuration_version = bit_reader.read_u8()?;
         if configuration_version != 1 {
             return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid configuration version"));
@@ -218,7 +220,8 @@ impl HEVCDecoderConfigurationRecord {
     pub fn mux<T: io::Write>(&self, writer: &mut T) -> io::Result<()> {
         let mut bit_writer = BitWriter::new(writer);
 
-        bit_writer.write_u8(1)?;
+        // This muxer only supports version 1
+        bit_writer.write_u8(1)?; // configuration_version
         bit_writer.write_bits(self.general_profile_space as u64, 2)?;
         bit_writer.write_bit(self.general_tier_flag)?;
         bit_writer.write_bits(self.general_profile_idc as u64, 5)?;

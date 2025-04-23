@@ -5,7 +5,7 @@ use byteorder::{BigEndian, ReadBytesExt};
 use scuffle_bytes_util::BitReader;
 use scuffle_expgolomb::BitReaderExpGolombExt;
 
-use super::ConformanceWindow;
+use super::{ConformanceWindow, Profile};
 use crate::range_check::range_check;
 use crate::{AspectRatioIdc, VideoFormat};
 
@@ -90,9 +90,7 @@ impl VuiParameters {
         bit_depth_y: u8,
         bit_depth_c: u8,
         chroma_format_idc: u8,
-        general_frame_only_constraint_flag: bool,
-        general_progressive_source_flag: bool,
-        general_interlaced_source_flag: bool,
+        general_profile: &Profile,
         conformance_window: &ConformanceWindow,
         sub_width_c: u8,
         pic_width_in_luma_samples: NonZero<u64>,
@@ -188,7 +186,7 @@ impl VuiParameters {
         let neutral_chroma_indication_flag = bit_reader.read_bit()?;
         let field_seq_flag = bit_reader.read_bit()?;
 
-        if general_frame_only_constraint_flag && field_seq_flag {
+        if general_profile.frame_only_constraint_flag && field_seq_flag {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "field_seq_flag must be 0 if general_frame_only_constraint_flag is 1",
@@ -198,7 +196,7 @@ impl VuiParameters {
         let frame_field_info_present_flag = bit_reader.read_bit()?;
 
         if !frame_field_info_present_flag
-            && (field_seq_flag || (general_progressive_source_flag && general_interlaced_source_flag))
+            && (field_seq_flag || (general_profile.progressive_source_flag && general_profile.interlaced_source_flag))
         {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -555,7 +553,7 @@ impl BitStreamRestriction {
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
-    use std::io::{Read, Write};
+    use std::io::Write;
     use std::num::NonZero;
 
     use byteorder::{BigEndian, WriteBytesExt};
@@ -563,7 +561,7 @@ mod tests {
     use scuffle_expgolomb::BitWriterExpGolombExt;
 
     use crate::sps::vui_parameters::{BitStreamRestriction, DefaultDisplayWindow};
-    use crate::{AspectRatioIdc, ConformanceWindow, VideoFormat, VuiParameters};
+    use crate::{AspectRatioIdc, ConformanceWindow, Profile, VideoFormat, VuiParameters};
 
     #[test]
     fn vui_parameters() {
@@ -596,10 +594,6 @@ mod tests {
         writer.write_bits(0, 5).unwrap(); // fill the byte
         writer.flush().unwrap();
 
-        for b in data.bytes() {
-            print!("{:08b} ", b.unwrap());
-        }
-
         let conf_window = ConformanceWindow {
             conf_win_left_offset: 2,
             conf_win_right_offset: 2,
@@ -613,9 +607,19 @@ mod tests {
             8,
             8,
             1,
-            false,
-            false,
-            false,
+            &Profile {
+                profile_space: 0,
+                tier_flag: false,
+                profile_idc: 0,
+                profile_compatibility_flag: [false; 32],
+                progressive_source_flag: false,
+                interlaced_source_flag: false,
+                non_packed_constraint_flag: false,
+                frame_only_constraint_flag: false,
+                additional_flags: crate::ProfileAdditionalFlags::None,
+                inbld_flag: None,
+                level_idc: Some(0),
+            },
             &conf_window,
             1,
             NonZero::new(1920).unwrap(),

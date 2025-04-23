@@ -46,7 +46,8 @@ pub struct ProfileTierLevel {
 
 impl ProfileTierLevel {
     pub(crate) fn parse<R: io::Read>(bit_reader: &mut BitReader<R>, max_num_sub_layers_minus_1: u8) -> io::Result<Self> {
-        // profile_present_flag is always true when only parsing SPSs
+        // When parsing SPSs, the profile_present_flag is always true. (See 7.3.2.2.1)
+        // Since this decoder only supports SPS decoding, it is assumed to be true here.
 
         let mut general_profile = Profile::parse(bit_reader, true)?;
         // inbld_flag is inferred to be 0 when not present for the genral profile
