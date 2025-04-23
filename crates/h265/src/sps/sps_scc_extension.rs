@@ -185,15 +185,15 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(scc_extension.sps_curr_pic_ref_enabled_flag, true);
+        assert!(scc_extension.sps_curr_pic_ref_enabled_flag);
 
-        assert_eq!(scc_extension.palette_mode.is_some(), true);
+        assert!(scc_extension.palette_mode.is_some());
         let palette_mode = scc_extension.palette_mode.unwrap();
         assert_eq!(palette_mode.palette_max_size, 5);
         assert_eq!(palette_mode.delta_palette_max_predictor_size, 2);
         assert_eq!(palette_mode.palette_max_predictor_size(), 7);
 
-        assert_eq!(palette_mode.sps_palette_predictor_initializers.is_some(), true);
+        assert!(palette_mode.sps_palette_predictor_initializers.is_some());
         let initializers = palette_mode.sps_palette_predictor_initializers.unwrap();
         assert_eq!(initializers.len(), 3);
         assert_eq!(initializers[0].len(), 2);
@@ -207,6 +207,6 @@ mod tests {
         assert_eq!(initializers[2][1], 6);
 
         assert_eq!(scc_extension.motion_vector_resolution_control_idc, 0);
-        assert_eq!(scc_extension.intra_boundary_filtering_disabled_flag, false);
+        assert!(!scc_extension.intra_boundary_filtering_disabled_flag);
     }
 }
