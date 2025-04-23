@@ -155,7 +155,7 @@ impl SemverChecks {
                         ));
 
                         summary.push("<details>".to_string());
-                        summary.push(format!("<summary> 📜 {crate_name} logs 📜 </summary>"));
+                        summary.push(format!("<summary> 📜 {crate_name} logs 📜 </summary>\n"));
                         summary.append(&mut description);
                         summary.push("</details>".to_string());
 
