@@ -705,6 +705,8 @@ mod tests {
 
     use crate::SpsNALUnit;
 
+    // To compare the results to an independent source, you can use: https://github.com/chemag/h265nal
+
     #[test]
     fn test_sps_parse() {
         let data = b"B\x01\x01\x01@\0\0\x03\0\x90\0\0\x03\0\0\x03\0\x99\xa0\x01@ \x05\xa1e\x95R\x90\x84d_\xf8\xc0Z\x80\x80\x80\x82\0\0\x03\0\x02\0\0\x03\x01 \xc0\x0b\xbc\xa2\0\x02bX\0\x011-\x08";
@@ -935,6 +937,15 @@ mod tests {
         assert_eq!(sps.min_tb_log2_size_y(), 2);
         assert_eq!(sps.max_tb_log2_size_y(), 4);
         assert_eq!(sps.raw_ctu_bits(), 20480);
+        insta::assert_debug_snapshot!(nalu);
+    }
+
+    #[test]
+    fn test_sps_parse_inter_ref_prediction() {
+        // I generated this sample using the reference encoder https://vcgit.hhi.fraunhofer.de/jvet/HM
+        let data = b"\x42\x01\x01\x01\x60\x00\x00\x03\x00\x00\x03\x00\x00\x03\x00\x00\x03\x00\x00\xA0\x0B\x08\x04\x85\x96\x5E\x49\x1B\x60\xD9\x78\x88\x88\x8F\xE7\x9F\xCF\xE7\xF3\xF9\xFC\xF2\xFF\xFF\xFF\xCF\xE7\xF3\xF9\xFC\xFE\x7F\x3F\x3F\x9F\xCF\xE7\xF3\xF9\xDB\x20";
+
+        let nalu = SpsNALUnit::parse(io::Cursor::new(data)).unwrap();
         insta::assert_debug_snapshot!(nalu);
     }
 

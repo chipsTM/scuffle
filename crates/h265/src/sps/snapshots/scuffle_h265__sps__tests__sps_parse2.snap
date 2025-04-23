@@ -109,14 +109,14 @@ SpsNALUnit {
                 0,
             ],
             num_negative_pics: [
-                0,
+                1,
             ],
             delta_poc_s1: [
                 [],
             ],
             delta_poc_s0: [
                 [
-                    1,
+                    -1,
                 ],
             ],
             used_by_curr_pic_s0: [

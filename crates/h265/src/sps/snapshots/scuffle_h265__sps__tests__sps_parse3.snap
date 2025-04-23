@@ -1708,13 +1708,13 @@ SpsNALUnit {
             ],
             num_positive_pics: [
                 0,
-                0,
+                1,
                 0,
             ],
             num_negative_pics: [
-                0,
-                0,
-                0,
+                1,
+                1,
+                1,
             ],
             delta_poc_s1: [
                 [],
@@ -1725,13 +1725,13 @@ SpsNALUnit {
             ],
             delta_poc_s0: [
                 [
-                    3,
+                    -3,
                 ],
                 [
-                    1,
+                    -1,
                 ],
                 [
-                    1,
+                    -1,
                 ],
             ],
             used_by_curr_pic_s0: [
