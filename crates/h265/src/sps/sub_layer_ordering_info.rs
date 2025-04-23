@@ -38,6 +38,8 @@ impl SubLayerOrderingInfo {
         if sps_sub_layer_ordering_info_present_flag {
             for i in 0..=sps_max_sub_layers_minus1 as usize {
                 sps_max_dec_pic_buffering_minus1[i] = bit_reader.read_exp_golomb()?;
+                // (A-2) defines MaxDpbSize which is always at most 16
+                range_check!(sps_max_dec_pic_buffering_minus1[i], 0, 16)?;
                 if i > 0 && sps_max_dec_pic_buffering_minus1[i] < sps_max_dec_pic_buffering_minus1[i - 1] {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
@@ -65,6 +67,8 @@ impl SubLayerOrderingInfo {
             // sps_max_dec_pic_buffering_minus1[sps_max_sub_layers_minus1].
 
             let sps_max_dec_pic_buffering_minus1_i = bit_reader.read_exp_golomb()?;
+            // (A-2) defines MaxDpbSize which is always at most 16
+            range_check!(sps_max_dec_pic_buffering_minus1_i, 0, 16)?;
             sps_max_dec_pic_buffering_minus1.fill(sps_max_dec_pic_buffering_minus1_i);
 
             let sps_max_num_reorder_pics_i = bit_reader.read_exp_golomb()?;

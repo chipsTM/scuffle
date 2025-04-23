@@ -39,7 +39,7 @@ impl ShortTermRefPicSets {
     ) -> io::Result<Self> {
         let mut num_delta_pocs = Vec::with_capacity(num_short_term_ref_pic_sets);
 
-        // num_short_term_ref_pic_sets is bound to 64
+        // num_short_term_ref_pic_sets is bound above by 64
         let mut num_positive_pics = vec![0u64; num_short_term_ref_pic_sets];
         let mut num_negative_pics = vec![0u64; num_short_term_ref_pic_sets];
         let mut delta_poc_s1 = Vec::with_capacity(num_short_term_ref_pic_sets);
@@ -69,6 +69,7 @@ impl ShortTermRefPicSets {
                 // (7-60)
                 let delta_rps = (1 - 2 * delta_rps_sign as i64) * (abs_delta_rps_minus1 + 1) as i64;
 
+                // num_delta_pocs is bound above by 32 ((7-71) see below)
                 let len = num_delta_pocs[ref_rps_idx] as usize + 1;
                 let mut used_by_curr_pic_flag = vec![false; len];
                 let mut use_delta_flag = vec![true; len];
@@ -79,11 +80,10 @@ impl ShortTermRefPicSets {
                     }
                 }
 
-                let pic_sum = num_positive_pics[ref_rps_idx] as usize + num_negative_pics[ref_rps_idx] as usize + 1;
-                delta_poc_s0.push(vec![0; pic_sum]);
-                delta_poc_s1.push(vec![0; pic_sum]);
-                used_by_curr_pic_s0.push(vec![false; pic_sum]);
-                used_by_curr_pic_s1.push(vec![false; pic_sum]);
+                delta_poc_s0.push(vec![0; len]);
+                delta_poc_s1.push(vec![0; len]);
+                used_by_curr_pic_s0.push(vec![false; len]);
+                used_by_curr_pic_s1.push(vec![false; len]);
 
                 // Calculate derived values as defined as (7-61) and (7-62) by the spec
                 let mut i = 0;
@@ -98,14 +98,12 @@ impl ShortTermRefPicSets {
                         }
                     }
                 }
-                // i <= num_positive_pics[ref]
 
                 if delta_rps < 0 && use_delta_flag[num_delta_pocs[ref_rps_idx] as usize] {
                     delta_poc_s0[st_rps_idx][i] = delta_rps;
                     used_by_curr_pic_s0[st_rps_idx][i] = used_by_curr_pic_flag[num_delta_pocs[ref_rps_idx] as usize];
                     i += 1;
                 }
-                // i <= num_positive_pics[ref] + 1
 
                 for j in 0..num_negative_pics[ref_rps_idx] as usize {
                     let d_poc = delta_poc_s0[ref_rps_idx][j] + delta_rps;
@@ -115,10 +113,13 @@ impl ShortTermRefPicSets {
                         i += 1;
                     }
                 }
-                // i <= num_positive_pics[ref] + num_negative_pics[ref]
 
                 num_negative_pics[st_rps_idx] = i as u64;
-                // num_negative_pics[st] <= num_positive_pics[ref] + num_negative_pics[ref]
+                // This is a sanity check just for safety, it should be unreachable
+                // num_negative_pics is said to be bound by
+                // sps_max_dec_pic_buffering_minus1[sps_max_sub_layers_minus1]
+                // which itself is bound by 16
+                range_check!(num_negative_pics[st_rps_idx], 0, 16)?;
 
                 i = 0;
                 if let Some(start) = num_negative_pics[ref_rps_idx].checked_sub(1).map(|s| s as usize) {
@@ -131,14 +132,12 @@ impl ShortTermRefPicSets {
                         }
                     }
                 }
-                // i <= num_negative_pics[ref]
 
                 if delta_rps > 0 && use_delta_flag[num_delta_pocs[ref_rps_idx] as usize] {
                     delta_poc_s1[st_rps_idx][i] = delta_rps;
                     used_by_curr_pic_s1[st_rps_idx][i] = used_by_curr_pic_flag[num_delta_pocs[ref_rps_idx] as usize];
                     i += 1;
                 }
-                // i <= num_negative_pics[ref] + 1
 
                 for j in 0..num_positive_pics[ref_rps_idx] as usize {
                     let d_poc = delta_poc_s1[ref_rps_idx][j] + delta_rps;
@@ -149,28 +148,31 @@ impl ShortTermRefPicSets {
                         i += 1;
                     }
                 }
-                // i <= num_negative_pics[ref] + num_positive_pics[ref]
 
                 num_positive_pics[st_rps_idx] = i as u64;
-                // num_positive_pics[st] <= num_negative_pics[ref] + num_positive_pics[ref]
+                // This is a sanity check just for safety, it should be unreachable
+                // num_positive_pics is said to be bound by
+                // sps_max_dec_pic_buffering_minus1[sps_max_sub_layers_minus1] - num_negative_pics
+                // which itself is bound by 16
+                range_check!(num_negative_pics[st_rps_idx], 0, 16)?;
             } else {
                 num_negative_pics[st_rps_idx] = bit_reader.read_exp_golomb()?;
                 num_positive_pics[st_rps_idx] = bit_reader.read_exp_golomb()?;
 
                 let upper_bound = if nuh_layer_id == 0 {
+                    // bound above by 16
                     sps_max_dec_pic_buffering_minus1_at_sps_max_sub_layers_minus1
                 } else {
-                    // The spec does not limit the value in this case so we set it to a reasonable value
-                    1000
+                    16
                 };
                 range_check!(num_negative_pics[st_rps_idx], 0, upper_bound)?;
 
                 let upper_bound = if nuh_layer_id == 0 {
+                    // bound above by 16
                     sps_max_dec_pic_buffering_minus1_at_sps_max_sub_layers_minus1
                         .saturating_sub(num_negative_pics[st_rps_idx])
                 } else {
-                    // The spec does not limit the value in this case so we set it to a reasonable value
-                    1000
+                    16
                 };
                 range_check!(num_positive_pics[st_rps_idx], 0, upper_bound)?;
 
@@ -213,6 +215,8 @@ impl ShortTermRefPicSets {
 
             // (7-71)
             num_delta_pocs.push(num_negative_pics[st_rps_idx] + num_positive_pics[st_rps_idx]);
+            // both num_negative_pics and num_positive_pics are bound above by 16
+            // => num_delta_pocs[st_rps_idx] <= 32
         }
 
         Ok(Self {
