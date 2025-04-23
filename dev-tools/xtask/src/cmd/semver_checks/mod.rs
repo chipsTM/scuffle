@@ -146,9 +146,10 @@ impl SemverChecks {
             } else if trimmed.starts_with("Summary") {
                 if let Some(caps) = summary_re.captures(trimmed) {
                     let update_type = caps.name("update_type").unwrap().as_str();
+                    let update_type = format!("{}{}", update_type.chars().next().unwrap().to_uppercase(), &update_type[1..]);
 
                     if let Some((crate_name, current_version)) = current_crate.take() {
-                        let new_version = new_version_number(&current_version, update_type)?;
+                        let new_version = new_version_number(&current_version, &update_type)?;
                         error_count += 1;
 
                         // need to escape the #{error_count} otherwise it will refer to an actual pr
@@ -249,8 +250,8 @@ fn new_version_number(version: &str, update_type: &str) -> Result<String> {
         anyhow::bail!("expected version format vX.Y.Z, got: {version}");
     }
     match update_type {
-        "minor" => parts[2] += 1,
-        "major" => {
+        "Minor" => parts[2] += 1,
+        "Major" => {
             parts[1] += 1;
             parts[2] = 0;
         }
