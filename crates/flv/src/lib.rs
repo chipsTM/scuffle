@@ -165,8 +165,6 @@ mod tests {
 
             insta::assert_debug_snapshot!(sps, @r"
             Sps {
-                temp_breaking_change_1: 1,
-                temp_breaking_change_2: 2,
                 nal_ref_idc: 3,
                 nal_unit_type: NALUnitType::SPS,
                 profile_idc: 100,
