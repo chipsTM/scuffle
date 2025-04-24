@@ -2,11 +2,11 @@ use std::io::{
     Read, Write, {self},
 };
 
-use byteorder::{BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use bytes::Bytes;
 use scuffle_bytes_util::{BitReader, BitWriter};
 
-use crate::{ConstantFrameRate, NALUnitType, NumTemporalLayers, ParallelismType};
+use crate::{ConstantFrameRate, NALUnitType, NumTemporalLayers, ParallelismType, ProfileCompatibilityFlags};
 
 /// HEVC Decoder Configuration Record.
 ///
@@ -20,7 +20,7 @@ pub struct HEVCDecoderConfigurationRecord {
     /// Matches the [`general_profile_idc`](crate::Profile::profile_idc) field as defined in ISO/IEC 23008-2.
     pub general_profile_idc: u8,
     /// Matches the [`general_profile_compatibility_flag`](crate::Profile::profile_compatibility_flag) field as defined in ISO/IEC 23008-2.
-    pub general_profile_compatibility_flags: u32,
+    pub general_profile_compatibility_flags: ProfileCompatibilityFlags,
     /// This is stored as a 48-bit (6 bytes) unsigned integer.
     /// Therefore only the first 48 bits of this value are used.
     pub general_constraint_indicator_flags: u64,
@@ -101,8 +101,9 @@ impl HEVCDecoderConfigurationRecord {
         let general_profile_space = bit_reader.read_bits(2)? as u8;
         let general_tier_flag = bit_reader.read_bit()?;
         let general_profile_idc = bit_reader.read_bits(5)? as u8;
-        let general_profile_compatibility_flags = bit_reader.read_u32::<LittleEndian>()?;
-        let general_constraint_indicator_flags = bit_reader.read_u48::<LittleEndian>()?;
+        let general_profile_compatibility_flags =
+            ProfileCompatibilityFlags::from_bits_retain(bit_reader.read_u32::<BigEndian>()?);
+        let general_constraint_indicator_flags = bit_reader.read_u48::<BigEndian>()?;
         let general_level_idc = bit_reader.read_u8()?;
 
         bit_reader.read_bits(4)?; // reserved_4bits
@@ -225,8 +226,8 @@ impl HEVCDecoderConfigurationRecord {
         bit_writer.write_bits(self.general_profile_space as u64, 2)?;
         bit_writer.write_bit(self.general_tier_flag)?;
         bit_writer.write_bits(self.general_profile_idc as u64, 5)?;
-        bit_writer.write_u32::<LittleEndian>(self.general_profile_compatibility_flags)?;
-        bit_writer.write_u48::<LittleEndian>(self.general_constraint_indicator_flags)?;
+        bit_writer.write_u32::<BigEndian>(self.general_profile_compatibility_flags.bits())?;
+        bit_writer.write_u48::<BigEndian>(self.general_constraint_indicator_flags)?;
         bit_writer.write_u8(self.general_level_idc)?;
 
         bit_writer.write_bits(0b1111, 4)?; // reserved_4bits
@@ -279,7 +280,8 @@ mod tests {
     use bytes::Bytes;
 
     use crate::{
-        ConstantFrameRate, HEVCDecoderConfigurationRecord, NALUnitType, NumTemporalLayers, ParallelismType, SpsNALUnit,
+        ConstantFrameRate, HEVCDecoderConfigurationRecord, NALUnitType, NumTemporalLayers, ParallelismType,
+        ProfileCompatibilityFlags, SpsNALUnit,
     };
 
     #[test]
@@ -292,8 +294,11 @@ mod tests {
         assert_eq!(config.general_profile_space, 0);
         assert!(!config.general_tier_flag);
         assert_eq!(config.general_profile_idc, 1);
-        assert_eq!(config.general_profile_compatibility_flags, 64);
-        assert_eq!(config.general_constraint_indicator_flags, 144);
+        assert_eq!(
+            config.general_profile_compatibility_flags,
+            ProfileCompatibilityFlags::MainProfile
+        );
+        assert_eq!(config.general_constraint_indicator_flags, (1 << 47) | (1 << 44)); // 1. bit and 4. bit
         assert_eq!(config.general_level_idc, 153);
         assert_eq!(config.min_spatial_segmentation_idc, 0);
         assert_eq!(config.parallelism_type, ParallelismType::MixedOrUnknown);

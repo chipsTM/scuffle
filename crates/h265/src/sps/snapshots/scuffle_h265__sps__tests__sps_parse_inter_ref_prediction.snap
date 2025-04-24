@@ -18,12 +18,14 @@ SpsNALUnit {
                 profile_space: 0,
                 tier_flag: false,
                 profile_idc: 1,
-                profile_compatibility_flag: 1610612736,
+                profile_compatibility_flag: ProfileCompatibilityFlags(
+                    MainProfile | Main10Profile,
+                ),
                 progressive_source_flag: false,
                 interlaced_source_flag: false,
                 non_packed_constraint_flag: false,
                 frame_only_constraint_flag: false,
-                additional_flags: Profile2 {
+                additional_flags: Main10Profile {
                     one_picture_only_constraint_flag: false,
                 },
                 inbld_flag: Some(

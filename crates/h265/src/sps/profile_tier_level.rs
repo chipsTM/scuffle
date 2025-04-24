@@ -3,6 +3,7 @@ use std::io;
 use byteorder::{BigEndian, ReadBytesExt};
 use scuffle_bytes_util::BitReader;
 
+use crate::ProfileCompatibilityFlags;
 use crate::range_check::range_check;
 
 /// Profile, tier and level.
@@ -113,7 +114,7 @@ pub struct Profile {
     /// `profile_compatibility_flag[j]` equal to `true`, when `general_profile_space` is equal to 0, indicates
     /// that the CVS conforms to the profile indicated by `general_profile_idc` equal to `j`
     /// as specified in ISO/IEC 23008-2 - Annex A.
-    pub profile_compatibility_flag: u32,
+    pub profile_compatibility_flag: ProfileCompatibilityFlags,
     /// - If `general_progressive_source_flag` is equal to `true` and
     ///   [`general_interlaced_source_flag`](Profile::interlaced_source_flag) is equal to `false`, the
     ///   source scan type of the pictures in the CVS should be interpreted as progressive only.
@@ -163,11 +164,11 @@ impl Profile {
         let tier_flag = bit_reader.read_bit()?;
         let profile_idc = bit_reader.read_bits(5)? as u8;
 
-        let profile_compatibility_flag = bit_reader.read_u32::<BigEndian>()?;
+        let profile_compatibility_flag = ProfileCompatibilityFlags::from_bits_retain(bit_reader.read_u32::<BigEndian>()?);
 
-        let check_profile_idcs = |idcs: &[u8]| {
-            idcs.iter()
-                .any(|idc| profile_idc == *idc || (profile_compatibility_flag >> (31 - idc)) & 0b1 == 0b1)
+        let check_profile_idcs = |profiles: ProfileCompatibilityFlags| {
+            profiles.contains(ProfileCompatibilityFlags::from_bits_retain(1 << profile_idc))
+                || profile_compatibility_flag.intersects(profiles)
         };
 
         let progressive_source_flag = bit_reader.read_bit()?;
@@ -175,7 +176,16 @@ impl Profile {
         let non_packed_constraint_flag = bit_reader.read_bit()?;
         let frame_only_constraint_flag = bit_reader.read_bit()?;
 
-        let additional_flags = if check_profile_idcs(&[4, 5, 6, 7, 8, 9, 10, 11]) {
+        let additional_flags = if check_profile_idcs(
+            ProfileCompatibilityFlags::FormatRangeExtensionsProfile
+                | ProfileCompatibilityFlags::HighThroughputProfile
+                | ProfileCompatibilityFlags::Profile6
+                | ProfileCompatibilityFlags::Profile7
+                | ProfileCompatibilityFlags::Profile8
+                | ProfileCompatibilityFlags::ScreenContentCodingExtensionsProfile
+                | ProfileCompatibilityFlags::Profile10
+                | ProfileCompatibilityFlags::HighThroughputScreenContentCodingExtensionsProfile,
+        ) {
             let max_12bit_constraint_flag = bit_reader.read_bit()?;
             let max_10bit_constraint_flag = bit_reader.read_bit()?;
             let max_8bit_constraint_flag = bit_reader.read_bit()?;
@@ -186,7 +196,12 @@ impl Profile {
             let one_picture_only_constraint_flag = bit_reader.read_bit()?;
             let lower_bit_rate_constraint_flag = bit_reader.read_bit()?;
 
-            let max_14bit_constraint_flag = if check_profile_idcs(&[5, 9, 10, 11]) {
+            let max_14bit_constraint_flag = if check_profile_idcs(
+                ProfileCompatibilityFlags::HighThroughputProfile
+                    | ProfileCompatibilityFlags::ScreenContentCodingExtensionsProfile
+                    | ProfileCompatibilityFlags::Profile10
+                    | ProfileCompatibilityFlags::HighThroughputScreenContentCodingExtensionsProfile,
+            ) {
                 let max_14bit_constraint_flag = bit_reader.read_bit()?;
                 bit_reader.read_bits(33)?;
                 Some(max_14bit_constraint_flag)
@@ -207,11 +222,11 @@ impl Profile {
                 lower_bit_rate_constraint_flag,
                 max_14bit_constraint_flag,
             }
-        } else if check_profile_idcs(&[2]) {
+        } else if check_profile_idcs(ProfileCompatibilityFlags::Main10Profile) {
             bit_reader.read_bits(7)?; // reserved_zero_7bits
             let one_picture_only_constraint_flag = bit_reader.read_bit()?;
             bit_reader.read_bits(35)?; // reserved_zero_35bits
-            ProfileAdditionalFlags::Profile2 {
+            ProfileAdditionalFlags::Main10Profile {
                 one_picture_only_constraint_flag,
             }
         } else {
@@ -219,7 +234,15 @@ impl Profile {
             ProfileAdditionalFlags::None
         };
 
-        let inbld_flag = if check_profile_idcs(&[1, 2, 3, 4, 5, 9, 11]) {
+        let inbld_flag = if check_profile_idcs(
+            ProfileCompatibilityFlags::MainProfile
+                | ProfileCompatibilityFlags::Main10Profile
+                | ProfileCompatibilityFlags::MainStillPictureProfile
+                | ProfileCompatibilityFlags::FormatRangeExtensionsProfile
+                | ProfileCompatibilityFlags::HighThroughputProfile
+                | ProfileCompatibilityFlags::ScreenContentCodingExtensionsProfile
+                | ProfileCompatibilityFlags::HighThroughputScreenContentCodingExtensionsProfile,
+        ) {
             Some(bit_reader.read_bit()?)
         } else {
             bit_reader.read_bit()?; // reserved_zero_bit
@@ -285,7 +308,7 @@ pub enum ProfileAdditionalFlags {
         max_14bit_constraint_flag: Option<bool>,
     },
     /// Only the `one_picture_only_constraint_flag` is present because `profile_idc` is 2 or `general_profile_compatibility_flag[2]` is `true`.
-    Profile2 {
+    Main10Profile {
         /// Semantics specified in ISO/IEC 23008-2 - Annex A.
         one_picture_only_constraint_flag: bool,
     },
@@ -298,7 +321,7 @@ impl ProfileAdditionalFlags {
         match (&self, defaults) {
             (Self::Full { .. }, _) => self,
             (
-                Self::Profile2 {
+                Self::Main10Profile {
                     one_picture_only_constraint_flag,
                 },
                 Self::Full {
@@ -325,7 +348,7 @@ impl ProfileAdditionalFlags {
                 lower_bit_rate_constraint_flag: *lower_bit_rate_constraint_flag,
                 max_14bit_constraint_flag: *max_14bit_constraint_flag,
             },
-            (Self::Profile2 { .. }, _) => self,
+            (Self::Main10Profile { .. }, _) => self,
             (Self::None, _) => defaults.clone(),
         }
     }

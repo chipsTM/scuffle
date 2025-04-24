@@ -10,6 +10,7 @@ use scuffle_av1::AV1CodecConfigurationRecord;
 use scuffle_h264::AVCDecoderConfigurationRecord;
 use scuffle_h265::{
     ConstantFrameRate, HEVCDecoderConfigurationRecord, NALUnitType, NaluArray, NumTemporalLayers, ParallelismType,
+    ProfileCompatibilityFlags,
 };
 
 use crate::boxes::DynBox;
@@ -1898,8 +1899,8 @@ fn test_demux_hevc_aac() {
                                     general_profile_space: 0,
                                     general_tier_flag: false,
                                     general_profile_idc: 1,
-                                    general_profile_compatibility_flags: 96,
-                                    general_constraint_indicator_flags: 144,
+                                    general_profile_compatibility_flags: ProfileCompatibilityFlags::MainProfile | ProfileCompatibilityFlags::Main10Profile,
+                                    general_constraint_indicator_flags: (1 << 47) | (1 << 44), // 1. bit and 4. bit
                                     general_level_idc: 153,
                                     min_spatial_segmentation_idc: 0,
                                     parallelism_type: ParallelismType::MixedOrUnknown,

@@ -269,11 +269,12 @@ fn test_transmuxer_hevc_aac() {
                         timescale: 60000,
                         codec: VideoCodec::Hevc {
                             general_profile_space: 0,
-                            profile_compatibility: 96,
+                            profile_compatibility: scuffle_h265::ProfileCompatibilityFlags::MainProfile
+                                | scuffle_h265::ProfileCompatibilityFlags::Main10Profile,
                             profile: 1,
                             level: 153,
                             tier: false,
-                            constraint_indicator: 144,
+                            constraint_indicator: (1 << 47) | (1 << 44), // 1. bit and 4. bit,
                         }
                     }
                 );

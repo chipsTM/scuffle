@@ -15,3 +15,6 @@ pub use constant_frame_rate::*;
 
 mod num_temporal_layers;
 pub use num_temporal_layers::*;
+
+mod profile_compatibility_flags;
+pub use profile_compatibility_flags::*;
