@@ -113,7 +113,7 @@ pub struct Profile {
     /// `profile_compatibility_flag[j]` equal to `true`, when `general_profile_space` is equal to 0, indicates
     /// that the CVS conforms to the profile indicated by `general_profile_idc` equal to `j`
     /// as specified in ISO/IEC 23008-2 - Annex A.
-    pub profile_compatibility_flag: [bool; 32],
+    pub profile_compatibility_flag: u32,
     /// - If `general_progressive_source_flag` is equal to `true` and
     ///   [`general_interlaced_source_flag`](Profile::interlaced_source_flag) is equal to `false`, the
     ///   source scan type of the pictures in the CVS should be interpreted as progressive only.
@@ -163,15 +163,11 @@ impl Profile {
         let tier_flag = bit_reader.read_bit()?;
         let profile_idc = bit_reader.read_bits(5)? as u8;
 
-        let mut profile_compatibility_flag = [false; 32];
-        let flag_number = bit_reader.read_u32::<BigEndian>()?;
-        for (i, profile_compatibility_flag) in profile_compatibility_flag.iter_mut().enumerate() {
-            *profile_compatibility_flag = (flag_number >> (31 - i)) & 1 == 1;
-        }
+        let profile_compatibility_flag = bit_reader.read_u32::<BigEndian>()?;
 
         let check_profile_idcs = |idcs: &[u8]| {
             idcs.iter()
-                .any(|idc| profile_idc == *idc || profile_compatibility_flag[*idc as usize])
+                .any(|idc| profile_idc == *idc || (profile_compatibility_flag >> (31 - idc)) & 0b1 == 0b1)
         };
 
         let progressive_source_flag = bit_reader.read_bit()?;

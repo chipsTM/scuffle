@@ -611,7 +611,7 @@ mod tests {
                 profile_space: 0,
                 tier_flag: false,
                 profile_idc: 0,
-                profile_compatibility_flag: [false; 32],
+                profile_compatibility_flag: 0,
                 progressive_source_flag: false,
                 interlaced_source_flag: false,
                 non_packed_constraint_flag: false,
