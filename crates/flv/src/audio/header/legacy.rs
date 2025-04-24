@@ -170,7 +170,7 @@ mod tests {
         for (value, expected, name) in cases {
             let sound_format = SoundFormat::from(value);
             assert_eq!(sound_format, expected);
-            assert_eq!(format!("{:?}", sound_format), name);
+            assert_eq!(format!("{sound_format:?}"), name);
         }
     }
 
@@ -186,7 +186,7 @@ mod tests {
         for (value, expected, name) in cases {
             let sound_rate = SoundRate::from(value);
             assert_eq!(sound_rate, expected);
-            assert_eq!(format!("{:?}", sound_rate), name);
+            assert_eq!(format!("{sound_rate:?}"), name);
         }
     }
 
@@ -200,7 +200,7 @@ mod tests {
         for (value, expected, name) in cases {
             let sound_size = SoundSize::from(value);
             assert_eq!(sound_size, expected);
-            assert_eq!(format!("{:?}", sound_size), name);
+            assert_eq!(format!("{sound_size:?}"), name);
         }
     }
 
@@ -214,7 +214,7 @@ mod tests {
         for (value, expected, name) in cases {
             let sound_type = SoundType::from(value);
             assert_eq!(sound_type, expected);
-            assert_eq!(format!("{:?}", sound_type), name);
+            assert_eq!(format!("{sound_type:?}"), name);
         }
     }
 }

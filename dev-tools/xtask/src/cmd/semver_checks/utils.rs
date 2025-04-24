@@ -23,10 +23,10 @@ impl Drop for WorktreeCleanup {
                 println!("Successfully removed git worktree");
             }
             Ok(status) => {
-                eprintln!("Failed to remove git worktree. Exit code: {}", status);
+                eprintln!("Failed to remove git worktree. Exit code: {status}");
             }
             Err(e) => {
-                eprintln!("Error removing git worktree: {:?}", e);
+                eprintln!("Error removing git worktree: {e:?}");
             }
         }
 
@@ -55,10 +55,7 @@ pub fn checkout_baseline(baseline_rev_or_hash: &str, target_dir: &PathBuf) -> Re
     let commit_hash = if rev_parse_output.status.success() {
         String::from_utf8(rev_parse_output.stdout)?.trim().to_string()
     } else {
-        println!(
-            "Revision {} not found locally. Fetching from origin...\n",
-            baseline_rev_or_hash
-        );
+        println!("Revision {baseline_rev_or_hash} not found locally. Fetching from origin...\n");
 
         Command::new("git")
             .args(["fetch", "--depth", "1", "origin", baseline_rev_or_hash])
@@ -78,10 +75,10 @@ pub fn checkout_baseline(baseline_rev_or_hash: &str, target_dir: &PathBuf) -> Re
             .status
             .success()
             .then(|| String::from_utf8(retry_output.stdout).unwrap().trim().to_string())
-            .context(format!("Failed to resolve revision {}", baseline_rev_or_hash))?
+            .context(format!("Failed to resolve revision {baseline_rev_or_hash}"))?
     };
 
-    println!("Checking out commit {} into {:?}\n", commit_hash, target_dir);
+    println!("Checking out commit {commit_hash} into {target_dir:?}\n");
 
     Command::new("git")
         .args(["worktree", "add", "--detach", target_dir.to_str().unwrap(), &commit_hash])

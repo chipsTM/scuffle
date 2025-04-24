@@ -569,16 +569,16 @@ mod tests {
     #[test]
     fn test_reader_error_display() {
         let error = ChunkReadError::MissingPreviousChunkHeader(123);
-        assert_eq!(format!("{}", error), "missing previous chunk header: 123");
+        assert_eq!(format!("{error}"), "missing previous chunk header: 123");
 
         let error = ChunkReadError::TooManyPartialChunks;
-        assert_eq!(format!("{}", error), "too many partial chunks");
+        assert_eq!(format!("{error}"), "too many partial chunks");
 
         let error = ChunkReadError::TooManyPreviousChunkHeaders;
-        assert_eq!(format!("{}", error), "too many previous chunk headers");
+        assert_eq!(format!("{error}"), "too many previous chunk headers");
 
         let error = ChunkReadError::PartialChunkTooLarge(100);
-        assert_eq!(format!("{}", error), "partial chunk too large: 100");
+        assert_eq!(format!("{error}"), "partial chunk too large: 100");
     }
 
     #[test]
@@ -916,7 +916,7 @@ mod tests {
         let err = unpacker.read_chunk(&mut buf).unwrap_err();
         match err {
             crate::error::RtmpError::ChunkRead(ChunkReadError::MissingPreviousChunkHeader(3)) => {}
-            _ => panic!("Unexpected error: {:?}", err),
+            _ => panic!("Unexpected error: {err:?}"),
         }
     }
 
@@ -940,7 +940,7 @@ mod tests {
         let err = unpacker.read_chunk(&mut buf).unwrap_err();
         match err {
             crate::error::RtmpError::ChunkRead(ChunkReadError::PartialChunkTooLarge(16777215)) => {}
-            _ => panic!("Unexpected error: {:?}", err),
+            _ => panic!("Unexpected error: {err:?}"),
         }
     }
 
@@ -970,7 +970,7 @@ mod tests {
             assert!(
                 unpacker
                     .read_chunk(&mut buf)
-                    .unwrap_or_else(|_| panic!("chunk failed {}", i))
+                    .unwrap_or_else(|_| panic!("chunk failed {i}"))
                     .is_none()
             );
         }
@@ -993,7 +993,7 @@ mod tests {
         let err = unpacker.read_chunk(&mut buf).unwrap_err();
         match err {
             crate::error::RtmpError::ChunkRead(ChunkReadError::TooManyPartialChunks) => {}
-            _ => panic!("Unexpected error: {:?}", err),
+            _ => panic!("Unexpected error: {err:?}"),
         }
     }
 
@@ -1020,7 +1020,7 @@ mod tests {
             assert!(
                 unpacker
                     .read_chunk(&mut buf)
-                    .unwrap_or_else(|_| panic!("chunk failed {}", i))
+                    .unwrap_or_else(|_| panic!("chunk failed {i}"))
                     .is_some()
             );
         }
@@ -1039,7 +1039,7 @@ mod tests {
         let err = unpacker.read_chunk(&mut buf).unwrap_err();
         match err {
             crate::error::RtmpError::ChunkRead(ChunkReadError::TooManyPreviousChunkHeaders) => {}
-            _ => panic!("Unexpected error: {:?}", err),
+            _ => panic!("Unexpected error: {err:?}"),
         }
     }
 

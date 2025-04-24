@@ -312,7 +312,7 @@ mod tests {
                             assert!(!read_seq_end);
                             read_seq_end = true;
                         }
-                        _ => panic!("expected avc nalu packet: {:?}", data),
+                        _ => panic!("expected avc nalu packet: {data:?}"),
                     }
                 }
                 _ => panic!("unexpected data"),
@@ -522,7 +522,7 @@ mod tests {
                             assert!(!read_seq_end);
                             read_seq_end = true;
                         }
-                        _ => panic!("expected av1 raw packet: {:?}", body),
+                        _ => panic!("expected av1 raw packet: {body:?}"),
                     };
                 }
                 _ => panic!("unexpected data"),
@@ -735,7 +735,7 @@ mod tests {
                             assert!(!read_seq_end);
                             read_seq_end = true;
                         }
-                        _ => panic!("expected hevc nalu packet: {:?}", packet),
+                        _ => panic!("expected hevc nalu packet: {packet:?}"),
                     };
                 }
                 _ => panic!("unexpected data"),

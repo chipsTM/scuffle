@@ -297,19 +297,19 @@ mod tests {
     #[test]
     fn display() {
         let cow = StringCow::from_ref("hello");
-        let fmt = format!("{}", cow);
+        let fmt = format!("{cow}");
         assert_eq!(fmt, "hello");
 
         let cow = StringCow::from_static("hello");
-        let fmt = format!("{}", cow);
+        let fmt = format!("{cow}");
         assert_eq!(fmt, "hello");
 
         let cow = StringCow::from_string(String::from("world"));
-        let fmt = format!("{}", cow);
+        let fmt = format!("{cow}");
         assert_eq!(fmt, "world");
 
         let cow = StringCow::from_bytes(ByteString::from_static("foo"));
-        let fmt = format!("{}", cow);
+        let fmt = format!("{cow}");
         assert_eq!(fmt, "foo");
     }
 }

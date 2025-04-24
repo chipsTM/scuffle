@@ -14,5 +14,5 @@ fn main() {
         env_prefix: Some("APP"),
     });
 
-    println!("{:#?}", config);
+    println!("{config:#?}");
 }

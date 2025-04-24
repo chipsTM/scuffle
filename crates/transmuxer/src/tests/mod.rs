@@ -96,7 +96,7 @@ fn test_transmuxer_avc_aac() {
 
     let output = String::from_utf8(output.stdout).unwrap();
 
-    println!("{}", output);
+    println!("{output}");
 
     // Check the output is valid.
     let json: serde_json::Value = serde_json::from_str(&output).unwrap();

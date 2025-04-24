@@ -133,7 +133,7 @@ mod tests {
         // Wait for the server to start
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
-        let url = format!("http://{}/", addr);
+        let url = format!("http://{addr}/");
 
         for version in versions {
             let mut builder = reqwest::Client::builder().danger_accept_invalid_certs(true);
@@ -198,7 +198,7 @@ mod tests {
         // Wait for the server to start
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
-        let url = format!("https://{}/", addr);
+        let url = format!("https://{addr}/");
 
         for version in versions {
             let mut builder = reqwest::Client::builder().danger_accept_invalid_certs(true).https_only(true);
@@ -223,7 +223,7 @@ mod tests {
             let resp = client
                 .execute(request)
                 .await
-                .unwrap_or_else(|_| panic!("failed to get response version {:?}", version))
+                .unwrap_or_else(|_| panic!("failed to get response version {version:?}"))
                 .text()
                 .await
                 .expect("failed to get text");

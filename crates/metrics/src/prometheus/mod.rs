@@ -425,13 +425,13 @@ impl prometheus_client::encoding::EncodeLabelSet for KeyValueEncoder<'_> {
             if prometheus_full_utf8 {
                 // TODO(troy): I am not sure if this is correct.
                 // See: https://github.com/prometheus/client_rust/issues/251
-                write!(&mut key_encoder, "{}", key)?;
+                write!(&mut key_encoder, "{key}")?;
             } else {
                 write!(&mut key_encoder, "{}", escape_key(key))?;
             }
 
             let mut value_encoder = key_encoder.encode_label_value()?;
-            write!(&mut value_encoder, "{}", value)?;
+            write!(&mut value_encoder, "{value}")?;
 
             value_encoder.finish()
         }

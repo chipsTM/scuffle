@@ -207,7 +207,7 @@ impl config::Format for FormatWrapper {
 
         Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            format!("No supported format found for file: {:?}", uri),
+            format!("No supported format found for file: {uri:?}"),
         )))
     }
 }
@@ -407,7 +407,7 @@ mod tests {
         if let crate::SettingsError::Clap(err) = err {
             assert_eq!(err.to_string(), "error: Override must be in the format KEY=VALUE");
         } else {
-            panic!("unexpected error: {}", err);
+            panic!("unexpected error: {err}");
         }
     }
 
@@ -457,7 +457,7 @@ mod tests {
                 format!("No supported format found for file: {:?}", path.to_str())
             );
         } else {
-            panic!("unexpected error: {:?}", err);
+            panic!("unexpected error: {err:?}");
         }
     }
 

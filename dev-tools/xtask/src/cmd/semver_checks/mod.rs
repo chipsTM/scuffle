@@ -52,7 +52,7 @@ impl SemverChecks {
         // need to print an empty line for the bullet list to format correctly
         println!();
         for krate in crates {
-            println!("- `{}`", krate);
+            println!("- `{krate}`");
         }
         // close crate details
         println!("</details>");

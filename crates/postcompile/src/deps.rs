@@ -195,7 +195,7 @@ impl Dependencies {
 
         let output = match metadata.output() {
             Err(e) => {
-                eprintln!("failed to run cargo metadata: \n{:#}", e);
+                eprintln!("failed to run cargo metadata: \n{e:#}");
                 std::process::exit(1);
             }
             Ok(output) => output,

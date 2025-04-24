@@ -730,7 +730,7 @@ mod tests {
         let cloned_frame = frame.clone();
 
         assert_eq!(
-            format!("{:?}", frame),
+            format!("{frame:?}"),
             format!("{:?}", cloned_frame),
             "Cloned frame should be equal to the original frame."
         );
@@ -1001,8 +1001,7 @@ mod tests {
             assert!(
                 // Safety: `frame` is a valid pointer. And we dont attempt to read from the frame until after the allocation.
                 unsafe { frame.alloc_frame_buffer(alignment).is_err() },
-                "Should fail to allocate buffer with invalid frame and alignment {:?}",
-                alignment
+                "Should fail to allocate buffer with invalid frame and alignment {alignment:?}"
             );
         }
     }

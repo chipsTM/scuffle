@@ -40,7 +40,7 @@ impl fmt::Display for VideoCodec {
                 profile,
                 constraint_set,
                 level,
-            } => write!(f, "avc1.{:02x}{:02x}{:02x}", profile, constraint_set, level),
+            } => write!(f, "avc1.{profile:02x}{constraint_set:02x}{level:02x}"),
             VideoCodec::Hevc {
                 general_profile_space,
                 profile,
@@ -238,7 +238,7 @@ impl FromStr for VideoCodec {
                     full_range_flag,
                 })
             }
-            r => Err(format!("invalid codec, unknown type: {}", r)),
+            r => Err(format!("invalid codec, unknown type: {r}")),
         }
     }
 }
@@ -282,7 +282,7 @@ impl FromStr for AudioCodec {
                 })
             }
             "opus" => Ok(AudioCodec::Opus),
-            r => Err(format!("invalid codec, unknown type: {}", r)),
+            r => Err(format!("invalid codec, unknown type: {r}")),
         }
     }
 }

@@ -63,7 +63,7 @@ impl scuffle_bootstrap::global::Global for Global {
     }
 
     async fn on_service_exit(self: &Arc<Self>, name: &'static str, result: anyhow::Result<()>) -> anyhow::Result<()> {
-        println!("service exited: {}", name);
+        println!("service exited: {name}");
         result
     }
 }
