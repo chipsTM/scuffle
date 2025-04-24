@@ -490,7 +490,7 @@ mod tests {
         if let Err(err) = decoder_result {
             match err {
                 crate::error::FfmpegError::NoDecoder => (),
-                _ => panic!("Unexpected error type: {:?}", err),
+                _ => panic!("Unexpected error type: {err:?}"),
             }
         }
     }
@@ -516,7 +516,7 @@ mod tests {
         if let Err(err) = decoder_result {
             match err {
                 crate::error::FfmpegError::NoDecoder => (),
-                _ => panic!("Unexpected error type: {:?}", err),
+                _ => panic!("Unexpected error type: {err:?}"),
             }
         }
     }

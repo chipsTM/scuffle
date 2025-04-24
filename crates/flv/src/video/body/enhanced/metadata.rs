@@ -184,7 +184,7 @@ impl<'de> serde::Deserialize<'de> for VideoPacketMetadataEntry<'de> {
                         key,
                         object: match content.newtype_variant::<Amf0Value>()?.into_owned() {
                             Amf0Value::Object(object) => object,
-                            _ => return Err(A::Error::custom(format!("expected {} object", VIDEO_PACKET_METADATA_ENTRY))),
+                            _ => return Err(A::Error::custom(format!("expected {VIDEO_PACKET_METADATA_ENTRY} object"))),
                         },
                     }),
                 }

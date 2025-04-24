@@ -29,7 +29,7 @@ impl Display for CommandResultLevel {
             CommandResultLevel::Warning => write!(f, "warning"),
             CommandResultLevel::Status => write!(f, "status"),
             CommandResultLevel::Error => write!(f, "error"),
-            CommandResultLevel::Unknown(s) => write!(f, "{}", s),
+            CommandResultLevel::Unknown(s) => write!(f, "{s}"),
         }
     }
 }

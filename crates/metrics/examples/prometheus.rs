@@ -50,5 +50,5 @@ async fn main() {
 
     prometheus_client::encoding::text::encode(&mut buffer, &registry).unwrap();
 
-    println!("{}", buffer);
+    println!("{buffer}");
 }

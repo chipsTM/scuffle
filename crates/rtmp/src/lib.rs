@@ -197,7 +197,7 @@ mod tests {
             (
                 tokio::spawn(async move {
                     let r = session.run().await;
-                    println!("ffmpeg session ended: {:?}", r);
+                    println!("ffmpeg session ended: {r:?}");
                     r
                 }),
                 ffmpeg_event_reciever,
@@ -331,7 +331,7 @@ mod tests {
             (
                 tokio::spawn(async move {
                     let r = session.run().await;
-                    println!("ffmpeg session ended: {:?}", r);
+                    println!("ffmpeg session ended: {r:?}");
                     r
                 }),
                 ffmpeg_event_reciever,

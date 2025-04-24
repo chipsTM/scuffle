@@ -123,7 +123,7 @@ mod test {
             Ok(Ok(Err(e))) => {
                 assert_eq!(e.to_string(), "received signal, shutting down immediately: Interrupt");
             }
-            r => panic!("unexpected result: {:?}", r),
+            r => panic!("unexpected result: {r:?}"),
         }
 
         assert!(

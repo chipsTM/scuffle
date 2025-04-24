@@ -407,7 +407,7 @@ mod tests {
                 FfmpegError::Code(_) => {
                     eprintln!("Expected avformat_alloc_output_context2 error occurred.");
                 }
-                _ => panic!("Unexpected error variant: {:?}", error),
+                _ => panic!("Unexpected error variant: {error:?}"),
             }
         }
     }
@@ -438,7 +438,7 @@ mod tests {
         let test_path_str = test_path.to_str().unwrap();
         let result = Inner::open_output(test_path_str);
         if let Err(error) = &result {
-            eprintln!("Function returned an error: {:?}", error);
+            eprintln!("Function returned an error: {error:?}");
         }
 
         assert!(
