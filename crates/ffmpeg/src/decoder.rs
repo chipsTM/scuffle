@@ -1,3 +1,5 @@
+use core::num::NonZero;
+
 use crate::codec::DecoderCodec;
 use crate::error::{FfmpegError, FfmpegErrorCode};
 use crate::ffi::*;
@@ -174,8 +176,12 @@ impl GenericDecoder {
     }
 
     /// Returns the time base of the decoder.
-    pub const fn time_base(&self) -> AVRational {
-        self.decoder.as_deref_except().time_base
+    pub const fn time_base(&self) -> Rational {
+        let time_base = self.decoder.as_deref_except().time_base;
+        Rational::new(
+            time_base.num,
+            NonZero::new(time_base.den).expect("denominator is 0")
+        )
     }
 
     /// Sends a packet to the decoder.
@@ -295,6 +301,8 @@ impl std::ops::DerefMut for AudioDecoder {
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
+    use std::num::NonZero;
+
     use crate::codec::DecoderCodec;
     use crate::decoder::{Decoder, DecoderOptions};
     use crate::io::Input;
@@ -331,9 +339,9 @@ mod tests {
 
         insta::assert_debug_snapshot!(generic_decoder, @r"
         Decoder {
-            time_base: AVRational {
-                num: 1,
-                den: 15360,
+            time_base: Rational {
+                numerator: 1,
+                denominator: 15360,
             },
             codec_type: AVMediaType::Video,
         }
@@ -373,9 +381,9 @@ mod tests {
 
         insta::assert_debug_snapshot!(generic_decoder, @r"
         VideoDecoder {
-            time_base: AVRational {
-                num: 1,
-                den: 15360,
+            time_base: Rational {
+                numerator: 1,
+                denominator: 15360,
             },
             width: 3840,
             height: 2160,
@@ -423,9 +431,9 @@ mod tests {
 
         insta::assert_debug_snapshot!(audio_decoder, @r"
         AudioDecoder {
-            time_base: AVRational {
-                num: 1,
-                den: 48000,
+            time_base: Rational {
+                numerator: 1,
+                denominator: 48000,
             },
             sample_rate: 48000,
             channels: 2,
@@ -546,9 +554,9 @@ mod tests {
         {
             let generic_decoder = &mut *video_decoder;
             let mut time_base = generic_decoder.time_base();
-            time_base.num = 1000;
-            time_base.den = 1;
-            generic_decoder.decoder.as_deref_mut_except().time_base = time_base;
+            time_base.numerator = 1000;
+            time_base.denominator = NonZero::new(1).unwrap();
+            generic_decoder.decoder.as_deref_mut_except().time_base = time_base.into();
         }
         let generic_decoder = &*video_decoder;
         let time_base = generic_decoder.decoder.as_deref_except().time_base;
@@ -582,9 +590,9 @@ mod tests {
         {
             let generic_decoder = &mut *audio_decoder;
             let mut time_base = generic_decoder.time_base();
-            time_base.num = 48000;
-            time_base.den = 1;
-            generic_decoder.decoder.as_deref_mut_except().time_base = time_base;
+            time_base.numerator = 48000;
+            time_base.denominator = NonZero::new(1).unwrap();
+            generic_decoder.decoder.as_deref_mut_except().time_base = time_base.into();
         }
         let generic_decoder = &*audio_decoder;
         let time_base = generic_decoder.decoder.as_deref_except().time_base;
