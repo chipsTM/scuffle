@@ -4,7 +4,9 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use clap::Parser;
+use next_version::NextVersion;
 use regex::Regex;
+use semver::Version;
 
 use crate::utils::{cargo_cmd, metadata};
 
@@ -106,20 +108,13 @@ impl SemverChecks {
         // extra line to separate from startup details
         println!("</details>\n");
 
-        // Regex to capture "Checking" lines (ignoring leading whitespace).
-        // Supports both formats:
-        //   "Checking <crate> vX.Y.Z (current)"
-        //   "Checking <crate> vX.Y.Z -> vX.Y.Z (no change)"
-        let check_re = Regex::new(r"^Checking\s+(?P<crate>\S+)\s+v(?P<curr>\d+\.\d+\.\d+)(?:\s+->\s+v\d+\.\d+\.\d+)?")
-            .context("compiling check regex")?;
-
         // Regex for summary lines that indicate an update is required.
         // Example:
         //   "Summary semver requires new major version: 1 major and 0 minor checks failed"
         let summary_re = Regex::new(r"^Summary semver requires new (?P<update_type>major|minor) version:")
             .context("compiling summary regex")?;
 
-        let commit_hash = std::env::var("SHA").unwrap();
+        let commit_hash = std::env::var("SHA")?;
         let scuffle_commit_url = format!("https://github.com/ScuffleCloud/scuffle/blob/{commit_hash}");
 
         let mut current_crate: Option<(String, String)> = None;
@@ -132,36 +127,34 @@ impl SemverChecks {
             let trimmed = line.trim_start();
 
             if trimmed.starts_with("Checking") {
-                // Capture crate name and version without printing.
-                if let Some(caps) = check_re.captures(trimmed) {
-                    let crate_name = caps.name("crate").unwrap().as_str().to_string();
-                    let current_version = caps.name("curr").unwrap().as_str().to_string();
-                    current_crate = Some((crate_name, current_version));
-                }
+                // example line: Checking nutype-enum v0.1.2 -> v0.1.2 (no change)
+                // sometimes the (no change) part is missing if the crate has already been updated.
+                let split_line = trimmed.split_whitespace().collect::<Vec<_>>();
+                current_crate = Some((split_line[1].to_string(), split_line[2].to_string()));
             } else if trimmed.starts_with("Summary") {
-                if let Some(caps) = summary_re.captures(trimmed) {
-                    let update_type = caps.name("update_type").unwrap().as_str();
+                if let Some(summary_line) = summary_re.captures(trimmed) {
+                    let (crate_name, current_version_str) = current_crate.take().unwrap();
+                    let update_type = summary_line.name("update_type").unwrap().as_str();
+                    let new_version = new_version_number(&current_version_str, update_type)?;
+
+                    // capitalize first letter of update_type
                     let update_type = format!("{}{}", update_type.chars().next().unwrap().to_uppercase(), &update_type[1..]);
+                    error_count += 1;
 
-                    if let Some((crate_name, current_version)) = current_crate.take() {
-                        let new_version = new_version_number(&current_version, &update_type)?;
-                        error_count += 1;
+                    // need to escape the #{error_count} otherwise it will refer to an actual pr
+                    summary.push(format!("### 🔖 Error `#{error_count}`"));
+                    summary.push(format!("{update_type} update required for `{crate_name}` ⚠️"));
+                    summary.push(format!(
+                        "Please update the version from `{current_version_str}` to `v{new_version}` 🛠️"
+                    ));
 
-                        // need to escape the #{error_count} otherwise it will refer to an actual pr
-                        summary.push(format!("### 🔖 Error `#{error_count}`"));
-                        summary.push(format!("{update_type} update required for `{crate_name}` ⚠️"));
-                        summary.push(format!(
-                            "Please update the version from `v{current_version}` to `{new_version}` 🛠️"
-                        ));
+                    summary.push("<details>".to_string());
+                    summary.push(format!("<summary> 📜 {crate_name} logs 📜 </summary>\n"));
+                    summary.append(&mut description);
+                    summary.push("</details>".to_string());
 
-                        summary.push("<details>".to_string());
-                        summary.push(format!("<summary> 📜 {crate_name} logs 📜 </summary>\n"));
-                        summary.append(&mut description);
-                        summary.push("</details>".to_string());
-
-                        // add a new line after the description
-                        summary.push("".to_string());
-                    }
+                    // add a new line after the description
+                    summary.push("".to_string());
                 }
             } else if trimmed.starts_with("---") {
                 let mut is_failed_in_block = false;
@@ -231,23 +224,20 @@ impl SemverChecks {
     }
 }
 
-fn new_version_number(version: &str, update_type: &str) -> Result<String> {
-    let version = version.strip_prefix('v').unwrap_or(version);
-    let mut parts: Vec<u64> = version
-        .split('.')
-        .map(|s| s.parse::<u64>())
-        .collect::<Result<_, _>>()
-        .context("parsing version numbers")?;
-    if parts.len() != 3 {
-        anyhow::bail!("expected version format vX.Y.Z, got: {version}");
-    }
-    match update_type {
-        "Minor" => parts[2] += 1,
-        "Major" => {
-            parts[1] += 1;
-            parts[2] = 0;
-        }
-        _ => anyhow::bail!("Failed to parse update type: {update_type}"),
-    }
-    Ok(format!("v{}.{}.{}", parts[0], parts[1], parts[2]))
+fn new_version_number(crate_version: &str, update_type: &str) -> Result<Version> {
+    let update_is_major = update_type.eq_ignore_ascii_case("major");
+
+    let version_stripped = crate_version.strip_prefix('v').unwrap();
+    let version_parsed = Version::parse(version_stripped)?;
+
+    let bumped = match (version_parsed.major >= 1, update_is_major) {
+        // only increment major if the current version is >= 1.0.0 AND update_type *is* major
+        (true, true) => version_parsed.increment_major(),
+        // only increment patch if the current version is < 1.0.0 AND update_type *is not* major
+        (false, false) => version_parsed.increment_patch(),
+        // otherwise increment minor
+        (true, false) | (false, true) => version_parsed.increment_minor(),
+    };
+
+    Ok(bumped)
 }
