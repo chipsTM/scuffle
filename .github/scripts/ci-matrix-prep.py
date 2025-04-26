@@ -164,7 +164,7 @@ def create_docsrs_jobs() -> list[Job]:
         jobs.append(
             Job(
                 runner=LINUX_ARM64,
-                job_name="Docs (Linux arm64)",
+                job_name="Docs.rs (Linux arm64)",
                 job="docsrs",
                 ffmpeg=FfmpegSetup(),
                 inputs=DocsRsMatrix(
@@ -185,7 +185,7 @@ def create_docsrs_jobs() -> list[Job]:
         jobs.append(
             Job(
                 runner=WINDOWS_X86_64,
-                job_name="Docs (Windows x86_64)",
+                job_name="Docs.rs (Windows x86_64)",
                 job="docsrs",
                 ffmpeg=FfmpegSetup(),
                 inputs=DocsRsMatrix(
@@ -206,7 +206,7 @@ def create_docsrs_jobs() -> list[Job]:
         jobs.append(
             Job(
                 runner=MACOS_X86_64,
-                job_name="Docs (macOS x86_64)",
+                job_name="Docs.rs (macOS x86_64)",
                 job="docsrs",
                 ffmpeg=FfmpegSetup(),
                 inputs=DocsRsMatrix(
@@ -227,7 +227,7 @@ def create_docsrs_jobs() -> list[Job]:
         jobs.append(
             Job(
                 runner=MACOS_ARM64,
-                job_name="Docs (macOS arm64)",
+                job_name="Docs.rs (macOS arm64)",
                 job="docsrs",
                 ffmpeg=FfmpegSetup(),
                 inputs=DocsRsMatrix(
