@@ -69,8 +69,13 @@ class FfmpegSetup:
 
 
 @dataclass
-class DocsMatrix:
+class DocsRsMatrix:
     artifact_name: Optional[str]
+    pr_number: Optional[int]
+    deploy_docs: bool
+
+@dataclass
+class DocusaurusMatrix:
     pr_number: Optional[int]
     deploy_docs: bool
 
@@ -114,7 +119,8 @@ class Job:
     ffmpeg: Optional[FfmpegSetup]
     inputs: (
         GrindMatrix
-        | DocsMatrix
+        | DocsRsMatrix
+        | DocusaurusMatrix
         | ClippyMatrix
         | TestMatrix
         | FmtMatrix
@@ -125,7 +131,7 @@ class Job:
     secrets: Optional[list[str]] = None
 
 
-def create_docs_jobs() -> list[Job]:
+def create_docsrs_jobs() -> list[Job]:
     jobs: list[Job] = []
 
     deploy_docs = not is_brawl("merge") and not is_fork_pr()
@@ -133,11 +139,11 @@ def create_docs_jobs() -> list[Job]:
     jobs.append(
         Job(
             runner=LINUX_X86_64,
-            job_name="Docs (Linux x86_64)",
-            job="docs",
+            job_name="Docs.rs (Linux x86_64)",
+            job="docsrs",
             ffmpeg=FfmpegSetup(),
-            inputs=DocsMatrix(
-                artifact_name="docs",
+            inputs=DocsRsMatrix(
+                artifact_name="docsrs",
                 deploy_docs=deploy_docs,
                 pr_number=pr_number(),
             ),
@@ -158,10 +164,10 @@ def create_docs_jobs() -> list[Job]:
         jobs.append(
             Job(
                 runner=LINUX_ARM64,
-                job_name="Docs (Linux arm64)",
-                job="docs",
+                job_name="Docs.rs (Linux arm64)",
+                job="docsrs",
                 ffmpeg=FfmpegSetup(),
-                inputs=DocsMatrix(
+                inputs=DocsRsMatrix(
                     artifact_name=None,
                     deploy_docs=False,
                     pr_number=pr_number(),
@@ -179,10 +185,10 @@ def create_docs_jobs() -> list[Job]:
         jobs.append(
             Job(
                 runner=WINDOWS_X86_64,
-                job_name="Docs (Windows x86_64)",
-                job="docs",
+                job_name="Docs.rs (Windows x86_64)",
+                job="docsrs",
                 ffmpeg=FfmpegSetup(),
-                inputs=DocsMatrix(
+                inputs=DocsRsMatrix(
                     artifact_name=None,
                     deploy_docs=False,
                     pr_number=pr_number(),
@@ -200,10 +206,10 @@ def create_docs_jobs() -> list[Job]:
         jobs.append(
             Job(
                 runner=MACOS_X86_64,
-                job_name="Docs (macOS x86_64)",
-                job="docs",
+                job_name="Docs.rs (macOS x86_64)",
+                job="docsrs",
                 ffmpeg=FfmpegSetup(),
-                inputs=DocsMatrix(
+                inputs=DocsRsMatrix(
                     artifact_name=None,
                     deploy_docs=False,
                     pr_number=pr_number(),
@@ -221,10 +227,10 @@ def create_docs_jobs() -> list[Job]:
         jobs.append(
             Job(
                 runner=MACOS_ARM64,
-                job_name="Docs (macOS arm64)",
-                job="docs",
+                job_name="Docs.rs (macOS arm64)",
+                job="docsrs",
                 ffmpeg=FfmpegSetup(),
-                inputs=DocsMatrix(
+                inputs=DocsRsMatrix(
                     artifact_name=None,
                     deploy_docs=False,
                     pr_number=pr_number(),
@@ -238,6 +244,30 @@ def create_docs_jobs() -> list[Job]:
                 ),
             )
         )
+
+    return jobs
+
+def create_docusaurus_jobs() -> list[Job]:
+    jobs: list[Job] = []
+
+    deploy_docs = not is_brawl("merge") and not is_fork_pr()
+
+    jobs.append(
+        Job(
+            runner=GITHUB_DEFAULT_RUNNER,
+            job_name="Docusaurus Docs",
+            job="docusaurus",
+            ffmpeg=None,
+            inputs=DocusaurusMatrix(
+                deploy_docs=deploy_docs,
+                pr_number=pr_number(),
+            ),
+            rust=None,
+            secrets=(
+                ["CF_DOCS_API_KEY", "CF_DOCS_ACCOUNT_ID"] if deploy_docs else None
+            ),
+        )
+    )
 
     return jobs
 
@@ -592,13 +622,14 @@ def create_semver_checks_jobs() -> list[Job]:
 
 def create_jobs() -> list[Job]:
     jobs = (
-        create_docs_jobs()
+        create_docsrs_jobs()
         + create_clippy_jobs()
         + create_test_jobs()
         + create_grind_jobs()
         + create_fmt_jobs()
         + create_hakari_jobs()
         + create_semver_checks_jobs()
+        + create_docusaurus_jobs()
     )
 
     return jobs
