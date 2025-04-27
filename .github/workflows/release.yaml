@@ -62,13 +62,14 @@ jobs:
           workflow: ci.yaml
           workflow_conclusion: success
           commit: ${{ github.sha }}
-          name: docs-rs
+          name: docsrs
           path: target/doc
 
       - name: Deploy
         id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
+          packageManager: npm
           apiToken: ${{ secrets.CF_DOCS_API_KEY }}
           accountId: ${{ secrets.CF_DOCS_ACCOUNT_ID }}
           command: pages deploy --project-name=scuffle-docrs --branch=main --commit-hash=${{ github.sha }} --commit-dirty=true ./target/doc
@@ -94,6 +95,7 @@ jobs:
         id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
+          packageManager: npm
           apiToken: ${{ secrets.CF_DOCS_API_KEY }}
           accountId: ${{ secrets.CF_DOCS_ACCOUNT_ID }}
           command: pages deploy --project-name=scuffle-docusaurus-docs --branch=main --commit-hash=${{ github.sha }} --commit-dirty=true ./docs/build
