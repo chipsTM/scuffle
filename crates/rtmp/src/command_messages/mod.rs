@@ -5,6 +5,7 @@ use netstream::NetStreamCommand;
 use on_status::OnStatus;
 use scuffle_amf0::Amf0Value;
 use scuffle_bytes_util::StringCow;
+use serde_derive::Serialize;
 
 pub mod error;
 pub mod netconnection;
@@ -60,7 +61,7 @@ pub struct UnknownCommand<'a> {
 }
 
 /// NetStream onStatus level (7.2.2.) and NetConnection connect result level (7.2.1.1.)
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum CommandResultLevel {
     /// Warning level.

@@ -9,6 +9,7 @@ use scuffle_amf0::decoder::Amf0Decoder;
 use scuffle_amf0::{Amf0Object, Amf0Value};
 use scuffle_bytes_util::{BytesCursorExt, StringCow};
 use serde::de::VariantAccess;
+use serde_derive::Deserialize;
 
 use crate::audio::header::enhanced::AudioFourCc;
 use crate::audio::header::legacy::SoundFormat;
@@ -83,7 +84,7 @@ impl<'de> serde::Deserialize<'de> for OnMetaDataVideoCodecId {
 /// Defined by:
 /// - Legacy FLV spec, Annex E.5
 /// - Enhanced RTMP spec, page 13-16, Enhancing onMetaData
-#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "camelCase", bound = "'a: 'de")]
 pub struct OnMetaData<'a> {
     /// Audio codec ID used in the file.
@@ -176,7 +177,7 @@ pub struct OnMetaData<'a> {
 ///
 /// Defined by:
 /// - Legacy FLV spec, Annex E.6
-#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "camelCase", bound = "'a: 'de")]
 pub struct OnXmpData<'a> {
     /// XMP metadata, formatted according to the XMP metadata specification.

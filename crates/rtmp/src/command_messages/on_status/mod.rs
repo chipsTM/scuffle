@@ -9,13 +9,14 @@
 use nutype_enum::nutype_enum;
 use scuffle_amf0::Amf0Object;
 use scuffle_bytes_util::StringCow;
+use serde_derive::Serialize;
 
 use crate::command_messages::CommandResultLevel;
 
 pub mod writer;
 
 /// The `onStatus` command is used to send status information from the server to the client.
-#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OnStatus<'a> {
     /// The status code.

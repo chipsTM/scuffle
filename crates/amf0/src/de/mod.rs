@@ -484,6 +484,7 @@ mod tests {
 
     use bytes::Bytes;
     use scuffle_bytes_util::StringCow;
+    use serde_derive::Deserialize;
 
     use crate::de::MultiValue;
     use crate::decoder::Amf0Decoder;
@@ -625,7 +626,7 @@ mod tests {
         let value: Option<bool> = from_buf(Bytes::from_owner(bytes)).unwrap();
         assert_eq!(value, Some(false));
 
-        #[derive(serde::Deserialize, PartialEq, Debug)]
+        #[derive(Deserialize, PartialEq, Debug)]
         struct Unit;
 
         let bytes = [Amf0Marker::Null as u8];
@@ -635,7 +636,7 @@ mod tests {
 
     #[test]
     fn newtype_struct() {
-        #[derive(serde::Deserialize, Debug, PartialEq)]
+        #[derive(Deserialize, Debug, PartialEq)]
         struct Test(String);
 
         #[rustfmt::skip]
@@ -650,7 +651,7 @@ mod tests {
 
     #[test]
     fn tuple_struct() {
-        #[derive(serde::Deserialize, Debug, PartialEq)]
+        #[derive(Deserialize, Debug, PartialEq)]
         struct Test(bool, String);
 
         #[rustfmt::skip]
@@ -679,7 +680,7 @@ mod tests {
 
     #[test]
     fn typed_object() {
-        #[derive(serde::Deserialize, Debug, PartialEq)]
+        #[derive(Deserialize, Debug, PartialEq)]
         struct Test {
             a: bool,
             b: String,
@@ -713,7 +714,7 @@ mod tests {
 
     #[test]
     fn simple_struct() {
-        #[derive(serde::Deserialize, Debug, PartialEq)]
+        #[derive(Deserialize, Debug, PartialEq)]
         struct Test {
             a: bool,
             b: String,
@@ -791,7 +792,7 @@ mod tests {
 
     #[test]
     fn simple_enum() {
-        #[derive(serde::Deserialize, Debug, PartialEq)]
+        #[derive(Deserialize, Debug, PartialEq)]
         enum Test {
             A,
             B,
@@ -818,7 +819,7 @@ mod tests {
 
     #[test]
     fn complex_enum() {
-        #[derive(serde::Deserialize, Debug, PartialEq)]
+        #[derive(Deserialize, Debug, PartialEq)]
         enum Test {
             A(bool),
             B { a: String, b: String },
@@ -924,7 +925,7 @@ mod tests {
             0, 0, Amf0Marker::ObjectEnd as u8,
         ];
 
-        #[derive(serde::Deserialize, Debug, PartialEq)]
+        #[derive(Deserialize, Debug, PartialEq)]
         struct Test<'a> {
             b: String,
             #[serde(flatten, borrow)]

@@ -3,6 +3,7 @@ use std::sync::Arc;
 use scuffle_bootstrap::prelude::*;
 use scuffle_bootstrap::service::Service;
 use scuffle_signal::{SignalConfig, SignalSvc};
+use serde_derive::Deserialize;
 
 scuffle_bootstrap::main! {
     Global {
@@ -45,7 +46,7 @@ struct Global {
     pub config: Config,
 }
 
-#[derive(serde::Deserialize, Debug, smart_default::SmartDefault)]
+#[derive(Deserialize, Debug, smart_default::SmartDefault)]
 #[serde(default)]
 struct Config {
     #[default = "foo"]

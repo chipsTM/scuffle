@@ -549,6 +549,8 @@ mod tests {
     use std::collections::HashMap;
     use std::hash::Hash;
 
+    use serde_derive::Serialize;
+
     use crate::{Amf0Error, Amf0Marker, Amf0Value, to_bytes};
 
     #[test]
@@ -603,7 +605,7 @@ mod tests {
         let bytes = to_bytes(&None::<String>).unwrap();
         assert_eq!(bytes, [Amf0Marker::Null as u8]);
 
-        #[derive(serde::Serialize)]
+        #[derive(Serialize)]
         struct Unit;
         let bytes = to_bytes(&Unit).unwrap();
         assert_eq!(bytes, [Amf0Marker::Null as u8]);
@@ -614,7 +616,7 @@ mod tests {
 
     #[test]
     fn tuple_struct() {
-        #[derive(serde::Serialize)]
+        #[derive(Serialize)]
         struct TupleStruct(String, String);
 
         let value = TupleStruct("hello".to_string(), "world".to_string());
@@ -638,7 +640,7 @@ mod tests {
 
     #[test]
     fn newtype_struct() {
-        #[derive(serde::Serialize)]
+        #[derive(Serialize)]
         struct NewtypeStruct(String);
 
         let value = NewtypeStruct("hello".to_string());
@@ -732,7 +734,7 @@ mod tests {
 
     #[test]
     fn simple_struct() {
-        #[derive(serde::Serialize)]
+        #[derive(Serialize)]
         struct Test {
             a: f64,
             b: String,
@@ -767,7 +769,7 @@ mod tests {
 
     #[test]
     fn simple_enum() {
-        #[derive(serde::Serialize)]
+        #[derive(Serialize)]
         enum Test {
             A,
             B,
@@ -798,7 +800,7 @@ mod tests {
 
     #[test]
     fn complex_enum() {
-        #[derive(serde::Serialize)]
+        #[derive(Serialize)]
         enum Test {
             A(bool),
             B { a: String, b: String },
@@ -895,25 +897,25 @@ mod tests {
         test_invalid_map_key(vec![1, 2, 3]);
         test_invalid_map_key((1, 2, 3));
 
-        #[derive(serde::Serialize, Eq, PartialEq, Hash)]
+        #[derive(Serialize, Eq, PartialEq, Hash)]
         struct Tuple(String, String);
         test_invalid_map_key(Tuple("hello".to_string(), "world".to_string()));
 
-        #[derive(serde::Serialize, Eq, PartialEq, Hash)]
+        #[derive(Serialize, Eq, PartialEq, Hash)]
         struct Struct {
             a: String,
         }
         test_invalid_map_key(Struct { a: "hello".to_string() });
 
-        #[derive(serde::Serialize, Eq, PartialEq, Hash)]
+        #[derive(Serialize, Eq, PartialEq, Hash)]
         struct Unit;
         test_invalid_map_key(Unit);
 
-        #[derive(serde::Serialize, Eq, PartialEq, Hash)]
+        #[derive(Serialize, Eq, PartialEq, Hash)]
         struct Newtype(String);
         test_invalid_map_key(Newtype("hello".to_string()));
 
-        #[derive(serde::Serialize, Eq, PartialEq, Hash)]
+        #[derive(Serialize, Eq, PartialEq, Hash)]
         enum Enum {
             A,
             B(bool),

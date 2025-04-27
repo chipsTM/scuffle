@@ -2,6 +2,7 @@
 
 use scuffle_amf0::{Amf0Object, Amf0Value};
 use scuffle_bytes_util::StringCow;
+use serde_derive::{Deserialize, Serialize};
 
 pub mod reader;
 
@@ -69,7 +70,7 @@ pub enum NetStreamCommand<'a> {
 /// Type of publishing.
 ///
 /// Appears as part of the [`NetStreamCommand::Publish`] command.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum NetStreamCommandPublishPublishingType<'a> {
     /// Citing the legacy RTMP spec, page 46:
