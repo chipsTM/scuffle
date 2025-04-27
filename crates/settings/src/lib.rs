@@ -10,7 +10,7 @@
 //! ```rust
 //! // Define a config struct like this
 //! // You can use all of the serde attributes to customize the deserialization
-//! #[derive(serde::Deserialize)]
+//! #[derive(serde_derive::Deserialize)]
 //! struct MyConfig {
 //!     some_setting: String,
 //!     #[serde(default)]
@@ -40,7 +40,7 @@
 //! # fn test() -> Result<(), scuffle_settings::SettingsError> {
 //! // Define a config struct like this
 //! // You can use all of the serde attributes to customize the deserialization
-//! #[derive(serde::Deserialize)]
+//! #[derive(serde_derive::Deserialize)]
 //! struct MyConfig {
 //!     some_setting: String,
 //!     #[serde(default)]
@@ -328,7 +328,7 @@ pub mod macros {
 /// ## Example
 ///
 /// ```rust
-/// #[derive(serde::Deserialize)]
+/// #[derive(serde_derive::Deserialize)]
 /// struct MySettings {
 ///     key: String,
 /// }
@@ -354,11 +354,13 @@ macro_rules! bootstrap {
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
+    use serde_derive::Deserialize;
+
     #[cfg(feature = "cli")]
     use crate::Cli;
     use crate::{Options, parse_settings};
 
-    #[derive(Debug, serde::Deserialize)]
+    #[derive(Debug, Deserialize)]
     struct TestSettings {
         #[cfg_attr(not(feature = "cli"), allow(dead_code))]
         key: String,

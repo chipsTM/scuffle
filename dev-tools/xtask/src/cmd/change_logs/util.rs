@@ -28,7 +28,7 @@ impl Fragment {
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde_derive::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PackageChangeLog {
     #[serde(skip, default)]

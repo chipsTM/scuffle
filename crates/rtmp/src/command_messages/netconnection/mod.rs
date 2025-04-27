@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use scuffle_amf0::{Amf0Object, Amf0Value};
 use scuffle_bytes_util::StringCow;
+use serde_derive::{Deserialize, Serialize};
 
 use super::on_status::{OnStatus, OnStatusCode};
 use crate::command_messages::CommandResultLevel;
@@ -16,7 +17,7 @@ pub mod writer;
 /// Defined by:
 /// - Legacy RTMP spec, 7.2.1.1
 /// - Enhanced RTMP spec, page 36-37, Enhancing NetConnection connect Command
-#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(bound = "'a: 'de")]
 pub struct NetConnectionCommandConnect<'a> {
     /// Tells the server application name the client is connected to.
@@ -70,7 +71,7 @@ pub struct NetConnectionCommandConnectResult<'a> {
 ///
 /// Defined by:
 /// - Legacy RTMP spec, 7.2.1.1
-#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NetConnectionCommandConnectResultProperties<'a> {
     /// Flash Media Server version.

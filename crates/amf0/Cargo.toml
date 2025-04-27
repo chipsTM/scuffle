@@ -22,7 +22,7 @@ scuffle-bytes-util = { workspace = true }
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
-serde = { version = "1.0.219", features = ["derive"] }
+serde_derive = "1.0.219"
 
 [features]
 serde = ["dep:serde", "scuffle-bytes-util/serde"]

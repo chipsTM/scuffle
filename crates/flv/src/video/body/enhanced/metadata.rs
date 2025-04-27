@@ -5,6 +5,7 @@ use core::fmt;
 use scuffle_amf0::{Amf0Object, Amf0Value};
 use scuffle_bytes_util::StringCow;
 use serde::de::{Error, VariantAccess};
+use serde_derive::Deserialize;
 
 /// Color configuration metadata.
 ///
@@ -13,7 +14,7 @@ use serde::de::{Error, VariantAccess};
 /// > respective tables which are described in "Colour primaries",
 /// > "Transfer characteristics" and "Matrix coefficients" sections.
 /// > It is RECOMMENDED to provide these values.
-#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetadataColorInfoColorConfig {
     /// Number of bits used to record the color channels for each pixel.
@@ -39,7 +40,7 @@ pub struct MetadataColorInfoColorConfig {
 }
 
 /// HDR content light level metadata.
-#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetadataColorInfoHdrCll {
     /// Maximum value of the frame average light level
@@ -73,7 +74,7 @@ pub struct MetadataColorInfoHdrCll {
 /// > Values SHALL be specified with four decimal places. The x coordinate SHALL
 /// > be in the range [0.0001, 0.7400]. The y coordinate SHALL be
 /// > in the range [0.0001, 0.8400].
-#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetadataColorInfoHdrMdcv {
     /// Red x coordinate.
@@ -126,7 +127,7 @@ pub struct MetadataColorInfoHdrMdcv {
 ///
 /// Defined by:
 /// - Enhanced RTMP spec, page 32-34, Metadata Frame
-#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetadataColorInfo {
     /// Color configuration metadata.

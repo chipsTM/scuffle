@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use anyhow::Context;
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde_derive::Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct XTaskMetadata {
     /// Allows you to provide a list of combinations that should be skipped.
