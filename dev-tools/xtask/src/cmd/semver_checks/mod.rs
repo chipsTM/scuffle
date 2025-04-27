@@ -1,10 +1,12 @@
 use std::collections::HashSet;
+use std::io::Read;
 use std::path::PathBuf;
-use std::process::Stdio;
 
 use anyhow::{Context, Result};
 use clap::Parser;
+use next_version::NextVersion;
 use regex::Regex;
+use semver::Version;
 
 use crate::utils::{cargo_cmd, metadata};
 
@@ -48,15 +50,12 @@ impl SemverChecks {
         crates.sort();
 
         println!("<details>");
-        println!("<summary> 📦 Processing crates 📦 </summary>");
-        // need to print an empty line for the bullet list to format correctly
-        println!();
+        // need an extra empty line for the bullet list to format correctly
+        println!("<summary> 📦 Processing crates 📦 </summary>\n");
         for krate in crates {
             println!("- `{krate}`");
         }
         // close crate details
-        println!("</details>");
-        // close startup details
         println!("</details>");
 
         if self.disable_hakari {
@@ -76,31 +75,38 @@ impl SemverChecks {
             args.push(package);
         }
 
-        let output = cargo_cmd()
-            .env("CARGO_TERM_COLOR", "never")
-            .args(&args)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .output()
-            .context("running semver-checks")?;
+        let mut command = cargo_cmd();
+        command.env("CARGO_TERM_COLOR", "never");
+        command.args(&args);
+
+        let (mut reader, writer) = os_pipe::pipe()?;
+        let writer_clone = writer.try_clone()?;
+        command.stdout(writer);
+        command.stderr(writer_clone);
+
+        let mut handle = command.spawn()?;
+
+        drop(command);
 
         let mut semver_output = String::new();
-        semver_output.push_str(&String::from_utf8_lossy(&output.stdout));
-        semver_output.push_str(&String::from_utf8_lossy(&output.stderr));
+        reader.read_to_string(&mut semver_output)?;
+        handle.wait()?;
 
         if semver_output.trim().is_empty() {
             anyhow::bail!("No semver-checks output received. The command may have failed.");
         }
 
-        // empty print to separate from startup details
-        println!();
+        // save the original output for debugging purposes
+        println!("<details>");
+        println!("<summary> Original semver output: </summary>\n");
+        for line in semver_output.lines() {
+            println!("{line}");
+        }
+        println!("</details>");
 
-        // Regex to capture "Checking" lines (ignoring leading whitespace).
-        // Supports both formats:
-        //   "Checking <crate> vX.Y.Z (current)"
-        //   "Checking <crate> vX.Y.Z -> vX.Y.Z (no change)"
-        let check_re = Regex::new(r"^Checking\s+(?P<crate>\S+)\s+v(?P<curr>\d+\.\d+\.\d+)(?:\s+->\s+v\d+\.\d+\.\d+)?")
-            .context("compiling check regex")?;
+        // close startup details
+        // extra line to separate from startup details
+        println!("</details>\n");
 
         // Regex for summary lines that indicate an update is required.
         // Example:
@@ -108,7 +114,7 @@ impl SemverChecks {
         let summary_re = Regex::new(r"^Summary semver requires new (?P<update_type>major|minor) version:")
             .context("compiling summary regex")?;
 
-        let commit_hash = std::env::var("SHA").unwrap();
+        let commit_hash = std::env::var("SHA")?;
         let scuffle_commit_url = format!("https://github.com/ScuffleCloud/scuffle/blob/{commit_hash}");
 
         let mut current_crate: Option<(String, String)> = None;
@@ -121,49 +127,42 @@ impl SemverChecks {
             let trimmed = line.trim_start();
 
             if trimmed.starts_with("Checking") {
-                // Capture crate name and version without printing.
-                if let Some(caps) = check_re.captures(trimmed) {
-                    let crate_name = caps.name("crate").unwrap().as_str().to_string();
-                    let current_version = caps.name("curr").unwrap().as_str().to_string();
-                    current_crate = Some((crate_name, current_version));
-                }
+                // example line: Checking nutype-enum v0.1.2 -> v0.1.2 (no change)
+                // sometimes the (no change) part is missing if the crate has already been updated.
+                let split_line = trimmed.split_whitespace().collect::<Vec<_>>();
+                current_crate = Some((split_line[1].to_string(), split_line[2].to_string()));
             } else if trimmed.starts_with("Summary") {
-                if let Some(caps) = summary_re.captures(trimmed) {
-                    let update_type = caps.name("update_type").unwrap().as_str();
-                    if let Some((crate_name, current_version)) = current_crate.take() {
-                        let new_version = new_version_number(&current_version, update_type)?;
-                        error_count += 1;
+                if let Some(summary_line) = summary_re.captures(trimmed) {
+                    let (crate_name, current_version_str) = current_crate.take().unwrap();
+                    let update_type = summary_line.name("update_type").unwrap().as_str();
+                    let new_version = new_version_number(&current_version_str, update_type)?;
 
-                        // need to escape the #{error_count} otherwise it will refer to an actual pr
-                        summary.push(format!("### 🔖 Error `#{error_count}`"));
-                        summary.push(format!("⚠️ {update_type} update required for `{crate_name}`."));
-                        summary.push(format!(
-                            "🛠️ Please update the version from `v{current_version}` to `{new_version}`."
-                        ));
+                    // capitalize first letter of update_type
+                    let update_type = format!("{}{}", update_type.chars().next().unwrap().to_uppercase(), &update_type[1..]);
+                    error_count += 1;
 
-                        summary.push("<details>".to_string());
-                        summary.push(format!("<summary> 📜 {crate_name} logs 📜 </summary>"));
-                        summary.append(&mut description);
-                        summary.push("</details>".to_string());
+                    // need to escape the #{error_count} otherwise it will refer to an actual pr
+                    summary.push(format!("### 🔖 Error `#{error_count}`"));
+                    summary.push(format!("{update_type} update required for `{crate_name}` ⚠️"));
+                    summary.push(format!(
+                        "Please update the version from `{current_version_str}` to `v{new_version}` 🛠️"
+                    ));
 
-                        // add a new line after the description
-                        summary.push("".to_string());
-                    }
+                    summary.push("<details>".to_string());
+                    summary.push(format!("<summary> 📜 {crate_name} logs 📜 </summary>\n"));
+                    summary.append(&mut description);
+                    summary.push("</details>".to_string());
+
+                    // add a new line after the description
+                    summary.push("".to_string());
                 }
             } else if trimmed.starts_with("---") {
                 let mut is_failed_in_block = false;
 
-                for desc_line in lines.by_ref() {
+                while let Some(desc_line) = lines.peek() {
                     let desc_trimmed = desc_line.trim_start();
 
-                    if desc_trimmed.starts_with("Checking")
-                        || desc_trimmed.starts_with("Built")
-                        || desc_trimmed.starts_with("Building")
-                        || desc_trimmed.starts_with("Parsing")
-                        || desc_trimmed.starts_with("Parsed")
-                        || desc_trimmed.starts_with("Finished")
-                        || desc_trimmed.starts_with("Summary")
-                    {
+                    if desc_trimmed.starts_with("Summary") {
                         // sometimes an empty new line isn't detected before the description ends
                         // in that case, add a closing `</details>` for the "Failed in" block.
                         if is_failed_in_block {
@@ -195,6 +194,8 @@ impl SemverChecks {
                     } else {
                         description.push(desc_trimmed.to_string());
                     }
+
+                    lines.next();
                 }
             }
         }
@@ -219,27 +220,43 @@ impl SemverChecks {
             println!("## ✅ No semver violations found! ✅");
         }
 
-        // print an empty line to separate output from worktree cleanup line
-        println!();
-
         Ok(())
     }
 }
 
-fn new_version_number(version: &str, update_type: &str) -> Result<String> {
-    let version = version.strip_prefix('v').unwrap_or(version);
-    let mut parts: Vec<u64> = version
-        .split('.')
-        .map(|s| s.parse::<u64>())
-        .collect::<Result<_, _>>()
-        .context("parsing version numbers")?;
-    if parts.len() != 3 {
-        anyhow::bail!("expected version format vX.Y.Z, got: {version}");
+fn new_version_number(crate_version: &str, update_type: &str) -> Result<Version> {
+    let update_is_major = update_type.eq_ignore_ascii_case("major");
+
+    let version_stripped = crate_version.strip_prefix('v').unwrap();
+    let version_parsed = Version::parse(version_stripped)?;
+
+    let bumped = if update_is_major {
+        major_update(&version_parsed)
+    } else {
+        minor_update(&version_parsed)
+    };
+
+    Ok(bumped)
+}
+
+fn major_update(current_version: &Version) -> Version {
+    if !current_version.pre.is_empty() {
+        current_version.increment_prerelease()
+    } else if current_version.major == 0 && current_version.minor == 0 {
+        current_version.increment_patch()
+    } else if current_version.major == 0 {
+        current_version.increment_minor()
+    } else {
+        current_version.increment_major()
     }
-    match update_type {
-        "minor" => parts[2] += 1,
-        "major" => parts[1] += 1,
-        _ => anyhow::bail!("Failed to parse update type: {update_type}"),
+}
+
+fn minor_update(current_version: &Version) -> Version {
+    if !current_version.pre.is_empty() {
+        current_version.increment_prerelease()
+    } else if current_version.major == 0 {
+        current_version.increment_minor()
+    } else {
+        current_version.increment_patch()
     }
-    Ok(format!("v{}.{}.{}", parts[0], parts[1], parts[2]))
 }
