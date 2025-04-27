@@ -175,10 +175,13 @@ impl GenericDecoder {
         AVMediaType(self.decoder.as_deref_except().codec_type)
     }
 
-    /// Returns the time base of the decoder.
-    pub const fn time_base(&self) -> Rational {
+    /// Returns the time base of the decoder or `None` if the denominator is zero.
+    pub const fn time_base(&self) -> Option<Rational> {
         let time_base = self.decoder.as_deref_except().time_base;
-        Rational::new(time_base.num, NonZero::new(time_base.den).expect("denominator is 0"))
+        match NonZero::new(time_base.den) {
+            Some(den) => Some(Rational::new(time_base.num, den)),
+            None => None,
+        }
     }
 
     /// Sends a packet to the decoder.
