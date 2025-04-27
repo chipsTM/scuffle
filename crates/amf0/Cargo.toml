@@ -11,7 +11,7 @@ keywords = ["amf0", "rtmp", "flash", "video", "flv"]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 
 [dependencies]
-serde = { version = "1.0.219", optional = true }
+serde = { version = "1", optional = true }
 bytes = "1.10.1"
 byteorder = "1.5"
 num-traits = "0.2"
@@ -22,7 +22,7 @@ scuffle-bytes-util = { workspace = true }
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
-serde_derive = "1.0.219"
+serde_derive = "1"
 
 [features]
 serde = ["dep:serde", "scuffle-bytes-util/serde"]

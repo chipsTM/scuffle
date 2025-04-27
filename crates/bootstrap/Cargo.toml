@@ -42,8 +42,8 @@ scuffle-future-ext.workspace = true
 scuffle-signal = { workspace = true, features = ["bootstrap"] }
 
 # For examples:
-serde = "1.0.219"
-serde_derive = "1.0.219"
+serde = "1"
+serde_derive = "1"
 smart-default = "0.7"
 tracing = "0.1"
 tracing-subscriber = "0.3"
