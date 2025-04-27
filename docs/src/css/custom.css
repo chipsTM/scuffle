@@ -6,29 +6,17 @@
 
 /* You can override the default Infima variables here. */
 :root {
-  --ifm-color-primary: #c94700;
-  --ifm-color-primary-dark: #321200;
-  --ifm-color-primary-darker: #ab3c00;
-  --ifm-color-primary-darkest: #8d3200;
-  --ifm-color-primary-light: #4c1b00;
-  --ifm-color-primary-lighter: #4c1b00;
-  --ifm-color-primary-lightest: #4c1b00;
+  --ifm-color-primary: #332425;
   --ifm-code-font-size: 95%;
-
   --ifm-background-color: #fcf3f0;
+  --ifm-navbar-background-color: var(--ifm-background-color);
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode.
-TODO: Fix colors here this looks like halloween
-*/
-[data-theme="dark"] {
-  --ifm-color-primary: #ff8f5e;
-  --ifm-color-primary-dark: #ff7a40;
-  --ifm-color-primary-darker: #ff7031;
-  --ifm-color-primary-darkest: #f54b00;
-  --ifm-color-primary-light: #ffa47c;
-  --ifm-color-primary-lighter: #ffae8b;
-  --ifm-color-primary-lightest: #ffd0bc;
-  --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
+/* For readability concerns, you should choose a lighter palette in dark mode.*/
+/* [data-theme="dark"] {} */
+
+.footer {
+  --ifm-footer-background-color: var(--ifm-color-primary);
+  --ifm-footer-link-hover-color: var(--ifm-footer-link-color);
 }

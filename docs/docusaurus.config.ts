@@ -2,6 +2,7 @@ import { themes as prismThemes } from "prism-react-renderer";
 import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
 import {
+  BLUESKY_URL,
   DISCORD_URL,
   GITHUB_EDIT_URL,
   GITHUB_URL,
@@ -113,6 +114,10 @@ const config: Config = {
               label: "X",
               href: TWITTER_URL,
             },
+            {
+              label: "Bluesky",
+              href: BLUESKY_URL,
+            },
           ],
         },
         {
@@ -127,9 +132,12 @@ const config: Config = {
       ],
       copyright: `Copyright © ${new Date().getFullYear()} Scuffle`,
     },
+    // Disable dark mode until we have a dark mode color palette
+    colorMode: {
+      disableSwitch: true,
+    },
     prism: {
       theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
     },
   } satisfies Preset.ThemeConfig,
 };

@@ -26,11 +26,6 @@ function HomepageHeader() {
             Docs &nbsp; ✈️
           </Link>
         </div>
-        <div className="container margin-vert--lg">
-          <div className="alert alert--warning" role="alert">
-            <strong>Note:</strong> This page is currently under construction.
-          </div>
-        </div>
       </div>
     </header>
   );
