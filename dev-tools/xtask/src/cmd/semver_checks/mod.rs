@@ -230,14 +230,33 @@ fn new_version_number(crate_version: &str, update_type: &str) -> Result<Version>
     let version_stripped = crate_version.strip_prefix('v').unwrap();
     let version_parsed = Version::parse(version_stripped)?;
 
-    let bumped = match (version_parsed.major >= 1, update_is_major) {
-        // only increment major if the current version is >= 1.0.0 AND update_type *is* major
-        (true, true) => version_parsed.increment_major(),
-        // only increment patch if the current version is < 1.0.0 AND update_type *is not* major
-        (false, false) => version_parsed.increment_patch(),
-        // otherwise increment minor
-        (true, false) | (false, true) => version_parsed.increment_minor(),
+    let bumped = if update_is_major {
+        major_update(&version_parsed)
+    } else {
+        minor_update(&version_parsed)
     };
 
     Ok(bumped)
+}
+
+fn major_update(current_version: &Version) -> Version {
+    if !current_version.pre.is_empty() {
+        current_version.increment_prerelease()
+    } else if current_version.major == 0 && current_version.minor == 0 {
+        current_version.increment_patch()
+    } else if current_version.major == 0 {
+        current_version.increment_minor()
+    } else {
+        current_version.increment_major()
+    }
+}
+
+fn minor_update(current_version: &Version) -> Version {
+    if !current_version.pre.is_empty() {
+        current_version.increment_prerelease()
+    } else if current_version.major == 0 {
+        current_version.increment_minor()
+    } else {
+        current_version.increment_patch()
+    }
 }
