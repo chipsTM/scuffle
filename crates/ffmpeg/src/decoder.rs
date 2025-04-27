@@ -178,10 +178,7 @@ impl GenericDecoder {
     /// Returns the time base of the decoder.
     pub const fn time_base(&self) -> Rational {
         let time_base = self.decoder.as_deref_except().time_base;
-        Rational::new(
-            time_base.num,
-            NonZero::new(time_base.den).expect("denominator is 0")
-        )
+        Rational::new(time_base.num, NonZero::new(time_base.den).expect("denominator is 0"))
     }
 
     /// Sends a packet to the decoder.

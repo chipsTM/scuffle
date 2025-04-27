@@ -611,9 +611,7 @@ impl AudioFrame {
     pub fn channel_layout(&self) -> AudioChannelLayout {
         // Safety: the AudioFrame has already been initialized at this point, so
         // `av_channel_layout_uninit` is safe to call
-        unsafe { AudioChannelLayout::wrap(
-            self.0.0.as_deref_except().ch_layout
-        ) }
+        unsafe { AudioChannelLayout::wrap(self.0.0.as_deref_except().ch_layout) }
     }
 
     /// Returns the channel count of the frame.
@@ -966,7 +964,11 @@ mod tests {
             .expect("Failed to create AudioFrame with custom layout");
 
         let layout = audio_frame.channel_layout();
-        assert_eq!(layout.channel_count(), 2, "Expected channel layout to have 2 channels (stereo).");
+        assert_eq!(
+            layout.channel_count(),
+            2,
+            "Expected channel layout to have 2 channels (stereo)."
+        );
         assert_eq!(
             // Safety: this should be a mask not a pointer.
             unsafe { layout.0.u.mask },
