@@ -16,6 +16,8 @@ runs:
         cargo xtask semver-checks --disable-hakari | tee /tmp/.semver-checks-body $GITHUB_STEP_SUMMARY
 
     - name: Add/update PR comment
+      # skip commenting the summary on forked PRs
+      if: ${{ !github.event.pull_request.head.repo.fork }}
       uses: thollander/actions-comment-pull-request@v3
       with:
         file-path: /tmp/.semver-checks-body
