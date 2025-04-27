@@ -2910,8 +2910,11 @@ dependencies = [
 name = "scuffle-h265"
 version = "0.1.1"
 dependencies = [
+ "bitflags 2.9.0",
  "byteorder",
  "bytes",
+ "insta",
+ "nutype-enum",
  "scuffle-bytes-util",
  "scuffle-expgolomb",
  "scuffle-workspace-hack",

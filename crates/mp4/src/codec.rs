@@ -11,7 +11,7 @@ pub enum VideoCodec {
     /// <https://hevcvideo.xp3.biz/html5_video.html>
     Hevc {
         general_profile_space: u8,
-        profile_compatibility: u32,
+        profile_compatibility: scuffle_h265::ProfileCompatibilityFlags,
         profile: u8,
         level: u8,
         tier: bool,
@@ -48,21 +48,38 @@ impl fmt::Display for VideoCodec {
                 tier,
                 profile_compatibility,
                 constraint_indicator,
-            } => write!(
-                f,
-                "hev1.{}{:x}.{:x}.{}{:x}.{:x}",
-                match general_profile_space {
-                    1 => "A",
-                    2 => "B",
-                    3 => "C",
-                    _ => "",
-                },
-                profile, // 1 or 2 chars (hex)
-                profile_compatibility,
-                if *tier { 'H' } else { 'L' },
-                level, // 1 or 2 chars (hex)
-                constraint_indicator,
-            ),
+            } => {
+                let profile_compatibility = profile_compatibility
+                    .bits()
+                    .to_be_bytes()
+                    .into_iter()
+                    .filter(|b| *b != 0)
+                    .map(|b| format!("{b:x}"))
+                    .collect::<String>();
+                let constraint_indicator = constraint_indicator
+                    .to_be_bytes()
+                    .into_iter()
+                    .filter(|b| *b != 0)
+                    .map(|b| format!("{b:x}"))
+                    .collect::<Vec<_>>()
+                    .join(".");
+
+                write!(
+                    f,
+                    "hev1.{}{:x}.{}.{}{:x}.{}",
+                    match general_profile_space {
+                        1 => "A",
+                        2 => "B",
+                        3 => "C",
+                        _ => "",
+                    },
+                    profile, // 1 or 2 chars (hex)
+                    profile_compatibility,
+                    if *tier { 'H' } else { 'L' },
+                    level, // 1 or 2 chars (hex)
+                    constraint_indicator,
+                )
+            }
             VideoCodec::Av1 {
                 profile,
                 level,
@@ -140,8 +157,10 @@ impl FromStr for VideoCodec {
                 let profile = u8::from_str_radix(splits[2], 16)
                     .map_err(|e| format!("invalid codec, invalid profile: {}, {}", splits[2], e))?;
 
-                let profile_compatibility = u32::from_str_radix(splits[3], 16)
-                    .map_err(|e| format!("invalid codec, invalid profile compatibility: {}, {}", splits[3], e))?;
+                let profile_compatibility = scuffle_h265::ProfileCompatibilityFlags::from_bits_retain(
+                    u32::from_str_radix(splits[3], 16)
+                        .map_err(|e| format!("invalid codec, invalid profile compatibility: {}, {}", splits[3], e))?,
+                );
 
                 let tier = match splits[4] {
                     "H" => true,
