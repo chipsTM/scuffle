@@ -339,10 +339,12 @@ mod tests {
 
         insta::assert_debug_snapshot!(generic_decoder, @r"
         Decoder {
-            time_base: Rational {
-                numerator: 1,
-                denominator: 15360,
-            },
+            time_base: Some(
+                Rational {
+                    numerator: 1,
+                    denominator: 15360,
+                },
+            ),
             codec_type: AVMediaType::Video,
         }
         ");
@@ -381,10 +383,12 @@ mod tests {
 
         insta::assert_debug_snapshot!(generic_decoder, @r"
         VideoDecoder {
-            time_base: Rational {
-                numerator: 1,
-                denominator: 15360,
-            },
+            time_base: Some(
+                Rational {
+                    numerator: 1,
+                    denominator: 15360,
+                },
+            ),
             width: 3840,
             height: 2160,
             pixel_format: AVPixelFormat::Yuv420p,
@@ -431,10 +435,12 @@ mod tests {
 
         insta::assert_debug_snapshot!(audio_decoder, @r"
         AudioDecoder {
-            time_base: Rational {
-                numerator: 1,
-                denominator: 48000,
-            },
+            time_base: Some(
+                Rational {
+                    numerator: 1,
+                    denominator: 48000,
+                },
+            ),
             sample_rate: 48000,
             channels: 2,
             sample_fmt: AVSampleFormat::Fltp,
@@ -553,7 +559,7 @@ mod tests {
         };
         {
             let generic_decoder = &mut *video_decoder;
-            let mut time_base = generic_decoder.time_base();
+            let mut time_base = generic_decoder.time_base().expect("Failed to get time base of decoder");
             time_base.numerator = 1000;
             time_base.denominator = NonZero::new(1).unwrap();
             generic_decoder.decoder.as_deref_mut_except().time_base = time_base.into();
@@ -589,7 +595,7 @@ mod tests {
         };
         {
             let generic_decoder = &mut *audio_decoder;
-            let mut time_base = generic_decoder.time_base();
+            let mut time_base = generic_decoder.time_base().expect("Failed to get time base of decoder");
             time_base.numerator = 48000;
             time_base.denominator = NonZero::new(1).unwrap();
             generic_decoder.decoder.as_deref_mut_except().time_base = time_base.into();
