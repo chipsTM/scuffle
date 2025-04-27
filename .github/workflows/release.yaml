@@ -15,7 +15,7 @@ jobs:
   crates-io:
     name: Crates.io
     runs-on: ubicloud-standard-8
-    environment: crates
+    environment: crates.io
     permissions:
       contents: write
     steps:
