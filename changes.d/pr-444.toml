@@ -1,0 +1,14 @@
+[[scuffle-h265]]
+category = "refactor"
+description = "Move @lennartkloock 's `range_check` macro to scuffle-bytes-util and call it from there"
+authors = ["@philipch07, @lennartkloock"]
+
+[[scuffle-bytes-util]]
+category = "feat"
+description = "Use serde_derive instead of serde's derive feature for improved compile times"
+authors = ["@philipch07, @lennartkloock"]
+
+[[scuffle-h264]]
+category = "feat"
+description = "Use `range_check` macro from scuffle-bytes-util to enforce range checks"
+authors = ["@philipch07"]
