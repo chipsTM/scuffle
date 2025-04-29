@@ -1,9 +1,7 @@
 use std::io;
 
-use scuffle_bytes_util::BitReader;
+use scuffle_bytes_util::{BitReader, range_check};
 use scuffle_expgolomb::BitReaderExpGolombExt;
-
-use crate::range_check::range_check;
 
 /// Directly part of [SPS RBSP](crate::SpsRbsp).
 #[derive(Debug, Clone, PartialEq)]

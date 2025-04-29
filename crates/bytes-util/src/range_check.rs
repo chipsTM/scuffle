@@ -1,3 +1,7 @@
+//! A helper macro to ensure that a number is within the specified [$lower, $upper] bounds.
+
+/// Enforces that a number is within the specified [$lower, $upper] bounds.
+#[macro_export]
 macro_rules! range_check {
     ($n:expr, $lower:expr, $upper:expr) => {{
         let n = $n;
@@ -13,8 +17,6 @@ macro_rules! range_check {
         }
     }};
 }
-
-pub(crate) use range_check;
 
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]

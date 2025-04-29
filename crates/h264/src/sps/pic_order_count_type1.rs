@@ -1,6 +1,6 @@
 use std::io;
 
-use scuffle_bytes_util::{BitReader, BitWriter};
+use scuffle_bytes_util::{BitReader, BitWriter, range_check};
 use scuffle_expgolomb::{BitReaderExpGolombExt, BitWriterExpGolombExt, size_of_exp_golomb, size_of_signed_exp_golomb};
 
 /// `PicOrderCountType1` contains the fields that are set when `pic_order_cnt_type == 1`.
@@ -84,12 +84,20 @@ impl PicOrderCountType1 {
     pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
         let delta_pic_order_always_zero_flag = reader.read_bit()?;
         let offset_for_non_ref_pic = reader.read_signed_exp_golomb()?;
+        range_check!(offset_for_non_ref_pic, i32::MIN as i64, i32::MAX as i64)?;
         let offset_for_top_to_bottom_field = reader.read_signed_exp_golomb()?;
+        range_check!(offset_for_top_to_bottom_field, i32::MIN as i64, i32::MAX as i64)?;
         let num_ref_frames_in_pic_order_cnt_cycle = reader.read_exp_golomb()?;
+        range_check!(num_ref_frames_in_pic_order_cnt_cycle, 0, 255)?;
 
         let mut offset_for_ref_frame = vec![];
         for _ in 0..num_ref_frames_in_pic_order_cnt_cycle {
             offset_for_ref_frame.push(reader.read_signed_exp_golomb()?);
+            range_check!(
+                offset_for_ref_frame.last().copied().unwrap(),
+                i32::MIN as i64,
+                i32::MAX as i64
+            )?;
         }
 
         Ok(PicOrderCountType1 {

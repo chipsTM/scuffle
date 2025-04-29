@@ -20,7 +20,7 @@ mod timing_info;
 use std::io;
 
 use byteorder::ReadBytesExt;
-use scuffle_bytes_util::{BitReader, BitWriter, EmulationPreventionIo};
+use scuffle_bytes_util::{BitReader, BitWriter, EmulationPreventionIo, range_check};
 use scuffle_expgolomb::{BitReaderExpGolombExt, BitWriterExpGolombExt, size_of_exp_golomb};
 
 pub use self::timing_info::TimingInfo;
@@ -423,6 +423,7 @@ impl Sps {
 
         let level_idc = bit_reader.read_u8()?;
         let seq_parameter_set_id = bit_reader.read_exp_golomb()? as u16;
+        range_check!(seq_parameter_set_id, 0, 31)?;
 
         let sps_ext = match profile_idc {
             100 | 110 | 122 | 244 | 44 | 83 | 86 | 118 | 128 | 138 | 139 | 134 | 135 => {
@@ -432,13 +433,18 @@ impl Sps {
         };
 
         let log2_max_frame_num_minus4 = bit_reader.read_exp_golomb()? as u8;
+        range_check!(log2_max_frame_num_minus4, 0, 12)?;
         let pic_order_cnt_type = bit_reader.read_exp_golomb()? as u8;
+        range_check!(pic_order_cnt_type, 0, 2)?;
 
         let mut log2_max_pic_order_cnt_lsb_minus4 = None;
         let mut pic_order_cnt_type1 = None;
 
         if pic_order_cnt_type == 0 {
             log2_max_pic_order_cnt_lsb_minus4 = Some(bit_reader.read_exp_golomb()? as u8);
+            if let Some(&v) = log2_max_pic_order_cnt_lsb_minus4.as_ref() {
+                range_check!(v, 0, 12)?;
+            }
         } else if pic_order_cnt_type == 1 {
             pic_order_cnt_type1 = Some(PicOrderCountType1::parse(&mut bit_reader)?)
         }

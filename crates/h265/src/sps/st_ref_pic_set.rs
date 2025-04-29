@@ -1,10 +1,8 @@
 use std::fmt::Debug;
 use std::io;
 
-use scuffle_bytes_util::BitReader;
+use scuffle_bytes_util::{BitReader, range_check};
 use scuffle_expgolomb::BitReaderExpGolombExt;
-
-use crate::range_check::range_check;
 
 /// Short-term reference picture set syntax.
 ///
