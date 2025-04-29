@@ -1,6 +1,8 @@
 //! A helper macro to ensure that a number is within the specified [$lower, $upper] bounds.
 
-/// Enforces that a number is within the specified [$lower, $upper] bounds.
+/// Enforces that a number is within the specified \[LOWER, UPPER\] bounds.
+///
+/// The brackets indicate that this range is inclusive on both sides.
 #[macro_export]
 macro_rules! range_check {
     ($n:expr, $lower:expr, $upper:expr) => {{

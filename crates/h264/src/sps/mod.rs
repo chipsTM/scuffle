@@ -443,7 +443,7 @@ impl Sps {
         if pic_order_cnt_type == 0 {
             let log2_max_pic_order_cnt_lsb_minus4_value = bit_reader.read_exp_golomb()?;
             range_check!(log2_max_pic_order_cnt_lsb_minus4_value, 0, 12)?;
-            let log2_max_pic_order_cnt_lsb_minus4 = Some(log2_max_pic_order_cnt_lsb_minus4_value as u8);
+            log2_max_pic_order_cnt_lsb_minus4 = Some(log2_max_pic_order_cnt_lsb_minus4_value as u8);
         } else if pic_order_cnt_type == 1 {
             pic_order_cnt_type1 = Some(PicOrderCountType1::parse(&mut bit_reader)?)
         }
