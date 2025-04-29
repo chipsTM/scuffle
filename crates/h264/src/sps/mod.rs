@@ -441,10 +441,9 @@ impl Sps {
         let mut pic_order_cnt_type1 = None;
 
         if pic_order_cnt_type == 0 {
-            log2_max_pic_order_cnt_lsb_minus4 = Some(bit_reader.read_exp_golomb()? as u8);
-            if let Some(&v) = log2_max_pic_order_cnt_lsb_minus4.as_ref() {
-                range_check!(v, 0, 12)?;
-            }
+            let log2_max_pic_order_cnt_lsb_minus4_value = bit_reader.read_exp_golomb()?;
+            range_check!(log2_max_pic_order_cnt_lsb_minus4_value, 0, 12)?;
+            let log2_max_pic_order_cnt_lsb_minus4 = Some(log2_max_pic_order_cnt_lsb_minus4_value as u8);
         } else if pic_order_cnt_type == 1 {
             pic_order_cnt_type1 = Some(PicOrderCountType1::parse(&mut bit_reader)?)
         }
