@@ -17,6 +17,7 @@ mod bit_write;
 mod bytes_cursor;
 mod cow;
 mod nal_emulation_prevention;
+pub mod range_check;
 pub mod zero_copy;
 
 pub use bit_read::BitReader;

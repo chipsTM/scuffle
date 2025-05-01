@@ -41,7 +41,6 @@
 mod config;
 mod enums;
 mod nal_unit_header;
-mod range_check;
 mod rbsp_trailing_bits;
 mod sps;
 

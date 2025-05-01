@@ -1,10 +1,9 @@
 use std::io;
 
 use byteorder::{BigEndian, ReadBytesExt};
-use scuffle_bytes_util::BitReader;
+use scuffle_bytes_util::{BitReader, range_check};
 
 use crate::ProfileCompatibilityFlags;
-use crate::range_check::range_check;
 
 /// Profile, tier and level.
 ///

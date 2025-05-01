@@ -1,12 +1,11 @@
 use std::io;
 use std::num::NonZero;
 
-use scuffle_bytes_util::{BitReader, EmulationPreventionIo};
+use scuffle_bytes_util::{BitReader, EmulationPreventionIo, range_check};
 use scuffle_expgolomb::BitReaderExpGolombExt;
 
 use crate::NALUnitType;
 use crate::nal_unit_header::NALUnitHeader;
-use crate::range_check::range_check;
 use crate::rbsp_trailing_bits::rbsp_trailing_bits;
 
 mod conformance_window;

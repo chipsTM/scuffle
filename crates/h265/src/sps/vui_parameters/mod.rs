@@ -2,11 +2,10 @@ use std::io;
 use std::num::NonZero;
 
 use byteorder::{BigEndian, ReadBytesExt};
-use scuffle_bytes_util::BitReader;
+use scuffle_bytes_util::{BitReader, range_check};
 use scuffle_expgolomb::BitReaderExpGolombExt;
 
 use super::{ConformanceWindow, Profile};
-use crate::range_check::range_check;
 use crate::{AspectRatioIdc, VideoFormat};
 
 mod hrd_parameters;

@@ -1,10 +1,9 @@
 use std::io;
 use std::num::NonZero;
 
-use scuffle_bytes_util::BitReader;
+use scuffle_bytes_util::{BitReader, range_check};
 
 use crate::NALUnitType;
-use crate::range_check::range_check;
 
 /// NAL unit header.
 ///
