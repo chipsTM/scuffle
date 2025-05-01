@@ -84,9 +84,9 @@ impl PicOrderCountType1 {
     pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
         let delta_pic_order_always_zero_flag = reader.read_bit()?;
         let offset_for_non_ref_pic = reader.read_signed_exp_golomb()?;
-        range_check!(offset_for_non_ref_pic, i32::MIN as i64 + 1, i32::MAX as i64 - 1)?;
+        range_check!(offset_for_non_ref_pic, i32::MIN as i64 + 1, i32::MAX as i64)?;
         let offset_for_top_to_bottom_field = reader.read_signed_exp_golomb()?;
-        range_check!(offset_for_top_to_bottom_field, i32::MIN as i64 + 1, i32::MAX as i64 - 1)?;
+        range_check!(offset_for_top_to_bottom_field, i32::MIN as i64 + 1, i32::MAX as i64)?;
         let num_ref_frames_in_pic_order_cnt_cycle = reader.read_exp_golomb()?;
         range_check!(num_ref_frames_in_pic_order_cnt_cycle, 0, 255)?;
 
@@ -96,7 +96,7 @@ impl PicOrderCountType1 {
             range_check!(
                 offset_for_ref_frame.last().copied().unwrap(),
                 i32::MIN as i64 + 1,
-                i32::MAX as i64 - 1
+                i32::MAX as i64
             )?;
         }
 
