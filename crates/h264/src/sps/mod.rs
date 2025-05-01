@@ -422,8 +422,9 @@ impl Sps {
         bit_reader.read_bits(2)?;
 
         let level_idc = bit_reader.read_u8()?;
-        let seq_parameter_set_id = bit_reader.read_exp_golomb()? as u16;
+        let seq_parameter_set_id = bit_reader.read_exp_golomb()?;
         range_check!(seq_parameter_set_id, 0, 31)?;
+        let seq_parameter_set_id = seq_parameter_set_id as u16;
 
         let sps_ext = match profile_idc {
             100 | 110 | 122 | 244 | 44 | 83 | 86 | 118 | 128 | 138 | 139 | 134 | 135 => {
@@ -432,10 +433,13 @@ impl Sps {
             _ => None,
         };
 
-        let log2_max_frame_num_minus4 = bit_reader.read_exp_golomb()? as u8;
+        let log2_max_frame_num_minus4 = bit_reader.read_exp_golomb()?;
         range_check!(log2_max_frame_num_minus4, 0, 12)?;
-        let pic_order_cnt_type = bit_reader.read_exp_golomb()? as u8;
+        let log2_max_frame_num_minus4 = log2_max_frame_num_minus4 as u8;
+
+        let pic_order_cnt_type = bit_reader.read_exp_golomb()?;
         range_check!(pic_order_cnt_type, 0, 2)?;
+        let pic_order_cnt_type = pic_order_cnt_type as u8;
 
         let mut log2_max_pic_order_cnt_lsb_minus4 = None;
         let mut pic_order_cnt_type1 = None;

@@ -45,10 +45,13 @@ impl ChromaSampleLoc {
     /// Parses the fields defined when the `chroma_loc_info_present_flag == 1` from a bitstream.
     /// Returns a `ChromaSampleLoc` struct.
     pub fn parse<T: io::Read>(reader: &mut BitReader<T>) -> io::Result<Self> {
-        let chroma_sample_loc_type_top_field = reader.read_exp_golomb()? as u8;
+        let chroma_sample_loc_type_top_field = reader.read_exp_golomb()?;
         range_check!(chroma_sample_loc_type_top_field, 0, 5)?;
-        let chroma_sample_loc_type_bottom_field = reader.read_exp_golomb()? as u8;
+        let chroma_sample_loc_type_top_field = chroma_sample_loc_type_top_field as u8;
+
+        let chroma_sample_loc_type_bottom_field = reader.read_exp_golomb()?;
         range_check!(chroma_sample_loc_type_bottom_field, 0, 5)?;
+        let chroma_sample_loc_type_bottom_field = chroma_sample_loc_type_bottom_field as u8;
 
         Ok(ChromaSampleLoc {
             chroma_sample_loc_type_top_field,
