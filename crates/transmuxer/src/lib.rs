@@ -448,11 +448,11 @@ impl<'a> Transmuxer<'a> {
             estimated_audio_bitrate = scriptdata_tag.audiodatarate.map(|v| (v * 1024.0) as u32).unwrap_or(0);
         }
 
-        let mut compatiable_brands = vec![FourCC::Iso5, FourCC::Iso6];
+        let mut compatable_brands = vec![FourCC::Iso5, FourCC::Iso6];
 
         let video_stsd_entry = match video_sequence_header {
             VideoSequenceHeader::Avc(config) => {
-                compatiable_brands.push(FourCC::Avc1);
+                compatable_brands.push(FourCC::Avc1);
                 video_codec = VideoCodec::Avc {
                     constraint_set: config.profile_compatibility,
                     level: config.level_indication,
@@ -472,7 +472,7 @@ impl<'a> Transmuxer<'a> {
                 codecs::avc::stsd_entry(config, &sps)?
             }
             VideoSequenceHeader::Av1(config) => {
-                compatiable_brands.push(FourCC::Av01);
+                compatable_brands.push(FourCC::Av01);
                 let (entry, seq_obu) = codecs::av1::stsd_entry(config)?;
 
                 video_height = seq_obu.max_frame_height as u32;
@@ -497,7 +497,7 @@ impl<'a> Transmuxer<'a> {
                 entry
             }
             VideoSequenceHeader::Hevc(config) => {
-                compatiable_brands.push(FourCC::Hev1);
+                compatable_brands.push(FourCC::Hev1);
                 video_codec = VideoCodec::Hevc {
                     constraint_indicator: config.general_constraint_indicator_flags,
                     level: config.general_level_idc,
@@ -521,7 +521,7 @@ impl<'a> Transmuxer<'a> {
 
         let audio_stsd_entry = match audio_sequence_header.data {
             AudioSequenceHeaderData::Aac(data) => {
-                compatiable_brands.push(FourCC::Mp41);
+                compatable_brands.push(FourCC::Mp41);
                 let (entry, config) =
                     codecs::aac::stsd_entry(audio_sequence_header.sound_size, audio_sequence_header.sound_type, data)?;
 
@@ -559,7 +559,7 @@ impl<'a> Transmuxer<'a> {
         // units per second, making each frame 1000 units long instead of 33ms long.
         let video_timescale = (1000.0 * video_fps) as u32;
 
-        Ftyp::new(FourCC::Iso5, 512, compatiable_brands).mux(writer)?;
+        Ftyp::new(FourCC::Iso5, 512, compatable_brands).mux(writer)?;
         Moov::new(
             Mvhd::new(0, 0, 1000, 0, 1),
             vec![
