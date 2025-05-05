@@ -3,6 +3,7 @@ mod bool;
 mod bytes;
 mod contains;
 mod double;
+mod dyn_;
 mod ends_with;
 mod enum_;
 mod exists;
@@ -28,6 +29,7 @@ pub(crate) use bool::Bool;
 pub(crate) use bytes::Bytes;
 pub(crate) use contains::Contains;
 pub(crate) use double::Double;
+pub(crate) use dyn_::Dyn;
 pub(crate) use ends_with::EndsWith;
 pub(crate) use enum_::Enum;
 pub(crate) use exists::Exists;
@@ -75,6 +77,7 @@ pub(crate) fn add_to_compiler(compiler: &mut Compiler) {
     IsHostname.add_to_compiler(compiler);
     IsUri.add_to_compiler(compiler);
     IsEmail.add_to_compiler(compiler);
+    Dyn.add_to_compiler(compiler);
 }
 
 pub(crate) trait Function: Send + Sync + 'static {
