@@ -182,15 +182,26 @@ impl SemverChecks {
                         // need new line to allow for bullet list formatting
                         description.push("".to_string());
 
+                        // at this point, we begin parsing the
                         let file_loc = desc_trimmed
                             .split_whitespace()
-                            .last()
-                            .unwrap()
-                            .strip_prefix("/home/runner/work/scuffle/scuffle/")
-                            .unwrap()
-                            .replace(":", "#L");
+                            .last() // get the file location string (the last string in the line)
+                            .unwrap();
 
-                        description.push(format!("- {scuffle_commit_url}/{file_loc}"));
+                        // remove the prefix if it exists, otherwise use the original string
+                        // for reference, the Some case would be something like:
+                        // field stdout of struct CompileOutput, previously in file "/home/runner/work/scuffle/scuffle/..."
+                        // but the other case would be something like:
+                        // "feature prettyplease in the package's Cargo.toml"
+                        match file_loc.strip_prefix("/home/runner/work/scuffle/scuffle/") {
+                            Some(stripped) => {
+                                let file_loc = stripped.replace(":", "#L");
+                                description.push(format!("- {scuffle_commit_url}/{file_loc}"));
+                            }
+                            None => {
+                                description.push(format!("- {desc_trimmed}"));
+                            }
+                        };
                     } else {
                         description.push(desc_trimmed.to_string());
                     }
