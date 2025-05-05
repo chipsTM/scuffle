@@ -34,7 +34,7 @@ scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 insta = "1.42.0"
-postcompile = { workspace = true, features = ["prettyplease"] }
+postcompile.workspace = true
 
 # For examples:
 tokio = { version = "1", features = ["full"] }
