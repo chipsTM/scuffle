@@ -15,10 +15,10 @@ This is particularly useful when making snapshot tests of proc-macros, look belo
 
 ## Usage
 
-```rs
+```rust
 #[test]
 fn some_cool_test() {
-    insta::assert_snapshot!(postcompile::compile! {
+    assert_snapshot!(postcompile::compile!({
         #![allow(unused)]
 
         #[derive(Debug, Clone)]
@@ -28,12 +28,53 @@ fn some_cool_test() {
         }
 
         const TEST: Test = Test { a: 1, b: 3 };
-    });
+    }));
 }
 
 #[test]
 fn some_cool_test_extern() {
-    insta::assert_snapshot!(postcompile::compile_str!(include_str!("some_file.rs")));
+    assert_snapshot!(postcompile::compile_str!(include_str!("some_file.rs")));
+}
+
+#[test]
+fn test_inside_test() {
+    assert_snapshot!(postcompile::compile!(
+        postcompile::config! {
+            test: true,
+        },
+        {
+            fn add(a: i32, b: i32) -> i32 {
+                a + b
+            }
+
+            #[test]
+            fn test_add() {
+                assert_eq!(add(1, 2), 3);
+            }
+        },
+    ));
+}
+
+#[test]
+fn test_inside_test_with_tokio() {
+    assert_snapshot!(postcompile::compile!(
+        postcompile::config! {
+            test: true,
+            dependencies: vec![
+                postcompile::Dependency::version("tokio", "1").feature("full")
+            ]
+        },
+        {
+            async fn async_add(a: i32, b: i32) -> i32 {
+                a + b
+            }
+
+            #[tokio::test]
+            async fn test_add() {
+                assert_eq!(async_add(1, 2).await, 3);
+            }
+        },
+    ));
 }
 ```
 
@@ -41,6 +82,7 @@ fn some_cool_test_extern() {
 
 - Cached builds: This crate reuses the cargo build cache of the original crate so that only the contents of the macro are compiled & not any additional dependencies.
 - Coverage: This crate works with [`cargo-llvm-cov`](https://crates.io/crates/cargo-llvm-cov) out of the box, which allows you to instrument the proc-macro expansion.
+- Testing: You can define tests with the `#[test]` macro and the tests will run on the generated code.
 
 ## Alternatives
 

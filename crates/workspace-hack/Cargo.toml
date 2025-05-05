@@ -57,6 +57,8 @@ syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "vis
 thiserror = { version = "2" }
 tokio = { version = "1", features = ["full", "test-util"] }
 tokio-util = { version = "0.7", features = ["codec", "io"] }
+toml = { version = "0.8", features = ["preserve_order"] }
+toml_edit = { version = "0.22", default-features = false, features = ["display", "parse", "serde"] }
 tower = { version = "0.5", default-features = false, features = ["log", "make", "util"] }
 tracing = { version = "0.1", features = ["log"] }
 tracing-core = { version = "0.1" }
@@ -107,6 +109,8 @@ syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "vis
 thiserror = { version = "2" }
 tokio = { version = "1", features = ["full", "test-util"] }
 tokio-util = { version = "0.7", features = ["codec", "io"] }
+toml = { version = "0.8", features = ["preserve_order"] }
+toml_edit = { version = "0.22", default-features = false, features = ["display", "parse", "serde"] }
 tower = { version = "0.5", default-features = false, features = ["log", "make", "util"] }
 tracing = { version = "0.1", features = ["log"] }
 tracing-core = { version = "0.1" }

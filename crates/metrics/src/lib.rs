@@ -79,15 +79,13 @@ mod tests {
 
     #[test]
     fn derive_enum() {
-        insta::assert_snapshot!(postcompile::compile! {
-            use scuffle_metrics::MetricEnum;
-
-            #[derive(MetricEnum)]
+        insta::assert_snapshot!(postcompile::compile!({
+            #[derive(scuffle_metrics::MetricEnum)]
             pub enum Kind {
                 Http,
                 Grpc,
             }
-        });
+        }));
     }
 
     #[test]
