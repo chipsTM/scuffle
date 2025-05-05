@@ -39,7 +39,7 @@ pub struct NetConnectionCommandConnect<'a> {
 }
 
 /// Extended capabilities mask used by the [enhanced connect command](NetConnectionCommandConnect).
-#[derive(serde::Deserialize)]
+#[derive(Deserialize)]
 #[serde(from = "u8", into = "u8")]
 #[bitmask_enum::bitmask(u8)]
 pub enum CapsExMask {

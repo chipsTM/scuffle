@@ -6,7 +6,7 @@ allow = [
     "BSD-3-Clause",
     "Unicode-3.0",
     "Apache-2.0 WITH LLVM-exception",
-    "MPL-2.0",
+    "CDLA-Permissive-2.0",
     "ISC",
     "Zlib",
     "OpenSSL",
@@ -30,7 +30,6 @@ ignore = [
     # https://github.com/aws/aws-lc-rs/issues/722
     "RUSTSEC-2024-0436"
 ]
-
 
 [bans]
 multiple-versions = "allow"

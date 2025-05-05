@@ -34,7 +34,7 @@ pub struct OnStatus<'a> {
 
 nutype_enum! {
     /// Common status codes used in the `onStatus` command.
-    #[derive(serde::Serialize)]
+    #[derive(Serialize)]
     #[serde(transparent)]
     pub enum OnStatusCode(&'static str) {
         /// The `NetConnection.call()` method was not able to invoke the server-side method or command.
