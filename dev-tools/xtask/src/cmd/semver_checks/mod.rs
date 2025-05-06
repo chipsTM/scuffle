@@ -193,7 +193,7 @@ impl SemverChecks {
                         // field stdout of struct CompileOutput, previously in file "/home/runner/work/scuffle/scuffle/..."
                         // but the other case would be something like:
                         // "feature prettyplease in the package's Cargo.toml"
-                        match file_loc.strip_prefix(&(current_metadata.workspace_root.to_string() + "/")) {
+                        match file_loc.strip_prefix(&format!("{}/", current_metadata.workspace_root)) {
                             Some(stripped) => {
                                 let file_loc = stripped.replace(":", "#L");
                                 description.push(format!("- {scuffle_commit_url}/{file_loc}"));
