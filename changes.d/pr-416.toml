@@ -1,4 +1,0 @@
-[[scuffle-http]]
-category = "chore"
-description = "update to h3 0.0.8"
-authors = ["@lennartkloock"]
