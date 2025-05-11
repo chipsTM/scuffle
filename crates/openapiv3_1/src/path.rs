@@ -327,6 +327,27 @@ pub enum HttpMethod {
     Trace,
 }
 
+impl HttpMethod {
+    pub const fn as_str(&self) -> &str {
+        match self {
+            Self::Get => "get",
+            Self::Post => "post",
+            Self::Put => "put",
+            Self::Delete => "delete",
+            Self::Options => "options",
+            Self::Head => "head",
+            Self::Patch => "patch",
+            Self::Trace => "trace",
+        }
+    }
+}
+
+impl std::fmt::Display for HttpMethod {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// Implements [OpenAPI Operation Object][operation] object.
 ///
 /// [operation]: https://spec.openapis.org/oas/latest.html#operation-object
@@ -490,6 +511,70 @@ impl<S: operation_builder::State> OperationBuilder<S> {
 
     /// Append a new [`Server`] to the [`Operation`] servers.
     pub fn server(mut self, server: impl Into<Server>) -> Self {
+        self.servers.get_or_insert_default().push(server.into());
+        self
+    }
+}
+
+impl Operation {
+    /// Append tag to [`Operation`] tags.
+    pub fn tag(&mut self, tag: impl Into<String>) -> &mut Self {
+        self.tags.get_or_insert_default().push(tag.into());
+        self
+    }
+
+    /// Append tag to [`Operation`] tags.
+    pub fn tags<T: Into<String>>(&mut self, tags: impl IntoIterator<Item = T>) -> &mut Self {
+        tags.into_iter().fold(self, |this, t| this.tag(t))
+    }
+
+    /// Add or change parameters of the [`Operation`].
+    pub fn parameters<P: Into<Parameter>>(&mut self, parameters: impl IntoIterator<Item = P>) -> &mut Self {
+        parameters.into_iter().fold(self, |this, p| this.parameter(p))
+    }
+
+    /// Append parameter to [`Operation`] parameters.
+    pub fn parameter(&mut self, parameter: impl Into<Parameter>) -> &mut Self {
+        self.parameters.get_or_insert_default().push(parameter.into());
+        self
+    }
+
+    /// Add or change responses of the [`Operation`].
+    pub fn responses<R: Into<RefOr<Response>>, C: Into<String>>(
+        &mut self,
+        responses: impl IntoIterator<Item = (C, R)>,
+    ) -> &mut Self {
+        responses.into_iter().fold(self, |this, (c, r)| this.response(c, r))
+    }
+
+    /// Append status code and a [`Response`] to the [`Operation`] responses map.
+    ///
+    /// * `code` must be valid HTTP status code.
+    /// * `response` is instances of [`Response`].
+    pub fn response(&mut self, code: impl Into<String>, response: impl Into<RefOr<Response>>) -> &mut Self {
+        self.responses.responses.insert(code.into(), response.into());
+
+        self
+    }
+
+    /// Append [`SecurityRequirement`] to [`Operation`] security requirements.
+    pub fn security(&mut self, security: impl Into<SecurityRequirement>) -> &mut Self {
+        self.security.get_or_insert_default().push(security.into());
+        self
+    }
+
+    /// Append [`SecurityRequirement`] to [`Operation`] security requirements.
+    pub fn securities<R: Into<SecurityRequirement>>(&mut self, securities: impl IntoIterator<Item = R>) -> &mut Self {
+        securities.into_iter().fold(self, |this, s| this.security(s))
+    }
+
+    /// Append [`Server`]s to the [`Operation`].
+    pub fn servers<E: Into<Server>>(&mut self, servers: impl IntoIterator<Item = E>) -> &mut Self {
+        servers.into_iter().fold(self, |this, e| this.server(e))
+    }
+
+    /// Append a new [`Server`] to the [`Operation`] servers.
+    pub fn server(&mut self, server: impl Into<Server>) -> &mut Self {
         self.servers.get_or_insert_default().push(server.into());
         self
     }

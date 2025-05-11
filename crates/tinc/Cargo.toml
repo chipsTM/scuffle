@@ -40,6 +40,7 @@ regex = "1"
 linear-map = "1.2.0"
 
 tinc-derive.workspace = true
+openapiv3_1.workspace = true
 tinc-cel = { workspace = true, features = ["runtime"] }
 
 scuffle-workspace-hack.workspace = true

@@ -53,6 +53,12 @@ impl<S: request_body_builder::State> RequestBodyBuilder<S> {
     }
 }
 
+impl<S: request_body_builder::IsComplete> From<RequestBodyBuilder<S>> for RequestBody {
+    fn from(value: RequestBodyBuilder<S>) -> Self {
+        value.build()
+    }
+}
+
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {

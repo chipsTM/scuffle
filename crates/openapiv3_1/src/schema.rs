@@ -79,13 +79,30 @@ impl Components {
     ///
     /// Accepts two arguments where first is the name of the [`SecurityScheme`]. This is later when
     /// referenced by [`SecurityRequirement`][requirement]s. Second parameter is the [`SecurityScheme`].
-    ///
-    /// [requirement]: ../security/struct.SecurityRequirement.html
-    pub fn add_security_schemes_from_iter<I: IntoIterator<Item = (N, S)>, N: Into<String>, S: Into<SecurityScheme>>(
+    pub fn add_security_schemes_from_iter<N: Into<String>, S: Into<SecurityScheme>>(
         &mut self,
-        schemas: I,
+        schemas: impl IntoIterator<Item = (N, S)>,
     ) {
         self.security_schemes
+            .extend(schemas.into_iter().map(|(name, item)| (name.into(), item.into())));
+    }
+
+    /// Add [`Schema`] to [`Components`].
+    ///
+    /// Accepts two arguments where first is the name of the [`Schema`]. This is later when
+    /// referenced by [`Ref`] [ref_location]s. Second parameter is the [`Schema`].
+    pub fn add_schema<N: Into<String>, S: Into<Schema>>(&mut self, name: N, scheme: S) {
+        self.schemas.insert(name.into(), scheme.into());
+    }
+
+    /// Add iterator of [`Schema`]s to [`Components`].
+    ///
+    /// Accepts two arguments where first is the name of the [`Schema`]. This is later when
+    /// referenced by [`Ref`] [ref_location]s. Second parameter is the [`Schema`].
+    ///
+    /// [requirement]: ../security/struct.SecurityRequirement.html
+    pub fn add_schemas_from_iter<N: Into<String>, S: Into<Schema>>(&mut self, schemas: impl IntoIterator<Item = (N, S)>) {
+        self.schemas
             .extend(schemas.into_iter().map(|(name, item)| (name.into(), item.into())));
     }
 }
@@ -799,6 +816,11 @@ impl Object {
         if let Some(one_of) = &mut self.one_of {
             dedupe_array(one_of);
         }
+    }
+
+    pub fn into_optimized(mut self) -> Self {
+        self.optimize();
+        self
     }
 
     pub fn is_empty(&self) -> bool {

@@ -4019,6 +4019,7 @@ dependencies = [
  "linkme",
  "mediatype",
  "num-traits",
+ "openapiv3_1",
  "prost 0.13.5",
  "prost-types 0.13.5",
  "regex",

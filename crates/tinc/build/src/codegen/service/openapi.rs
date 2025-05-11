@@ -138,10 +138,10 @@ pub(super) fn exclude_path(paths: &mut BTreeMap<String, ExcludePaths>, path: &st
 
 pub(super) fn generate_query_parameter(
     type_registry: &ProtoTypeRegistry,
-    component_schemas: &mut BTreeMap<String, Schema>,
+    component_schemas: &mut openapiv3_1::Components,
     ty: &ProtoMessageType,
     exclude_paths: &BTreeMap<String, ExcludePaths>,
-) -> anyhow::Result<Vec<serde_json::Value>> {
+) -> anyhow::Result<Vec<openapiv3_1::path::Parameter>> {
     let mut params = Vec::new();
 
     for (name, field) in &ty.fields {
@@ -150,13 +150,24 @@ pub(super) fn generate_query_parameter(
             Some(ExcludePaths::Child(child)) => Some(child),
             None => None,
         };
-        params.push(serde_json::json!({
-            "name": &field.options.serde_name,
-            "required": !field.options.serde_omittable.is_true(),
-            "explode": true,
-            "style": "deepObject",
-            "schema": generate_optimized(type_registry, component_schemas, field.ty.clone(), &field.options.cel_exprs, exclude_paths.unwrap_or(&BTreeMap::new()), GenerateDirection::Input, BytesEncoding::Base64)?,
-        }))
+        params.push(
+            openapiv3_1::path::Parameter::builder()
+                .name(field.options.serde_name.clone())
+                .required(!field.options.serde_omittable.is_true())
+                .explode(true)
+                .style(openapiv3_1::path::ParameterStyle::DeepObject)
+                .schema(generate_optimized(
+                    type_registry,
+                    component_schemas,
+                    field.ty.clone(),
+                    &field.options.cel_exprs,
+                    exclude_paths.unwrap_or(&BTreeMap::new()),
+                    GenerateDirection::Input,
+                    BytesEncoding::Base64,
+                )?)
+                .parameter_in(openapiv3_1::path::ParameterIn::Query)
+                .build(),
+        )
     }
 
     Ok(params)
@@ -164,17 +175,28 @@ pub(super) fn generate_query_parameter(
 
 pub(super) fn generate_path_parameter(
     type_registry: &ProtoTypeRegistry,
-    component_schemas: &mut BTreeMap<String, Schema>,
+    component_schemas: &mut openapiv3_1::Components,
     paths: &BTreeMap<String, (ProtoValueType, CelExpressions)>,
-) -> anyhow::Result<Vec<serde_json::Value>> {
+) -> anyhow::Result<Vec<openapiv3_1::path::Parameter>> {
     let mut params = Vec::new();
 
     for (path, (ty, cel)) in paths {
-        params.push(serde_json::json!({
-            "name": path,
-            "required": true,
-            "schema": generate_optimized(type_registry, component_schemas, ProtoType::Value(ty.clone()), cel, &BTreeMap::new(), GenerateDirection::Input, BytesEncoding::Base64)?,
-        }))
+        params.push(
+            openapiv3_1::path::Parameter::builder()
+                .name(path)
+                .required(true)
+                .schema(generate_optimized(
+                    type_registry,
+                    component_schemas,
+                    ProtoType::Value(ty.clone()),
+                    cel,
+                    &BTreeMap::new(),
+                    GenerateDirection::Input,
+                    BytesEncoding::Base64,
+                )?)
+                .parameter_in(openapiv3_1::path::ParameterIn::Path)
+                .build(),
+        )
     }
 
     Ok(params)
@@ -194,21 +216,21 @@ pub(super) enum GenerateDirection {
 
 pub(super) fn generate_optimized(
     type_registry: &ProtoTypeRegistry,
-    component_schemas: &mut BTreeMap<String, Schema>,
+    components: &mut openapiv3_1::Components,
     ty: ProtoType,
     cel: &CelExpressions,
     exclude_paths: &BTreeMap<String, ExcludePaths>,
     direction: GenerateDirection,
     bytes: BytesEncoding,
 ) -> anyhow::Result<Schema> {
-    let mut schema = generate(type_registry, component_schemas, ty, cel, exclude_paths, direction, bytes)?;
+    let mut schema = generate(type_registry, components, ty, cel, exclude_paths, direction, bytes)?;
     schema.optimize();
     Ok(schema)
 }
 
 fn generate(
     type_registry: &ProtoTypeRegistry,
-    component_schemas: &mut BTreeMap<String, Schema>,
+    components: &mut openapiv3_1::Components,
     ty: ProtoType,
     cel: &CelExpressions,
     exclude_paths: &BTreeMap<String, ExcludePaths>,
@@ -231,7 +253,6 @@ fn generate(
         ProtoType::Modified(ProtoModifiedValueType::Map(key, value)) => Schema::object(
             Object::builder()
                 .schema_type(Type::Object)
-                .additional_properties(true)
                 .property_names(match key {
                     ProtoValueType::String => {
                         let mut schemas = Vec::with_capacity(1 + cel.map_key.len());
@@ -256,7 +277,7 @@ fn generate(
                         .build(),
                     _ => Object::builder().schema_type(Type::String).build(),
                 })
-                .additional_items({
+                .additional_properties({
                     let mut schemas = Vec::with_capacity(1 + cel.map_value.len());
                     for expr in &cel.map_value {
                         schemas.extend(handle_expr(compiler.child(), &ProtoType::Value(value.clone()), expr)?);
@@ -264,7 +285,7 @@ fn generate(
 
                     schemas.push(generate(
                         type_registry,
-                        component_schemas,
+                        components,
                         ProtoType::Value(value),
                         &CelExpressions::default(),
                         &BTreeMap::new(),
@@ -281,7 +302,7 @@ fn generate(
                 .schema_type(Type::Array)
                 .items(generate(
                     type_registry,
-                    component_schemas,
+                    components,
                     ProtoType::Value(item),
                     cel,
                     exclude_paths,
@@ -305,7 +326,7 @@ fn generate(
                         .map(|(name, field)| {
                             let ty = generate(
                                 type_registry,
-                                component_schemas,
+                                components,
                                 ProtoType::Value(field.ty),
                                 &field.options.cel_exprs,
                                 &BTreeMap::new(),
@@ -348,7 +369,7 @@ fn generate(
                         .map(|(name, field)| {
                             let ty = generate(
                                 type_registry,
-                                component_schemas,
+                                components,
                                 ProtoType::Value(field.ty),
                                 &field.options.cel_exprs,
                                 &BTreeMap::new(),
@@ -381,7 +402,7 @@ fn generate(
                     Schema::object(Object::builder().schema_type(Type::Null).build()),
                     generate(
                         type_registry,
-                        component_schemas,
+                        components,
                         ProtoType::Value(value),
                         cel,
                         exclude_paths,
@@ -410,12 +431,13 @@ fn generate(
         ProtoType::Value(ProtoValueType::UInt64) => Schema::object(Object::uint64()),
         ProtoType::Value(ProtoValueType::String) => Schema::object(Object::builder().schema_type(Type::String).build()),
         ProtoType::Value(ProtoValueType::Enum(enum_path)) => {
-            if !component_schemas.contains_key(enum_path.as_ref()) {
+            let schema_name = format!("{direction:?}.{enum_path}");
+            if !components.schemas.contains_key(enum_path.as_ref()) {
                 let ety = type_registry
                     .get_enum(&enum_path)
                     .with_context(|| format!("missing enum: {enum_path}"))?;
-                component_schemas.insert(
-                    format!("{direction:?}.{enum_path}"),
+                components.add_schema(
+                    schema_name.clone(),
                     Schema::object(
                         Object::builder()
                             .schema_type(if ety.options.repr_enum { Type::Integer } else { Type::String })
@@ -442,16 +464,18 @@ fn generate(
                 );
             }
 
-            Schema::object(Ref::from_schema_name(format!("{direction:?}.{enum_path}")))
+            Schema::object(Ref::from_schema_name(schema_name))
         }
         ProtoType::Value(ProtoValueType::Message(message_path)) => {
             let message_ty = type_registry
                 .get_message(&message_path)
                 .with_context(|| format!("missing message: {message_path}"))?;
 
-            if !component_schemas.contains_key(message_path.as_ref()) || !exclude_paths.is_empty() {
+            let schema_name = format!("{direction:?}.{message_path}");
+
+            if !components.schemas.contains_key(&schema_name) || !exclude_paths.is_empty() {
                 if exclude_paths.is_empty() {
-                    component_schemas.insert(format!("{direction:?}.{message_path}"), Schema::Bool(false));
+                    components.schemas.insert(schema_name.clone(), Schema::Bool(false));
                 }
                 let mut properties = IndexMap::new();
                 let mut required = Vec::new();
@@ -476,7 +500,7 @@ fn generate(
 
                     let field_schema = generate(
                         type_registry,
-                        component_schemas,
+                        components,
                         ty,
                         &field.options.cel_exprs,
                         exclude_paths.unwrap_or(&BTreeMap::new()),
@@ -521,22 +545,13 @@ fn generate(
                 ));
 
                 if exclude_paths.is_empty() {
-                    component_schemas.insert(
-                        format!("{direction:?}.{message_path}"),
-                        Schema::object({
-                            let mut obj = Object::all_ofs(schemas);
-
-                            obj.optimize();
-
-                            obj
-                        }),
-                    );
-                    Schema::object(Ref::from_schema_name(format!("{direction:?}.{message_path}")))
+                    components.add_schema(schema_name.clone(), Object::all_ofs(schemas).into_optimized());
+                    Schema::object(Ref::from_schema_name(schema_name))
                 } else {
                     Schema::object(Object::all_ofs(schemas))
                 }
             } else {
-                Schema::object(Ref::from_schema_name(format!("{direction:?}.{message_path}")))
+                Schema::object(Ref::from_schema_name(schema_name))
             }
         }
         ProtoType::Value(ProtoValueType::WellKnown(ProtoWellKnownType::Timestamp)) => {

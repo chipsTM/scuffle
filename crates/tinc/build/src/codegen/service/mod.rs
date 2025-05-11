@@ -5,6 +5,7 @@ use indexmap::IndexMap;
 use openapi::{
     BytesEncoding, GenerateDirection, exclude_path, generate_optimized, generate_path_parameter, generate_query_parameter,
 };
+use openapiv3_1::HttpMethod;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Ident, parse_quote};
@@ -341,18 +342,9 @@ fn parse_route(route: &str) -> Vec<String> {
     params
 }
 
-#[derive(Clone, PartialEq, Debug)]
-pub(crate) struct OpenAPIMethod {
-    pub path: String,
-    pub http_verb: String,
-    pub input: Option<openapiv3_1::Schema>,
-    pub output: Option<openapiv3_1::Schema>,
-    pub parameters: Vec<serde_json::Value>,
-}
-
 struct GeneratedMethod {
     function_body: proc_macro2::TokenStream,
-    openapi: OpenAPIMethod,
+    openapi: openapiv3_1::path::PathItem,
     http_method: Ident,
     path: String,
 }
@@ -366,14 +358,14 @@ impl GeneratedMethod {
         method: &ProtoServiceMethod,
         endpoint: &ProtoServiceMethodEndpoint,
         registry: &ProtoTypeRegistry,
-        component_schemas: &mut BTreeMap<String, openapiv3_1::Schema>,
+        components: &mut openapiv3_1::Components,
     ) -> anyhow::Result<GeneratedMethod> {
-        let (http_method_str, path) = match &endpoint.method {
-            tinc_pb::http_endpoint_options::Method::Get(path) => ("get", path),
-            tinc_pb::http_endpoint_options::Method::Post(path) => ("post", path),
-            tinc_pb::http_endpoint_options::Method::Put(path) => ("put", path),
-            tinc_pb::http_endpoint_options::Method::Delete(path) => ("delete", path),
-            tinc_pb::http_endpoint_options::Method::Patch(path) => ("patch", path),
+        let (http_method_oa, path) = match &endpoint.method {
+            tinc_pb::http_endpoint_options::Method::Get(path) => (openapiv3_1::HttpMethod::Get, path),
+            tinc_pb::http_endpoint_options::Method::Post(path) => (openapiv3_1::HttpMethod::Post, path),
+            tinc_pb::http_endpoint_options::Method::Put(path) => (openapiv3_1::HttpMethod::Put, path),
+            tinc_pb::http_endpoint_options::Method::Delete(path) => (openapiv3_1::HttpMethod::Delete, path),
+            tinc_pb::http_endpoint_options::Method::Patch(path) => (openapiv3_1::HttpMethod::Patch, path),
         };
 
         let trimmed_path = path.trim_start_matches('/');
@@ -383,18 +375,12 @@ impl GeneratedMethod {
             format!("/{trimmed_path}")
         };
 
-        let http_method = quote::format_ident!("{http_method_str}");
+        let http_method = quote::format_ident!("{http_method_oa}");
         let mut used_paths = BTreeMap::new();
         let params = parse_route(&full_path);
         params.iter().try_for_each(|param| exclude_path(&mut used_paths, param))?;
 
-        let mut openapi = OpenAPIMethod {
-            http_verb: http_method_str.to_owned(),
-            path: full_path.clone(),
-            input: None,
-            output: None,
-            parameters: Vec::new(),
-        };
+        let mut openapi = openapiv3_1::path::Operation::new();
 
         let path_params = if !params.is_empty() {
             let PathFields {
@@ -404,9 +390,7 @@ impl GeneratedMethod {
             } = path_struct(method.input.value_type(), package, &params, registry)
                 .with_context(|| format!("failed to generate path struct for method: {name}"))?;
 
-            openapi
-                .parameters
-                .extend(generate_path_parameter(registry, component_schemas, &param_schemas)?);
+            openapi.parameters(generate_path_parameter(registry, components, &param_schemas)?);
 
             quote!({
                 let mut tracker = &mut tracker;
@@ -429,7 +413,7 @@ impl GeneratedMethod {
             quote! {}
         };
 
-        let is_get_or_delete = matches!(http_method_str, "get" | "delete");
+        let is_get_or_delete = matches!(http_method_oa, HttpMethod::Get | HttpMethod::Delete);
         let input = endpoint.input.clone().unwrap_or_else(|| {
             if is_get_or_delete {
                 http_endpoint_options::Input::Query(http_endpoint_options::QueryParams::default())
@@ -442,9 +426,9 @@ impl GeneratedMethod {
             http_endpoint_options::Input::Query(http_endpoint_options::QueryParams { field }) => {
                 let extract = match &method.input {
                     ProtoServiceMethodIo::Single(ProtoValueType::Message(path)) if field.is_empty() => {
-                        openapi.parameters.extend(generate_query_parameter(
+                        openapi.parameters(generate_query_parameter(
                             registry,
-                            component_schemas,
+                            components,
                             registry
                                 .get_message(path)
                                 .with_context(|| format!("missing message: {path}"))?,
@@ -459,14 +443,14 @@ impl GeneratedMethod {
                         match ty {
                             ProtoType::Value(ProtoValueType::Message(path))
                             | ProtoType::Modified(ProtoModifiedValueType::Optional(ProtoValueType::Message(path))) => {
-                                openapi.parameters.extend(generate_query_parameter(
+                                openapi.parameters(generate_query_parameter(
                                     registry,
-                                    component_schemas,
+                                    components,
                                     registry
                                         .get_message(&path)
                                         .with_context(|| format!("missing message: {path}"))?,
                                     &BTreeMap::new(),
-                                )?)
+                                )?);
                             }
                             _ => anyhow::bail!("query string input requires a message type as the method input"),
                         }
@@ -546,39 +530,54 @@ impl GeneratedMethod {
 
                 let (tokens, method) = if field.is_empty() {
                     let body_method = BodyMethod::from_io(&method.input)?;
-                    openapi.input = Some(generate_optimized(
-                        registry,
-                        component_schemas,
-                        ProtoType::Value(method.input.value_type().clone()),
-                        &CelExpressions {
-                            field: method.cel.clone(),
-                            ..Default::default()
-                        },
-                        &used_paths,
-                        GenerateDirection::Input,
-                        match body_method {
-                            BodyMethod::Bytes => BytesEncoding::Binary,
-                            BodyMethod::Json | BodyMethod::Text => BytesEncoding::Base64,
-                        },
-                    )?);
+                    openapi.request_body = Some(
+                        openapiv3_1::request_body::RequestBody::builder()
+                            .content(
+                                "application/json", // todo: this isnt always correct
+                                openapiv3_1::content::Content::new(Some(generate_optimized(
+                                    registry,
+                                    components,
+                                    ProtoType::Value(method.input.value_type().clone()),
+                                    &CelExpressions {
+                                        field: method.cel.clone(),
+                                        ..Default::default()
+                                    },
+                                    &used_paths,
+                                    GenerateDirection::Input,
+                                    match body_method {
+                                        BodyMethod::Bytes => BytesEncoding::Binary,
+                                        BodyMethod::Json | BodyMethod::Text => BytesEncoding::Base64,
+                                    },
+                                )?)),
+                            )
+                            .build(),
+                    );
+
                     (quote!((tracker, target)), body_method)
                 } else if let ProtoServiceMethodIo::Single(ProtoValueType::Message(message)) = &method.input {
                     exclude_path(&mut used_paths, &field).context("body field")?;
                     let message = registry.get_message(message).expect("message not found");
                     let FieldExtract { tokens, ty, cel, .. } = tracker_field_extractor_generator(&field, registry, message)?;
                     let body_method = BodyMethod::from_ty(&ty);
-                    openapi.input = Some(generate_optimized(
-                        registry,
-                        component_schemas,
-                        ty,
-                        &cel,
-                        &BTreeMap::new(),
-                        GenerateDirection::Input,
-                        match body_method {
-                            BodyMethod::Bytes => BytesEncoding::Binary,
-                            BodyMethod::Json | BodyMethod::Text => BytesEncoding::Base64,
-                        },
-                    )?);
+                    openapi.request_body = Some(
+                        openapiv3_1::request_body::RequestBody::builder()
+                            .content(
+                                "application/json", // todo: this isnt always correct
+                                openapiv3_1::content::Content::new(Some(generate_optimized(
+                                    registry,
+                                    components,
+                                    ty,
+                                    &cel,
+                                    &BTreeMap::new(),
+                                    GenerateDirection::Input,
+                                    match body_method {
+                                        BodyMethod::Bytes => BytesEncoding::Binary,
+                                        BodyMethod::Json | BodyMethod::Text => BytesEncoding::Base64,
+                                    },
+                                )?)),
+                            )
+                            .build(),
+                    );
                     (tokens, body_method)
                 } else {
                     anyhow::bail!("nested fields are not supported on non message types.");
@@ -614,18 +613,26 @@ impl GeneratedMethod {
 
         let (tokens, output_body_method, optional) = if response.field.is_empty() {
             let body_method = BodyMethod::from_io(&method.output)?;
-            openapi.output = Some(generate_optimized(
-                registry,
-                component_schemas,
-                ProtoType::Value(method.output.value_type().clone()),
-                &CelExpressions::default(),
-                &BTreeMap::default(),
-                GenerateDirection::Output,
-                match body_method {
-                    BodyMethod::Bytes => BytesEncoding::Binary,
-                    BodyMethod::Json | BodyMethod::Text => BytesEncoding::Base64,
-                },
-            )?);
+            openapi.response(
+                "200",
+                openapiv3_1::Response::builder()
+                    .content(
+                        "application/json",
+                        openapiv3_1::content::Content::new(Some(generate_optimized(
+                            registry,
+                            components,
+                            ProtoType::Value(method.output.value_type().clone()),
+                            &CelExpressions::default(),
+                            &BTreeMap::default(),
+                            GenerateDirection::Output,
+                            match body_method {
+                                BodyMethod::Bytes => BytesEncoding::Binary,
+                                BodyMethod::Json | BodyMethod::Text => BytesEncoding::Base64,
+                            },
+                        )?)),
+                    )
+                    .description(""),
+            );
             (quote!(&body), body_method, false)
         } else if let ProtoServiceMethodIo::Single(ProtoValueType::Message(message)) = &method.output {
             let message = registry.get_message(message).expect("message not found");
@@ -633,18 +640,26 @@ impl GeneratedMethod {
                 tokens, ty, is_optional, ..
             } = field_extractor_generator(&response.field, registry, message)?;
             let body_method = BodyMethod::from_ty(&ty);
-            openapi.output = Some(generate_optimized(
-                registry,
-                component_schemas,
-                ProtoType::Value(method.output.value_type().clone()),
-                &CelExpressions::default(),
-                &BTreeMap::default(),
-                GenerateDirection::Output,
-                match body_method {
-                    BodyMethod::Bytes => BytesEncoding::Binary,
-                    BodyMethod::Json | BodyMethod::Text => BytesEncoding::Base64,
-                },
-            )?);
+            openapi.response(
+                "200",
+                openapiv3_1::Response::builder()
+                    .content(
+                        "application/json",
+                        openapiv3_1::content::Content::new(Some(generate_optimized(
+                            registry,
+                            components,
+                            ProtoType::Value(method.output.value_type().clone()),
+                            &CelExpressions::default(),
+                            &BTreeMap::default(),
+                            GenerateDirection::Output,
+                            match body_method {
+                                BodyMethod::Bytes => BytesEncoding::Binary,
+                                BodyMethod::Json | BodyMethod::Text => BytesEncoding::Base64,
+                            },
+                        )?)),
+                    )
+                    .description(""),
+            );
             (tokens, body_method, is_optional)
         } else {
             anyhow::bail!("nested fields are not supported on non message types.");
@@ -750,7 +765,7 @@ impl GeneratedMethod {
         Ok(GeneratedMethod {
             function_body: function_impl,
             http_method,
-            openapi,
+            openapi: openapiv3_1::PathItem::new(http_method_oa, openapi),
             path: full_path,
         })
     }
@@ -794,7 +809,7 @@ pub(crate) struct ProcessedService {
     pub full_name: ProtoPath,
     pub package: ProtoPath,
     pub comments: Comments,
-    pub component_schemas: BTreeMap<String, openapiv3_1::Schema>,
+    pub openapi: openapiv3_1::OpenApi,
     pub methods: IndexMap<String, ProcessedServiceMethod>,
 }
 
@@ -813,7 +828,6 @@ pub(crate) struct ProcessedServiceMethod {
     pub input: ProtoServiceMethodIo,
     pub output: ProtoServiceMethodIo,
     pub comments: Comments,
-    pub openapi: Vec<OpenAPIMethod>,
 }
 
 pub(super) fn handle_service(
@@ -827,7 +841,8 @@ pub(super) fn handle_service(
         .and_then(|s| s.strip_prefix('.'))
         .unwrap_or(&*service.full_name);
 
-    let mut component_schemas = BTreeMap::new();
+    let mut components = openapiv3_1::Components::new();
+    let mut paths = openapiv3_1::Paths::builder();
 
     let snake_name = field_ident_from_str(name);
     let pascal_name = type_ident_from_str(name);
@@ -844,17 +859,9 @@ pub(super) fn handle_service(
     let package_name = format!("{}.{tinc_module_name}", service.package);
 
     for (name, method) in service.methods.iter() {
-        let mut openapi = Vec::new();
         for (idx, endpoint) in method.endpoints.iter().enumerate() {
-            let gen_method = GeneratedMethod::new(
-                name,
-                &package_name,
-                service,
-                method,
-                endpoint,
-                registry,
-                &mut component_schemas,
-            )?;
+            let gen_method =
+                GeneratedMethod::new(name, &package_name, service, method, endpoint, registry, &mut components)?;
             let function_name = quote::format_ident!("{name}_{idx}");
 
             method_tokens.push(gen_method.method_handler(
@@ -864,7 +871,7 @@ pub(super) fn handle_service(
                 &tinc_struct_name,
             ));
             route_tokens.push(gen_method.route(&function_name));
-            openapi.push(gen_method.openapi);
+            paths = paths.path(gen_method.path, gen_method.openapi);
         }
 
         let codec_ident = format_ident!("{name}Codec");
@@ -935,11 +942,14 @@ pub(super) fn handle_service(
                 codec_path: ProtoPath::new(format!("{package_name}.{codec_ident}")),
                 input: method.input.clone(),
                 output: method.output.clone(),
-                openapi,
                 comments: method.comments.clone(),
             },
         );
     }
+
+    let openapi = openapiv3_1::OpenApi::builder().components(components).paths(paths).build();
+
+    let json_openapi = openapi.to_json().context("invalid openapi schema generation")?;
 
     package.push_item(parse_quote! {
         /// This module was automatically generated by `tinc`.
@@ -993,6 +1003,10 @@ pub(super) fn handle_service(
                         #(#route_tokens)*
                         .with_state(self)
                 }
+
+                fn openapi_schema_str(&self) -> &'static str {
+                    #json_openapi
+                }
             }
 
             #(#method_codecs)*
@@ -1003,7 +1017,7 @@ pub(super) fn handle_service(
         full_name: service.full_name.clone(),
         package: service.package.clone(),
         comments: service.comments.clone(),
-        component_schemas,
+        openapi,
         methods,
     });
 
