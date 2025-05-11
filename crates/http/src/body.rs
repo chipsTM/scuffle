@@ -15,11 +15,11 @@ pub enum IncomingBodyError {
     #[cfg(any(feature = "http1", feature = "http2"))]
     #[cfg_attr(docsrs, doc(cfg(any(feature = "http1", feature = "http2"))))]
     Hyper(#[from] hyper::Error),
-    /// An error that occurred while reading a quic body.
-    #[error("quic error: {0}")]
+    /// An error that occurred while reading a h3 body.
+    #[error("h3 body error: {0}")]
     #[cfg(feature = "http3")]
     #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
-    Quic(#[from] h3::Error),
+    H3(#[from] crate::backend::h3::body::H3BodyError),
 }
 
 /// The body of an incoming request.
