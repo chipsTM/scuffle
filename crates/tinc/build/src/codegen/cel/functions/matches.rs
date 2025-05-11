@@ -127,6 +127,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(valgrind))]
     fn test_matches_runtime_string() {
         let registry = ProtoTypeRegistry::new(crate::Mode::Prost, crate::extern_paths::ExternPaths::new(crate::Mode::Prost));
         let compiler = Compiler::new(&registry);

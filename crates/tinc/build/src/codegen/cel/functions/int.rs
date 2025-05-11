@@ -90,6 +90,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(valgrind))]
     fn test_int_runtime() {
         let registry = ProtoTypeRegistry::new(crate::Mode::Prost, crate::extern_paths::ExternPaths::new(crate::Mode::Prost));
         let compiler = Compiler::new(&registry);

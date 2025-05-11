@@ -317,6 +317,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(valgrind))]
     fn test_filter_runtime_map() {
         let registry = ProtoTypeRegistry::new(crate::Mode::Prost, crate::extern_paths::ExternPaths::new(crate::Mode::Prost));
         let mut compiler = Compiler::new(&registry);
@@ -370,6 +371,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(valgrind))]
     fn test_filter_runtime_repeated() {
         let registry = ProtoTypeRegistry::new(crate::Mode::Prost, crate::extern_paths::ExternPaths::new(crate::Mode::Prost));
         let compiler = Compiler::new(&registry);
@@ -411,6 +413,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(valgrind))]
     fn test_filter_runtime_cel_value() {
         let registry = ProtoTypeRegistry::new(crate::Mode::Prost, crate::extern_paths::ExternPaths::new(crate::Mode::Prost));
         let compiler = Compiler::new(&registry);
@@ -453,6 +456,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(valgrind))]
     fn test_filter_const_requires_runtime() {
         let registry = ProtoTypeRegistry::new(crate::Mode::Prost, crate::extern_paths::ExternPaths::new(crate::Mode::Prost));
         let compiler = Compiler::new(&registry);

@@ -277,6 +277,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(valgrind))]
     fn test_all_cel_value() {
         let registry = ProtoTypeRegistry::new(crate::Mode::Prost, crate::extern_paths::ExternPaths::new(crate::Mode::Prost));
         let compiler = Compiler::new(&registry);
@@ -324,6 +325,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(valgrind))]
     fn test_all_proto_map() {
         let registry = ProtoTypeRegistry::new(crate::Mode::Prost, crate::extern_paths::ExternPaths::new(crate::Mode::Prost));
         let compiler = Compiler::new(&registry);
@@ -389,6 +391,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(valgrind))]
     fn test_all_proto_repeated() {
         let registry = ProtoTypeRegistry::new(crate::Mode::Prost, crate::extern_paths::ExternPaths::new(crate::Mode::Prost));
         let compiler = Compiler::new(&registry);
@@ -439,6 +442,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(valgrind))]
     fn test_all_const_needs_runtime() {
         let registry = ProtoTypeRegistry::new(crate::Mode::Prost, crate::extern_paths::ExternPaths::new(crate::Mode::Prost));
         let compiler = Compiler::new(&registry);
@@ -481,8 +485,8 @@ mod tests {
         insta::assert_snapshot!(result);
     }
 
-    #[cfg(not(valgrind))]
     #[test]
+    #[cfg(not(valgrind))]
     fn test_all_runtime() {
         let registry = ProtoTypeRegistry::new(crate::Mode::Prost, crate::extern_paths::ExternPaths::new(crate::Mode::Prost));
         let compiler = Compiler::new(&registry);

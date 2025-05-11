@@ -102,6 +102,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(valgrind))]
     fn test_size_runtime() {
         let registry = ProtoTypeRegistry::new(crate::Mode::Prost, crate::extern_paths::ExternPaths::new(crate::Mode::Prost));
         let compiler = Compiler::new(&registry);
@@ -134,6 +135,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(valgrind))]
     fn test_size_runtime_map() {
         let registry = ProtoTypeRegistry::new(crate::Mode::Prost, crate::extern_paths::ExternPaths::new(crate::Mode::Prost));
         let compiler = Compiler::new(&registry);
@@ -180,6 +182,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(valgrind))]
     fn test_size_runtime_repeated() {
         let registry = ProtoTypeRegistry::new(crate::Mode::Prost, crate::extern_paths::ExternPaths::new(crate::Mode::Prost));
         let compiler = Compiler::new(&registry);
