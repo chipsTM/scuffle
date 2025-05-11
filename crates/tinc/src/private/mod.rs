@@ -53,6 +53,9 @@ pub use validation::*;
 mod fmt;
 pub use fmt::*;
 
+mod bytes;
+pub use bytes::*;
+
 #[macro_export]
 #[doc(hidden)]
 macro_rules! __tinc_field_from_str {

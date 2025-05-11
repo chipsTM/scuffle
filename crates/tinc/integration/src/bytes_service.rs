@@ -85,3 +85,10 @@ async fn test_bytes_service_rest_post_binary() {
     let body = resp.into_body().collect().await.unwrap().to_bytes();
     assert_eq!(body, random_data);
 }
+
+#[test]
+fn test_bytes_service_rest_schema() {
+    let svc = pb::bytes_service_tinc::BytesServiceTinc::new(Svc {});
+
+    insta::assert_json_snapshot!(svc.openapi_schema());
+}

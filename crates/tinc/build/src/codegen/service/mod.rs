@@ -1,346 +1,19 @@
-use std::collections::BTreeMap;
-
 use anyhow::Context;
 use indexmap::IndexMap;
-use openapi::{
-    BytesEncoding, GenerateDirection, exclude_path, generate_optimized, generate_path_parameter, generate_query_parameter,
-};
+use openapi::{BodyMethod, GeneratedBody, GeneratedParams, InputGenerator, OutputGenerator};
 use openapiv3_1::HttpMethod;
-use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Ident, parse_quote};
 use tinc_pb::http_endpoint_options;
 
 use super::Package;
-use super::cel::CelExpressions;
 use super::utils::{field_ident_from_str, type_ident_from_str};
 use crate::types::{
-    Comments, ProtoMessageType, ProtoModifiedValueType, ProtoPath, ProtoService, ProtoServiceMethod,
-    ProtoServiceMethodEndpoint, ProtoServiceMethodIo, ProtoType, ProtoTypeRegistry, ProtoValueType, ProtoWellKnownType,
+    Comments, ProtoPath, ProtoService, ProtoServiceMethod, ProtoServiceMethodEndpoint, ProtoServiceMethodIo,
+    ProtoTypeRegistry,
 };
 
 mod openapi;
-
-enum BodyMethod {
-    Bytes,
-    Json,
-    Text,
-}
-
-impl BodyMethod {
-    fn deserialize_func(&self) -> TokenStream {
-        match self {
-            Self::Bytes => quote!(deserialize_body_bytes),
-            Self::Json => quote!(deserialize_body_json),
-            Self::Text => quote!(deserialize_body_text),
-        }
-    }
-
-    fn from_io(io: &ProtoServiceMethodIo) -> anyhow::Result<Self> {
-        match &io {
-            ProtoServiceMethodIo::Single(ProtoValueType::Bytes) => Ok(Self::Bytes),
-            ProtoServiceMethodIo::Single(ProtoValueType::String) => Ok(Self::Text),
-            ProtoServiceMethodIo::Single(_) => Ok(Self::Json),
-            ProtoServiceMethodIo::Stream(_) => {
-                anyhow::bail!("currently streams are not supported for tinc methods")
-            }
-        }
-    }
-
-    fn from_ty(ty: &ProtoType) -> Self {
-        match ty {
-            ProtoType::Value(ProtoValueType::Bytes)
-            | ProtoType::Modified(ProtoModifiedValueType::Optional(ProtoValueType::Bytes)) => BodyMethod::Bytes,
-            ProtoType::Value(ProtoValueType::String)
-            | ProtoType::Modified(ProtoModifiedValueType::Optional(ProtoValueType::String)) => BodyMethod::Text,
-            _ => BodyMethod::Json,
-        }
-    }
-
-    fn content_type(&self) -> &'static str {
-        match self {
-            BodyMethod::Bytes => "application/octet-stream",
-            BodyMethod::Json => "application/json",
-            BodyMethod::Text => "text/plain",
-        }
-    }
-}
-
-struct PathFields {
-    defs: Vec<proc_macro2::TokenStream>,
-    mappings: Vec<proc_macro2::TokenStream>,
-    param_schemas: BTreeMap<String, (ProtoValueType, CelExpressions)>,
-}
-
-struct FieldExtract {
-    tokens: proc_macro2::TokenStream,
-    ty: ProtoType,
-    cel: CelExpressions,
-    is_optional: bool,
-}
-
-fn tracker_field_extractor_generator(
-    field_str: &str,
-    registry: &ProtoTypeRegistry,
-    message: &ProtoMessageType,
-) -> anyhow::Result<FieldExtract> {
-    let mut next_message = Some(message);
-    let mut is_optional = false;
-    let mut kind = None;
-    let mut cel = None;
-    let mut mapping = quote! {(&mut tracker, &mut target)};
-    for part in field_str.split('.') {
-        let Some(field) = next_message.and_then(|message| message.fields.get(part)) else {
-            anyhow::bail!("message does not have field: {field_str}");
-        };
-
-        let field_ident = field_ident_from_str(part);
-
-        let optional_unwrap = is_optional.then(|| {
-            quote! {
-                let mut tracker = tracker.get_or_insert_default();
-                let mut target = target.get_or_insert_default();
-            }
-        });
-
-        kind = Some(&field.ty);
-        cel = Some(&field.options.cel_exprs);
-        mapping = quote! {{
-            let (tracker, target) = #mapping;
-            #optional_unwrap
-            let tracker = tracker.#field_ident.get_or_insert_default();
-            let target = &mut target.#field_ident;
-            (tracker, target)
-        }};
-
-        is_optional = matches!(
-            field.ty,
-            ProtoType::Modified(ProtoModifiedValueType::Optional(_) | ProtoModifiedValueType::OneOf(_))
-        );
-        next_message = match &field.ty {
-            ProtoType::Value(ProtoValueType::Message(path))
-            | ProtoType::Modified(ProtoModifiedValueType::Optional(ProtoValueType::Message(path))) => {
-                Some(registry.get_message(path).unwrap())
-            }
-            _ => None,
-        }
-    }
-
-    Ok(FieldExtract {
-        tokens: mapping,
-        ty: kind.unwrap().clone(),
-        cel: cel.unwrap().clone(),
-        is_optional,
-    })
-}
-
-fn field_extractor_generator(
-    field_str: &str,
-    registry: &ProtoTypeRegistry,
-    message: &ProtoMessageType,
-) -> anyhow::Result<FieldExtract> {
-    let mut next_message = Some(message);
-    let mut was_optional = false;
-    let mut kind = None;
-    let mut cel = None;
-    let mut mapping = quote!(&body);
-    for part in field_str.split('.') {
-        let Some(field) = next_message.and_then(|message| message.fields.get(part)) else {
-            anyhow::bail!("message does not have field: {field_str}");
-        };
-
-        let field_ident = field_ident_from_str(part);
-
-        kind = Some(&field.ty);
-        cel = Some(&field.options.cel_exprs);
-        let is_optional = matches!(
-            field.ty,
-            ProtoType::Modified(ProtoModifiedValueType::Optional(_) | ProtoModifiedValueType::OneOf(_))
-        );
-
-        mapping = match (is_optional, was_optional) {
-            (true, true) => quote!(#mapping.and_then(|m| m.#field_ident.as_ref())),
-            (false, true) => quote!(#mapping.map(|m| &m.#field_ident)),
-            (true, false) => quote!(#mapping.#field_ident.as_ref()),
-            (false, false) => quote!(#mapping.#field_ident),
-        };
-
-        was_optional = was_optional || is_optional;
-
-        next_message = match &field.ty {
-            ProtoType::Value(ProtoValueType::Message(path))
-            | ProtoType::Modified(ProtoModifiedValueType::Optional(ProtoValueType::Message(path))) => {
-                Some(registry.get_message(path).unwrap())
-            }
-            _ => None,
-        }
-    }
-
-    Ok(FieldExtract {
-        cel: cel.unwrap().clone(),
-        ty: kind.unwrap().clone(),
-        is_optional: was_optional,
-        tokens: mapping,
-    })
-}
-
-fn path_struct(
-    ty: &ProtoValueType,
-    package: &str,
-    fields: &[String],
-    registry: &ProtoTypeRegistry,
-) -> anyhow::Result<PathFields> {
-    let mut defs = Vec::new();
-    let mut mappings = Vec::new();
-    let mut param_schemas = BTreeMap::new();
-
-    let match_single_ty = |ty: &ProtoValueType| {
-        Some(match &ty {
-            ProtoValueType::Enum(path) => {
-                let path = registry.resolve_rust_path(package, path).expect("enum not found");
-                quote! {
-                    #path
-                }
-            }
-            ProtoValueType::Bool => quote! {
-                ::core::primitive::bool
-            },
-            ProtoValueType::Float => quote! {
-                ::core::primitive::f32
-            },
-            ProtoValueType::Double => quote! {
-                ::core::primitive::f64
-            },
-            ProtoValueType::Int32 => quote! {
-                ::core::primitive::i32
-            },
-            ProtoValueType::Int64 => quote! {
-                ::core::primitive::i64
-            },
-            ProtoValueType::UInt32 => quote! {
-                ::core::primitive::u32
-            },
-            ProtoValueType::UInt64 => quote! {
-                ::core::primitive::u64
-            },
-            ProtoValueType::String => quote! {
-                ::std::string::String
-            },
-            ProtoValueType::WellKnown(ProtoWellKnownType::Duration) => quote! {
-                ::tinc::__private::well_known::Duration
-            },
-            ProtoValueType::WellKnown(ProtoWellKnownType::Timestamp) => quote! {
-                ::tinc::__private::well_known::Timestamp
-            },
-            ProtoValueType::WellKnown(ProtoWellKnownType::Value) => quote! {
-                ::tinc::__private::well_known::Value
-            },
-            _ => return None,
-        })
-    };
-
-    match &ty {
-        ProtoValueType::Message(message) => {
-            let message = registry.get_message(message).expect("message not found");
-
-            for (idx, field) in fields.iter().enumerate() {
-                let field_str = field.as_ref();
-                let path_field_ident = quote::format_ident!("field_{idx}");
-                let FieldExtract { cel, tokens, ty, .. } = tracker_field_extractor_generator(field_str, registry, message)?;
-
-                let setter = match &ty {
-                    ProtoType::Modified(ProtoModifiedValueType::Optional(_)) => quote! {
-                        tracker.get_or_insert_default();
-                        target.insert(path.#path_field_ident.into());
-                    },
-                    _ => quote! {
-                        *target = path.#path_field_ident.into();
-                    },
-                };
-
-                mappings.push(quote! {{
-                    let (tracker, target) = #tokens;
-                    #setter;
-                }});
-
-                let ty = match ty {
-                    ProtoType::Modified(ProtoModifiedValueType::Optional(value)) | ProtoType::Value(value) => Some(value),
-                    _ => None,
-                };
-
-                let Some(tokens) = ty.as_ref().and_then(match_single_ty) else {
-                    anyhow::bail!("type cannot be mapped: {ty:?}");
-                };
-
-                let ty = ty.unwrap();
-
-                param_schemas.insert(field.clone(), (ty, cel));
-
-                defs.push(quote! {
-                    #[serde(rename = #field_str)]
-                    #path_field_ident: #tokens
-                });
-            }
-        }
-        ty => {
-            let Some(ty) = match_single_ty(ty) else {
-                anyhow::bail!("type cannot be mapped: {ty:?}");
-            };
-
-            if fields.len() != 1 {
-                anyhow::bail!("well-known type can only have one field");
-            }
-
-            if fields[0] != "value" {
-                anyhow::bail!("well-known type can only have field 'value'");
-            }
-
-            mappings.push(quote! {
-                *target = path.value.into();
-            });
-
-            defs.push(quote! {
-                #[serde(rename = "value")]
-                value: #ty
-            });
-        }
-    }
-
-    Ok(PathFields {
-        defs,
-        mappings,
-        param_schemas,
-    })
-}
-
-fn parse_route(route: &str) -> Vec<String> {
-    let mut params = Vec::new();
-    let mut chars = route.chars().peekable();
-
-    while let Some(ch) = chars.next() {
-        if ch != '{' {
-            continue;
-        }
-
-        // Skip escaped '{{'
-        if let Some(&'{') = chars.peek() {
-            chars.next();
-            continue;
-        }
-
-        let mut param = String::new();
-        for c in &mut chars {
-            if c == '}' {
-                params.push(param);
-                break;
-            }
-
-            param.push(c);
-        }
-    }
-
-    params
-}
 
 struct GeneratedMethod {
     function_body: proc_macro2::TokenStream,
@@ -357,7 +30,7 @@ impl GeneratedMethod {
         service: &ProtoService,
         method: &ProtoServiceMethod,
         endpoint: &ProtoServiceMethodEndpoint,
-        registry: &ProtoTypeRegistry,
+        types: &ProtoTypeRegistry,
         components: &mut openapiv3_1::Components,
     ) -> anyhow::Result<GeneratedMethod> {
         let (http_method_oa, path) = match &endpoint.method {
@@ -376,371 +49,126 @@ impl GeneratedMethod {
         };
 
         let http_method = quote::format_ident!("{http_method_oa}");
-        let mut used_paths = BTreeMap::new();
-        let params = parse_route(&full_path);
-        params.iter().try_for_each(|param| exclude_path(&mut used_paths, param))?;
-
+        let tracker_ident = quote::format_ident!("tracker");
+        let target_ident = quote::format_ident!("target");
+        let state_ident = quote::format_ident!("state");
         let mut openapi = openapiv3_1::path::Operation::new();
+        let mut generator = InputGenerator::new(
+            types,
+            components,
+            package,
+            method.input.value_type().clone(),
+            tracker_ident.clone(),
+            target_ident.clone(),
+            state_ident.clone(),
+        );
 
-        let path_params = if !params.is_empty() {
-            let PathFields {
-                defs,
-                mappings,
-                param_schemas,
-            } = path_struct(method.input.value_type(), package, &params, registry)
-                .with_context(|| format!("failed to generate path struct for method: {name}"))?;
-
-            openapi.parameters(generate_path_parameter(registry, components, &param_schemas)?);
-
-            quote!({
-                let mut tracker = &mut tracker;
-                let mut target = &mut target;
-
-                #[derive(::tinc::reexports::serde::Deserialize)]
-                #[allow(non_snake_case, dead_code)]
-                struct PathContent {
-                    #(#defs),*
-                }
-
-                let path = match ::tinc::__private::deserialize_path::<PathContent>(&mut parts).await {
-                    Ok(path) => path,
-                    Err(err) => return err,
-                };
-
-                #(#mappings)*
-            })
-        } else {
-            quote! {}
-        };
+        let GeneratedParams {
+            tokens: path_tokens,
+            params,
+        } = generator.generate_path_parameter(&full_path)?;
+        openapi.parameters(params);
 
         let is_get_or_delete = matches!(http_method_oa, HttpMethod::Get | HttpMethod::Delete);
-        let input = endpoint.input.clone().unwrap_or_else(|| {
+        let request = endpoint.request.as_ref().and_then(|req| req.mode.clone()).unwrap_or_else(|| {
             if is_get_or_delete {
-                http_endpoint_options::Input::Query(http_endpoint_options::QueryParams::default())
+                http_endpoint_options::request::Mode::Query(http_endpoint_options::request::QueryParams::default())
             } else {
-                http_endpoint_options::Input::Body(http_endpoint_options::RequestBody::default())
+                http_endpoint_options::request::Mode::Json(http_endpoint_options::request::JsonBody::default())
             }
         });
 
-        let input = match input {
-            http_endpoint_options::Input::Query(http_endpoint_options::QueryParams { field }) => {
-                let extract = match &method.input {
-                    ProtoServiceMethodIo::Single(ProtoValueType::Message(path)) if field.is_empty() => {
-                        openapi.parameters(generate_query_parameter(
-                            registry,
-                            components,
-                            registry
-                                .get_message(path)
-                                .with_context(|| format!("missing message: {path}"))?,
-                            &used_paths,
-                        )?);
-                        quote!((tracker, target))
-                    }
-                    ProtoServiceMethodIo::Single(ProtoValueType::Message(message)) => {
-                        exclude_path(&mut used_paths, &field).context("query field")?;
-                        let message = registry.get_message(message).expect("message not found");
-                        let FieldExtract { tokens, ty, .. } = tracker_field_extractor_generator(&field, registry, message)?;
-                        match ty {
-                            ProtoType::Value(ProtoValueType::Message(path))
-                            | ProtoType::Modified(ProtoModifiedValueType::Optional(ProtoValueType::Message(path))) => {
-                                openapi.parameters(generate_query_parameter(
-                                    registry,
-                                    components,
-                                    registry
-                                        .get_message(&path)
-                                        .with_context(|| format!("missing message: {path}"))?,
-                                    &BTreeMap::new(),
-                                )?);
-                            }
-                            _ => anyhow::bail!("query string input requires a message type as the method input"),
-                        }
-                        tokens
-                    }
-                    ProtoServiceMethodIo::Stream(_) => anyhow::bail!("streams currently are not supported by tinc"),
-                    ProtoServiceMethodIo::Single(
-                        ProtoValueType::Bool
-                        | ProtoValueType::String
-                        | ProtoValueType::Bytes
-                        | ProtoValueType::Int32
-                        | ProtoValueType::Int64
-                        | ProtoValueType::UInt32
-                        | ProtoValueType::UInt64
-                        | ProtoValueType::Double
-                        | ProtoValueType::Float
-                        | ProtoValueType::WellKnown(_)
-                        | ProtoValueType::Enum(_),
-                    ) => anyhow::bail!("query string input requires a message type as the method input"),
-                };
-
-                quote!({
-                    let mut tracker = &mut tracker;
-                    let mut target = &mut target;
-                    let (tracker, target) = #extract;
-
-                    if let Err(err) = ::tinc::__private::deserialize_query_string(
-                        &parts,
-                        tracker,
-                        target,
-                        &mut state,
-                    ) {
-                        return err;
-                    }
-                })
+        let request_tokens = match request {
+            http_endpoint_options::request::Mode::Query(http_endpoint_options::request::QueryParams { field }) => {
+                let GeneratedParams { tokens, params } = generator.generate_query_parameter(field.as_deref())?;
+                openapi.parameters(params);
+                tokens
             }
-            http_endpoint_options::Input::Body(http_endpoint_options::RequestBody {
+            http_endpoint_options::request::Mode::Binary(http_endpoint_options::request::BinaryBody {
                 field,
+                content_type_accepts,
                 content_type_field,
             }) => {
-                let content_type = if !content_type_field.is_empty() {
-                    exclude_path(&mut used_paths, &content_type_field).context("content-type field")?;
-
-                    if content_type_field == field {
-                        anyhow::bail!("content type field cannot be the same as the body field");
-                    }
-
-                    let FieldExtract { tokens, ty, .. } = match &method.input {
-                        ProtoServiceMethodIo::Single(ProtoValueType::Message(message)) => {
-                            let message = registry.get_message(message).expect("message not found");
-                            tracker_field_extractor_generator(&content_type_field, registry, message)?
-                        }
-                        _ => anyhow::bail!("content_type_field is only supported on methods who have a message input."),
-                    };
-
-                    let modifier = match &ty {
-                        ProtoType::Modified(ProtoModifiedValueType::Optional(ProtoValueType::String)) => quote! {
-                            let (mut tracker, mut target) = #tokens;
-                            tracker.get_or_insert_default();
-                            target.insert(content_type.into());
-                        },
-                        ProtoType::Value(ProtoValueType::String) => quote! {
-                            let (_, mut target) = #tokens;
-                            *target = content_type.into();
-                        },
-                        _ => anyhow::bail!("content type field must be a string: {ty:?}"),
-                    };
-
-                    quote!({
-                        if let Some(content_type) = parts.headers.get(::tinc::reexports::http::header::CONTENT_TYPE).and_then(|h| h.to_str().ok()) {
-                            #modifier
-                        }
-                    })
-                } else {
-                    quote!()
-                };
-
-                let (tokens, method) = if field.is_empty() {
-                    let body_method = BodyMethod::from_io(&method.input)?;
-                    openapi.request_body = Some(
-                        openapiv3_1::request_body::RequestBody::builder()
-                            .content(
-                                "application/json", // todo: this isnt always correct
-                                openapiv3_1::content::Content::new(Some(generate_optimized(
-                                    registry,
-                                    components,
-                                    ProtoType::Value(method.input.value_type().clone()),
-                                    &CelExpressions {
-                                        field: method.cel.clone(),
-                                        ..Default::default()
-                                    },
-                                    &used_paths,
-                                    GenerateDirection::Input,
-                                    match body_method {
-                                        BodyMethod::Bytes => BytesEncoding::Binary,
-                                        BodyMethod::Json | BodyMethod::Text => BytesEncoding::Base64,
-                                    },
-                                )?)),
-                            )
-                            .build(),
-                    );
-
-                    (quote!((tracker, target)), body_method)
-                } else if let ProtoServiceMethodIo::Single(ProtoValueType::Message(message)) = &method.input {
-                    exclude_path(&mut used_paths, &field).context("body field")?;
-                    let message = registry.get_message(message).expect("message not found");
-                    let FieldExtract { tokens, ty, cel, .. } = tracker_field_extractor_generator(&field, registry, message)?;
-                    let body_method = BodyMethod::from_ty(&ty);
-                    openapi.request_body = Some(
-                        openapiv3_1::request_body::RequestBody::builder()
-                            .content(
-                                "application/json", // todo: this isnt always correct
-                                openapiv3_1::content::Content::new(Some(generate_optimized(
-                                    registry,
-                                    components,
-                                    ty,
-                                    &cel,
-                                    &BTreeMap::new(),
-                                    GenerateDirection::Input,
-                                    match body_method {
-                                        BodyMethod::Bytes => BytesEncoding::Binary,
-                                        BodyMethod::Json | BodyMethod::Text => BytesEncoding::Base64,
-                                    },
-                                )?)),
-                            )
-                            .build(),
-                    );
-                    (tokens, body_method)
-                } else {
-                    anyhow::bail!("nested fields are not supported on non message types.");
-                };
-
-                let de_func = method.deserialize_func();
-
-                let body = quote!({
-                    let (tracker, target) = #tokens;
-                    if let Err(err) = ::tinc::__private::#de_func(&parts, body, tracker, target, &mut state).await {
-                        return err;
-                    }
-                });
-
-                quote!({
-                    let mut tracker = &mut tracker;
-                    let mut target = &mut target;
-
-                    #body
-                    #content_type
-                })
+                let GeneratedBody { tokens, body } = generator.generate_body(
+                    &method.cel,
+                    BodyMethod::Binary(content_type_accepts.as_deref()),
+                    field.as_deref(),
+                    content_type_field.as_deref(),
+                )?;
+                openapi.request_body = Some(body);
+                tokens
+            }
+            http_endpoint_options::request::Mode::Json(http_endpoint_options::request::JsonBody { field }) => {
+                let GeneratedBody { tokens, body } =
+                    generator.generate_body(&method.cel, BodyMethod::Json, field.as_deref(), None)?;
+                openapi.request_body = Some(body);
+                tokens
+            }
+            http_endpoint_options::request::Mode::Text(http_endpoint_options::request::TextBody { field }) => {
+                let GeneratedBody { tokens, body } =
+                    generator.generate_body(&method.cel, BodyMethod::Text, field.as_deref(), None)?;
+                openapi.request_body = Some(body);
+                tokens
             }
         };
 
         let input_path = match &method.input {
-            ProtoServiceMethodIo::Single(input) => registry.resolve_rust_path(package, input.proto_path()),
+            ProtoServiceMethodIo::Single(input) => types.resolve_rust_path(package, input.proto_path()),
             ProtoServiceMethodIo::Stream(_) => anyhow::bail!("currently streaming is not supported by tinc methods."),
         };
 
         let service_method_name = field_ident_from_str(name);
 
-        let response = endpoint.response.clone().unwrap_or_default();
-
-        let (tokens, output_body_method, optional) = if response.field.is_empty() {
-            let body_method = BodyMethod::from_io(&method.output)?;
-            openapi.response(
-                "200",
-                openapiv3_1::Response::builder()
-                    .content(
-                        "application/json",
-                        openapiv3_1::content::Content::new(Some(generate_optimized(
-                            registry,
-                            components,
-                            ProtoType::Value(method.output.value_type().clone()),
-                            &CelExpressions::default(),
-                            &BTreeMap::default(),
-                            GenerateDirection::Output,
-                            match body_method {
-                                BodyMethod::Bytes => BytesEncoding::Binary,
-                                BodyMethod::Json | BodyMethod::Text => BytesEncoding::Base64,
-                            },
-                        )?)),
-                    )
-                    .description(""),
+        let response = endpoint
+            .response
+            .as_ref()
+            .and_then(|resp| resp.mode.clone())
+            .unwrap_or_else(
+                || http_endpoint_options::response::Mode::Json(http_endpoint_options::response::Json::default()),
             );
-            (quote!(&body), body_method, false)
-        } else if let ProtoServiceMethodIo::Single(ProtoValueType::Message(message)) = &method.output {
-            let message = registry.get_message(message).expect("message not found");
-            let FieldExtract {
-                tokens, ty, is_optional, ..
-            } = field_extractor_generator(&response.field, registry, message)?;
-            let body_method = BodyMethod::from_ty(&ty);
-            openapi.response(
-                "200",
-                openapiv3_1::Response::builder()
-                    .content(
-                        "application/json",
-                        openapiv3_1::content::Content::new(Some(generate_optimized(
-                            registry,
-                            components,
-                            ProtoType::Value(method.output.value_type().clone()),
-                            &CelExpressions::default(),
-                            &BTreeMap::default(),
-                            GenerateDirection::Output,
-                            match body_method {
-                                BodyMethod::Bytes => BytesEncoding::Binary,
-                                BodyMethod::Json | BodyMethod::Text => BytesEncoding::Base64,
-                            },
-                        )?)),
-                    )
-                    .description(""),
-            );
-            (tokens, body_method, is_optional)
-        } else {
-            anyhow::bail!("nested fields are not supported on non message types.");
-        };
 
-        let ct = output_body_method.content_type();
-        let ct = quote!({
-            response_builder = response_builder.header(::tinc::reexports::http::header::CONTENT_TYPE, #ct);
-        });
+        let response_ident = quote::format_ident!("response");
+        let builder_ident = quote::format_ident!("builder");
+        let mut generator = OutputGenerator::new(
+            types,
+            components,
+            method.output.value_type().clone(),
+            response_ident.clone(),
+            builder_ident.clone(),
+        );
 
-        let content_type = if !response.content_type_field.is_empty() {
-            let ProtoServiceMethodIo::Single(ProtoValueType::Message(message)) = &method.output else {
-                anyhow::bail!("content-type field can only be used on message types.");
-            };
-
-            let message = registry.get_message(message).expect("message not found");
-            let FieldExtract { tokens, ty, .. } =
-                field_extractor_generator(&response.content_type_field, registry, message)?;
-            let matcher = if optional { quote!(Some(ct)) } else { quote!(ct) };
-            if !matches!(
-                ty,
-                ProtoType::Value(ProtoValueType::String)
-                    | ProtoType::Modified(ProtoModifiedValueType::Optional(ProtoValueType::String))
-            ) {
-                anyhow::bail!("content-type field must be a string");
+        let GeneratedBody {
+            body: response,
+            tokens: response_tokens,
+        } = match response {
+            http_endpoint_options::response::Mode::Binary(http_endpoint_options::response::Binary {
+                field,
+                content_type_accepts,
+                content_type_field,
+            }) => generator.generate_body(
+                BodyMethod::Binary(content_type_accepts.as_deref()),
+                field.as_deref(),
+                content_type_field.as_deref(),
+            )?,
+            http_endpoint_options::response::Mode::Json(http_endpoint_options::response::Json { field }) => {
+                generator.generate_body(BodyMethod::Json, field.as_deref(), None)?
             }
-
-            quote!({
-                #[allow(irrefutable_let_patterns)]
-                if let #matcher = #tokens {
-                    response_builder = response_builder.header(::tinc::reexports::http::header::CONTENT_TYPE, ct);
-                } else #ct
-            })
-        } else {
-            ct
+            http_endpoint_options::response::Mode::Text(http_endpoint_options::response::Text { field }) => {
+                generator.generate_body(BodyMethod::Text, field.as_deref(), None)?
+            }
         };
 
-        let response = {
-            let matcher = if optional { quote!(Some(body)) } else { quote!(body) };
-            let body = match output_body_method {
-                BodyMethod::Text | BodyMethod::Bytes => quote!({
-                    #[allow(irrefutable_let_patterns)]
-                    if let #matcher = #tokens {
-                        ::tinc::reexports::axum::body::Body::from(body.clone())
-                    } else {
-                        ::tinc::reexports::axum::body::Body::empty()
-                    }
-                }),
-                BodyMethod::Json => quote!({
-                    let mut writer = ::tinc::reexports::bytes::BufMut::writer(
-                        ::tinc::reexports::bytes::BytesMut::with_capacity(128)
-                    );
-                    match ::tinc::reexports::serde_json::to_writer(&mut writer, #tokens) {
-                        ::core::result::Result::Ok(()) => {},
-                        ::core::result::Result::Err(err) => return ::tinc::__private::handle_response_build_error(err),
-                    }
-                    ::tinc::reexports::axum::body::Body::from(writer.into_inner().freeze())
-                }),
-            };
-
-            quote!({
-                let mut response_builder = ::tinc::reexports::http::Response::builder();
-                #content_type
-                match response_builder
-                    .body(#body) {
-                        ::core::result::Result::Ok(v) => v,
-                        ::core::result::Result::Err(err) => return ::tinc::__private::handle_response_build_error(err),
-                    }
-            })
-        };
+        openapi.response("200", response);
 
         let function_impl = quote! {
-            let mut state = ::tinc::__private::TrackerSharedState::default();
-            let mut tracker = <<#input_path as ::tinc::__private::TrackerFor>::Tracker as ::core::default::Default>::default();
-            let mut target = <#input_path as ::core::default::Default>::default();
+            let mut #state_ident = ::tinc::__private::TrackerSharedState::default();
+            let mut #tracker_ident = <<#input_path as ::tinc::__private::TrackerFor>::Tracker as ::core::default::Default>::default();
+            let mut #target_ident = <#input_path as ::core::default::Default>::default();
 
-            #path_params
+            #path_tokens
+            #request_tokens
 
-            #input
-
-            if let Err(err) = ::tinc::__private::TincValidate::validate_http(&target, state, &tracker) {
+            if let Err(err) = ::tinc::__private::TincValidate::validate_http(&#target_ident, #state_ident, &#tracker_ident) {
                 return err;
             }
 
@@ -750,12 +178,19 @@ impl GeneratedMethod {
                 target,
             );
 
-            let (metadata, body, extensions) = match service.inner.#service_method_name(request).await {
+            let (metadata, #response_ident, extensions) = match service.inner.#service_method_name(request).await {
                 ::core::result::Result::Ok(response) => response.into_parts(),
                 ::core::result::Result::Err(status) => return ::tinc::__private::handle_tonic_status(&status),
             };
 
-            let mut response = #response;
+            let mut response = {
+                let mut #builder_ident = ::tinc::reexports::http::Response::builder();
+                match #response_tokens {
+                    ::core::result::Result::Ok(v) => v,
+                    ::core::result::Result::Err(err) => return ::tinc::__private::handle_response_build_error(err),
+                }
+            };
+
             response.headers_mut().extend(metadata.into_headers());
             *response.extensions_mut() = extensions;
 
@@ -961,6 +396,7 @@ pub(super) fn handle_service(
                 clippy::wildcard_imports,
                 clippy::let_unit_value,
                 unused_parens,
+                irrefutable_let_patterns,
             )]
 
             /// A tinc service struct that exports gRPC routes via an axum router.

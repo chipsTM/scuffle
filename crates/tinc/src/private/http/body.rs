@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
 use axum::response::IntoResponse;
-use bytes::{Buf, Bytes};
+use bytes::Buf;
 use http_body_util::BodyExt;
 
 use crate::__private::{
-    HttpErrorResponse, HttpErrorResponseCode, OptionalTracker, PrimitiveTracker, RepeatedVecTracker, Tracker,
+    BytesLikeTracker, HttpErrorResponse, HttpErrorResponseCode, OptionalTracker, PrimitiveTracker, Tracker,
     TrackerDeserializer, TrackerSharedState, deserialize_tracker_target,
 };
 
@@ -79,26 +79,6 @@ where
     Ok(())
 }
 
-pub trait BytesLikeTracker: Tracker {
-    fn set_target(&mut self, target: &mut Self::Target, buf: impl Buf);
-}
-
-impl BytesLikeTracker for PrimitiveTracker<Bytes> {
-    fn set_target(&mut self, target: &mut Self::Target, mut buf: impl Buf) {
-        *target = buf.copy_to_bytes(buf.remaining());
-    }
-}
-impl BytesLikeTracker for RepeatedVecTracker<PrimitiveTracker<u8>> {
-    fn set_target(&mut self, target: &mut Self::Target, mut buf: impl Buf) {
-        target.clear();
-        target.reserve_exact(buf.remaining());
-        while buf.has_remaining() {
-            let chunk = buf.chunk();
-            target.extend_from_slice(chunk);
-            buf.advance(chunk.len());
-        }
-    }
-}
 impl<T> BytesLikeTracker for OptionalTracker<T>
 where
     T: BytesLikeTracker + Default,

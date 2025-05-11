@@ -3,6 +3,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
 
+use base64::Engine;
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Serialize};
 
@@ -759,6 +760,28 @@ unsafe impl<K, V: WellKnownAlias> WellKnownAlias for BTreeMap<K, V> {
 /// Safety: `V` is a [`SerializeWellKnown`] type, then its safe to cast `HashMap<K, V>` to `HashMap<K, V::Helper>`.
 unsafe impl<K, V: WellKnownAlias, S> WellKnownAlias for HashMap<K, V, S> {
     type Helper = HashMap<K, V::Helper, S>;
+}
+
+#[repr(transparent)]
+pub(crate) struct Bytes<T>(T);
+
+/// Safety: [`Bytes<T>`] is `#[repr(transparent)]` for [`T`]
+unsafe impl WellKnownAlias for Vec<u8> {
+    type Helper = Bytes<Self>;
+}
+
+/// Safety: [`Bytes<T>`] is `#[repr(transparent)]` for [`T`]
+unsafe impl WellKnownAlias for bytes::Bytes {
+    type Helper = Bytes<Self>;
+}
+
+impl<T: AsRef<[u8]>> serde::Serialize for Bytes<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&base64::engine::general_purpose::STANDARD.encode(&self.0))
+    }
 }
 
 #[allow(private_bounds)]

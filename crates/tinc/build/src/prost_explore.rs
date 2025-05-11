@@ -110,7 +110,7 @@ impl ProstExtension for tinc_pb::FieldOptions {
     }
 }
 
-impl ProstExtension for tinc_pb::PredefinedConstraint {
+impl ProstExtension for tinc_pb::PredefinedConstraints {
     type Incoming = prost_reflect::FieldDescriptor;
 
     fn get_options(incoming: &Self::Incoming) -> Option<prost_reflect::DynamicMessage> {
@@ -178,7 +178,7 @@ pub(crate) struct Extensions<'a> {
     ext_message: Extension<tinc_pb::MessageOptions>,
     ext_field: Extension<tinc_pb::FieldOptions>,
     ext_oneof: Extension<tinc_pb::OneofOptions>,
-    ext_predefined: Extension<tinc_pb::PredefinedConstraint>,
+    ext_predefined: Extension<tinc_pb::PredefinedConstraints>,
 
     // Enum extensions.
     ext_enum: Extension<tinc_pb::EnumOptions>,
@@ -303,7 +303,7 @@ impl<'a> FileWalker<'a> {
 
                 endpoints.push(ProtoServiceMethodEndpoint {
                     method,
-                    input: endpoint.input,
+                    request: endpoint.request,
                     response: endpoint.response,
                 });
             }
@@ -374,7 +374,18 @@ impl<'a> FileWalker<'a> {
             comments: self.location(message.path()).map(location_to_comments).unwrap_or_default(),
             package: ProtoPath::new(message.package_name()),
             fields: IndexMap::new(),
-            options: ProtoMessageOptions { cel: opts.cel },
+            options: ProtoMessageOptions {
+                cel: opts
+                    .cel
+                    .into_iter()
+                    .map(|cel| CelExpression {
+                        expression: cel.expression,
+                        jsonschemas: cel.jsonschemas,
+                        message: cel.message,
+                        this: None,
+                    })
+                    .collect(),
+            },
         };
 
         for (field, opts) in fields {
@@ -569,7 +580,7 @@ enum CelInput {
 }
 
 pub(crate) fn gather_cel_expressions(
-    extension: &Extension<tinc_pb::PredefinedConstraint>,
+    extension: &Extension<tinc_pb::PredefinedConstraints>,
     field_options: &prost_reflect::DynamicMessage,
 ) -> anyhow::Result<CelExpressions> {
     let Some(extension) = extension.descriptor() else {
@@ -584,18 +595,18 @@ pub(crate) fn gather_cel_expressions(
         let predef = value
             .as_message()
             .context("expected message")?
-            .transcode_to::<tinc_pb::PredefinedConstraint>()
+            .transcode_to::<tinc_pb::PredefinedConstraints>()
             .context("invalid predefined constraint")?;
         match predef.r#type() {
-            tinc_pb::predefined_constraint::Type::Unspecified => {}
-            tinc_pb::predefined_constraint::Type::CustomExpression => {}
-            tinc_pb::predefined_constraint::Type::WrapperMapKey => {
+            tinc_pb::predefined_constraints::Type::Unspecified => {}
+            tinc_pb::predefined_constraints::Type::CustomExpression => {}
+            tinc_pb::predefined_constraints::Type::WrapperMapKey => {
                 input = CelInput::MapKey;
             }
-            tinc_pb::predefined_constraint::Type::WrapperMapValue => {
+            tinc_pb::predefined_constraints::Type::WrapperMapValue => {
                 input = CelInput::MapValue;
             }
-            tinc_pb::predefined_constraint::Type::WrapperRepeatedItem => {
+            tinc_pb::predefined_constraints::Type::WrapperRepeatedItem => {
                 input = CelInput::RepeatedItem;
             }
         }
@@ -633,11 +644,11 @@ fn explore_fields(
             let predef = message
                 .as_message()
                 .unwrap()
-                .transcode_to::<tinc_pb::PredefinedConstraint>()
+                .transcode_to::<tinc_pb::PredefinedConstraints>()
                 .unwrap();
             match predef.r#type() {
-                tinc_pb::predefined_constraint::Type::Unspecified => {}
-                tinc_pb::predefined_constraint::Type::CustomExpression => {
+                tinc_pb::predefined_constraints::Type::Unspecified => {}
+                tinc_pb::predefined_constraints::Type::CustomExpression => {
                     if let Some(list) = value.as_list() {
                         results.entry(input).or_default().extend(
                             list.iter()
@@ -653,13 +664,13 @@ fn explore_fields(
                     }
                     continue;
                 }
-                tinc_pb::predefined_constraint::Type::WrapperMapKey => {
+                tinc_pb::predefined_constraints::Type::WrapperMapKey => {
                     input = CelInput::MapKey;
                 }
-                tinc_pb::predefined_constraint::Type::WrapperMapValue => {
+                tinc_pb::predefined_constraints::Type::WrapperMapValue => {
                     input = CelInput::MapValue;
                 }
-                tinc_pb::predefined_constraint::Type::WrapperRepeatedItem => {
+                tinc_pb::predefined_constraints::Type::WrapperRepeatedItem => {
                     input = CelInput::RepeatedItem;
                 }
             }

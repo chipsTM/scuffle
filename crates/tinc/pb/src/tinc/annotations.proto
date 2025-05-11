@@ -14,7 +14,7 @@ extend google.protobuf.FieldOptions {
     FieldOptions field = 15502;
     // Predefined is used to construct custom field cel expression templates.
     // For more information refer to the see the `PredefinedConstraint`
-    optional PredefinedConstraint predefined = 15508;
+    optional PredefinedConstraints predefined = 15508;
 }
 
 extend google.protobuf.EnumOptions {
@@ -110,7 +110,7 @@ enum Visibility {
 // Predefined constraints allow us to extend the validation system
 // by defining our own custom message extensions with validation
 // constraints.
-message PredefinedConstraint {
+message PredefinedConstraints {
     // The set of constraints that should be applied.
     repeated CelExpression cel = 1;
 
@@ -177,7 +177,7 @@ message FieldOptions {
     optional FieldConstraints constraint = 101;
 }
 
-message FloatConstraint {
+message FloatConstraints {
     oneof greater {
         // Requires the input value is greater than the value provided.
         float gt = 1 [(predefined).cel = {
@@ -228,7 +228,7 @@ message FloatConstraint {
     }];
 }
 
-message DoubleConstraint {
+message DoubleConstraints {
     oneof greater {
         // Requires the input value is greater than the value provided.
         double gt = 1 [(predefined).cel = {
@@ -687,12 +687,6 @@ message RepeatedConstraints {
     ];
 }
 
-enum Ignore {
-    IGNORE_UNSPECIFIED = 0;
-    ALWAYS = 1;
-    DEFAULT = 2;
-}
-
 message MapConstraints {
     // Requires the length of the map be greater than or equal to the value provided.
     optional uint64 min_len = 1 [(predefined).cel = {
@@ -748,9 +742,9 @@ message MapConstraints {
 message PrimitiveConstraints {
     oneof constraint {
         // for float values
-        FloatConstraint float = 1;
+        FloatConstraints float = 1;
         // for double values
-        DoubleConstraint double = 2;
+        DoubleConstraints double = 2;
         // for int32 values
         Int32Constraints int32 = 3;
         // for int64 values
@@ -776,9 +770,9 @@ message PrimitiveConstraints {
 message FieldConstraints {
     oneof constraint {
         // for float fields.
-        FloatConstraint float = 1;
+        FloatConstraints float = 1;
         // for double fields.
-        DoubleConstraint double = 2;
+        DoubleConstraints double = 2;
         // for int32 fields.
         Int32Constraints int32 = 3;
         // for int64 fields.
@@ -847,39 +841,74 @@ message HttpEndpointOptions {
         string patch = 5;
     }
 
-    message RequestBody {
-        // The field to parse the request body into.
-        // If the field is a `bytes` field then
-        // the request body will not be parsed
-        // but will be read into the field.
-        // By default this is empty which means
-        // it will be parsed into the root message.
-        string field = 1;
-        // If we should store the content type into a field.
-        // By default this is empty which means it will not be stored.
-        string content_type_field = 2;
-    }
-
-    message QueryParams {
-        // The field to parse the query parameters into.
-        // By Default this is empty and therefore its parsed into the root message.
-        string field = 1;
-    }
 
     // The default input for `GET` and `DELETE` methods is `query`
     // Otherwise the default is `body`.
-    oneof input {
-        RequestBody body = 7;
-        QueryParams query = 8;
+    message Request {
+        message JsonBody {
+            optional string field = 1;
+        }
+
+        message TextBody {
+            optional string field = 1;
+        }
+
+        message BinaryBody {
+            optional string field = 1;
+            // Specify the field to take the content-type from.
+            optional string content_type_field = 2;
+            // This field is purely used by the openapi spec to denote the set of valid output formats.
+            optional string content_type_accepts = 3;
+
+        }
+
+        message QueryParams {
+            // The field to parse the query parameters into.
+            // By Default this is empty and therefore its parsed into the root message.
+            optional string field = 1;
+        }
+
+        oneof mode {
+            JsonBody json = 1;
+            TextBody text = 2;
+            BinaryBody binary = 3;
+            QueryParams query = 4;
+        }
     }
 
+    Request request = 8;
+
     message Response {
-        // Specify a sub field to return as the response
-        // If this field is bytes or string it will be returned as is
-        // without decoding.
-        string field = 1;
-        // Specify the field to take the content-type from.
-        string content_type_field = 2;
+        message Json {
+            // Specify a sub field to return as the response
+            // If this field is bytes or string it will be returned as is
+            // without decoding.
+            optional string field = 1;
+        }
+
+        message Text {
+            // Specify a sub field to return as the response
+            // If this field is bytes or string it will be returned as is
+            // without decoding.
+            optional string field = 1;
+        }
+
+        message Binary {
+            // Specify a sub field to return as the response
+            // If this field is bytes or string it will be returned as is
+            // without decoding.
+            optional string field = 1;
+            // Specify the field to take the content-type from.
+            optional string content_type_field = 2;
+            // This field is purely used by the openapi spec to denote the set of valid output formats.
+            optional string content_type_accepts = 3;
+        }
+
+        oneof mode {
+            Json json = 1;
+            Text text = 2;
+            Binary binary = 3;
+        }
     }
 
     // Response options,

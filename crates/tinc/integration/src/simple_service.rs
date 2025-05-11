@@ -77,3 +77,10 @@ async fn test_simple_service_rest_get() {
 
     assert_eq!(response["result"], "http_get - pong");
 }
+
+#[test]
+fn test_simple_service_rest_schema() {
+    let svc = pb::simple_service_tinc::SimpleServiceTinc::new(Svc {});
+
+    insta::assert_json_snapshot!(svc.openapi_schema());
+}

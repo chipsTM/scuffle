@@ -8,13 +8,17 @@ service BytesService {
     rpc Bytes(BytesPayload) returns (BytesPayload) {
         option (tinc.method).endpoint = {
             post: "/upload"
-            body: {
-                field: "data"
-                content_type_field: "mime"
+            request: {
+                binary: {
+                    field: "data"
+                    content_type_field: "mime"
+                }
             }
             response: {
-                field: "data"
-                content_type_field: "mime"
+                binary: {
+                    field: "data"
+                    content_type_field: "mime"
+                }
             }
         };
     }

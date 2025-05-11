@@ -17,13 +17,17 @@ fn handle_oneof(
     field_name: &str,
     oneof: &ProtoOneOfType,
     registry: &ProtoTypeRegistry,
+    visibility: ProtoVisibility,
 ) -> anyhow::Result<()> {
     let message_config = package.message_config(&oneof.message);
     message_config.field_attribute(field_name, parse_quote!(#[tinc(oneof)]));
 
     let oneof_config = message_config.oneof_config(field_name);
 
-    oneof_config.attribute(parse_quote!(#[derive(::tinc::reexports::serde_derive::Serialize)]));
+    if visibility.has_output() {
+        oneof_config.attribute(parse_quote!(#[derive(::tinc::reexports::serde_derive::Serialize)]));
+    }
+
     oneof_config.attribute(parse_quote!(#[derive(::tinc::__private::Tracker)]));
 
     let variant_identifier_ident = quote::format_ident!("___identifier");
@@ -91,15 +95,15 @@ fn handle_oneof(
         quote! {}
     };
 
-    for (name, field) in &oneof.fields {
+    for (field_name, field) in &oneof.fields {
         anyhow::ensure!(!field.options.flatten, "oneof fields cannot be flattened");
 
-        let ident = quote::format_ident!("__field_{name}");
+        let ident = quote::format_ident!("__field_{field_name}");
         let serde_name = &field.options.serde_name;
 
-        oneof_config.field_attribute(name, parse_quote!(#[serde(rename = #serde_name)]));
-        if !field.options.visibility.has_output() {
-            oneof_config.field_attribute(name, parse_quote!(#[serde(skip_serializing)]));
+        oneof_config.field_attribute(field_name, parse_quote!(#[serde(rename = #serde_name)]));
+        if visibility.has_output() && !field.options.visibility.has_output() {
+            oneof_config.field_attribute(field_name, parse_quote!(#[serde(skip_serializing)]));
         }
 
         if field.options.visibility.has_input() {
@@ -185,7 +189,7 @@ fn handle_oneof(
 
             validate_message_impl.push(quote! {
                 (Self::#enum_ident(value)) => {
-                    let _token = ::tinc::__private::ProtoPathToken::push_field(#name);
+                    let _token = ::tinc::__private::ProtoPathToken::push_field(#field_name);
                     let _token = ::tinc::__private::SerdePathToken::push_field(#serde_name);
                     let tracker = match tracker {
                         ::core::option::Option::Some(___Tracker::#enum_ident(tracker)) => ::core::option::Option::Some(tracker),
@@ -203,15 +207,30 @@ fn handle_oneof(
             });
         }
 
-        if let ProtoValueType::Enum(path) = &field.ty {
-            let path_str = registry
-                .resolve_rust_path(&oneof.message, path)
-                .expect("enum not found")
-                .to_token_stream()
-                .to_string();
-            let serialize_with = format!("::tinc::__private::serialize_enum::<{path_str}, _, _>");
-            oneof_config.field_attribute(name, parse_quote!(#[serde(serialize_with = #serialize_with)]));
-            oneof_config.field_attribute(name, parse_quote!(#[tinc(enum = #path_str)]));
+        match &field.ty {
+            ProtoValueType::Enum(path) => {
+                let path_str = registry
+                    .resolve_rust_path(&oneof.message, path)
+                    .expect("enum not found")
+                    .to_token_stream()
+                    .to_string();
+
+                if field.options.visibility.has_output() {
+                    let serialize_with = format!("::tinc::__private::serialize_enum::<{path_str}, _, _>");
+                    oneof_config.field_attribute(field_name, parse_quote!(#[serde(serialize_with = #serialize_with)]));
+                }
+
+                oneof_config.field_attribute(field_name, parse_quote!(#[tinc(enum = #path_str)]));
+            }
+            ProtoValueType::WellKnown(_) | ProtoValueType::Bytes => {
+                if field.options.visibility.has_output() {
+                    oneof_config.field_attribute(
+                        field_name,
+                        parse_quote!(#[serde(serialize_with = "::tinc::__private::serialize_well_known")]),
+                    );
+                }
+            }
+            _ => {}
         }
     }
 
@@ -360,7 +379,9 @@ fn handle_message_field(
             _ => anyhow::bail!("flattened fields must be messages or oneofs"),
         };
 
-        message_config.field_attribute(field_name, parse_quote!(#[serde(flatten)]));
+        if field.options.visibility.has_output() {
+            message_config.field_attribute(field_name, parse_quote!(#[serde(flatten)]));
+        }
 
         if field.options.visibility.has_input() {
             let flattened_identifier = quote! {
@@ -395,53 +416,46 @@ fn handle_message_field(
         });
     }
 
-    if !field.options.visibility.has_output() {
+    if field.options.visibility.has_output() {
+        if matches!(field.options.serde_omittable, ProtoFieldSerdeOmittable::True) {
+            message_config.field_attribute(
+                field_name,
+                parse_quote!(#[serde(skip_serializing_if = "::tinc::__private::serde_ser_skip_default")]),
+            );
+        }
+    } else {
         message_config.field_attribute(field_name, parse_quote!(#[serde(skip_serializing)]));
-    } else if matches!(field.options.serde_omittable, ProtoFieldSerdeOmittable::True) {
-        message_config.field_attribute(
-            field_name,
-            parse_quote!(#[serde(skip_serializing_if = "::tinc::__private::serde_ser_skip_default")]),
-        );
     }
 
-    if !field.options.visibility.has_input() {
-        return Ok(());
-    }
-
-    match &field.ty {
-        ProtoType::Value(ProtoValueType::Enum(path))
-        | ProtoType::Modified(
-            ProtoModifiedValueType::Optional(ProtoValueType::Enum(path))
-            | ProtoModifiedValueType::Map(_, ProtoValueType::Enum(path))
-            | ProtoModifiedValueType::Repeated(ProtoValueType::Enum(path)),
-        ) => {
+    match field.ty.value_type() {
+        Some(ProtoValueType::Enum(path)) => {
             let path_str = registry
                 .resolve_rust_path(message.full_name.trim_last_segment(), path)
                 .expect("enum not found")
                 .to_token_stream()
                 .to_string();
 
-            let serialize_with = format!("::tinc::__private::serialize_enum::<{path_str}, _, _>");
+            if field.options.visibility.has_output() {
+                let serialize_with = format!("::tinc::__private::serialize_enum::<{path_str}, _, _>");
+                message_config.field_attribute(field_name, parse_quote!(#[serde(serialize_with = #serialize_with)]));
+            }
 
-            message_config.field_attribute(field_name, parse_quote!(#[serde(serialize_with = #serialize_with)]));
             message_config.field_attribute(field_name, parse_quote!(#[tinc(enum = #path_str)]));
         }
-        ProtoType::Value(ProtoValueType::WellKnown(_))
-        | ProtoType::Modified(
-            ProtoModifiedValueType::Optional(ProtoValueType::WellKnown(_))
-            | ProtoModifiedValueType::Map(_, ProtoValueType::WellKnown(_))
-            | ProtoModifiedValueType::Repeated(ProtoValueType::WellKnown(_)),
-        ) => {
-            message_config.field_attribute(
-                field_name,
-                parse_quote!(#[serde(serialize_with = "::tinc::__private::serialize_well_known")]),
-            );
-        }
-        ProtoType::Modified(ProtoModifiedValueType::OneOf(oneof)) => {
-            handle_oneof(package, field_name, oneof, registry)?;
+        Some(ProtoValueType::WellKnown(_) | ProtoValueType::Bytes) => {
+            if field.options.visibility.has_output() {
+                message_config.field_attribute(
+                    field_name,
+                    parse_quote!(#[serde(serialize_with = "::tinc::__private::serialize_well_known")]),
+                );
+            }
         }
         _ => {}
-    };
+    }
+
+    if let ProtoType::Modified(ProtoModifiedValueType::OneOf(oneof)) = &field.ty {
+        handle_oneof(package, field_name, oneof, registry, field.options.visibility)?;
+    }
 
     let field_ident = field.rust_ident();
 
@@ -467,39 +481,41 @@ fn handle_message_field(
         };
     }
 
-    if field.options.flatten {
-        field_builder.deserializer_fn.push(quote! {
-            #field_enum_ident::#ident(field) => {
-                if let Err(error) = ::tinc::__private::TrackerDeserializeIdentifier::<'de>::deserialize(
-                    (#tracker).get_or_insert_default(),
-                    #value,
-                    field,
-                    deserializer,
-                ) {
-                    return ::tinc::__private::report_de_error(error);
+    if field.options.visibility.has_input() {
+        if field.options.flatten {
+            field_builder.deserializer_fn.push(quote! {
+                #field_enum_ident::#ident(field) => {
+                    if let Err(error) = ::tinc::__private::TrackerDeserializeIdentifier::<'de>::deserialize(
+                        (#tracker).get_or_insert_default(),
+                        #value,
+                        field,
+                        deserializer,
+                    ) {
+                        return ::tinc::__private::report_de_error(error);
+                    }
                 }
-            }
-        });
-    } else {
-        field_builder.deserializer_fn.push(quote! {
-            #field_enum_ident::#ident => {
-                let tracker = #tracker;
+            });
+        } else {
+            field_builder.deserializer_fn.push(quote! {
+                #field_enum_ident::#ident => {
+                    let tracker = #tracker;
 
-                if !::tinc::__private::tracker_allow_duplicates(tracker.as_ref()) {
-                    return ::tinc::__private::report_tracked_error(
-                        ::tinc::__private::TrackedError::duplicate_field(),
-                    );
-                }
+                    if !::tinc::__private::tracker_allow_duplicates(tracker.as_ref()) {
+                        return ::tinc::__private::report_tracked_error(
+                            ::tinc::__private::TrackedError::duplicate_field(),
+                        );
+                    }
 
-                if let Err(error) = ::tinc::__private::TrackerDeserializer::deserialize(
-                    tracker.get_or_insert_default(),
-                    #value,
-                    deserializer,
-                ) {
-                    return ::tinc::__private::report_de_error(error);
+                    if let Err(error) = ::tinc::__private::TrackerDeserializer::deserialize(
+                        tracker.get_or_insert_default(),
+                        #value,
+                        deserializer,
+                    ) {
+                        return ::tinc::__private::report_de_error(error);
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     let push_field_token = if !field.options.flatten {
@@ -527,26 +543,28 @@ fn handle_message_field(
         tracker_access = quote!(#tracker_access.and_then(|t| t.as_ref()))
     }
 
-    let cel_validation_fn = cel_expressions(
-        registry,
-        &field.ty,
-        &field.full_name,
-        &field.options,
-        quote!(self.#field_ident),
-        tracker_access,
-    )?;
+    if field.options.visibility.has_input() {
+        let cel_validation_fn = cel_expressions(
+            registry,
+            &field.ty,
+            &field.full_name,
+            &field.options,
+            quote!(self.#field_ident),
+            tracker_access,
+        )?;
 
-    field_builder.cel_validation_fn.push(quote!({
-        let _token = ::tinc::__private::ProtoPathToken::push_field(#field_name);
-        #push_field_token
+        field_builder.cel_validation_fn.push(quote!({
+            let _token = ::tinc::__private::ProtoPathToken::push_field(#field_name);
+            #push_field_token
 
-        // TODO: this seems wrong. I feel as if we should validate it even if omittable is true.
-        if tracker.is_none_or(|t| t.#field_ident.is_some()) {
-            #(#cel_validation_fn)*
-        } else {
-            #missing
-        }
-    }));
+            // TODO: this seems wrong. I feel as if we should validate it even if omittable is true.
+            if tracker.is_none_or(|t| t.#field_ident.is_some()) {
+                #(#cel_validation_fn)*
+            } else {
+                #missing
+            }
+        }));
+    }
 
     Ok(())
 }

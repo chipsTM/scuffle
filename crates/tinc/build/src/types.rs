@@ -15,6 +15,22 @@ pub(crate) enum ProtoType {
     Modified(ProtoModifiedValueType),
 }
 
+impl ProtoType {
+    pub(crate) fn value_type(&self) -> Option<&ProtoValueType> {
+        match self {
+            Self::Value(value) => Some(value),
+            Self::Modified(modified) => modified.value_type(),
+        }
+    }
+
+    pub(crate) fn nested(&self) -> bool {
+        matches!(
+            self,
+            Self::Modified(ProtoModifiedValueType::Map(_, _) | ProtoModifiedValueType::Repeated(_))
+        )
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum ProtoValueType {
     String,
@@ -154,6 +170,17 @@ pub(crate) enum ProtoModifiedValueType {
     OneOf(ProtoOneOfType),
 }
 
+impl ProtoModifiedValueType {
+    pub(crate) fn value_type(&self) -> Option<&ProtoValueType> {
+        match self {
+            Self::Repeated(v) => Some(v),
+            Self::Map(_, v) => Some(v),
+            Self::Optional(v) => Some(v),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ProtoMessageType {
     pub package: ProtoPath,
@@ -171,7 +198,7 @@ impl ProtoMessageType {
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub(crate) struct ProtoMessageOptions {
-    pub cel: Vec<tinc_pb::CelExpression>,
+    pub cel: Vec<CelExpression>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -430,7 +457,7 @@ impl std::fmt::Display for Comments {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ProtoServiceMethodEndpoint {
     pub method: http_endpoint_options::Method,
-    pub input: Option<http_endpoint_options::Input>,
+    pub request: Option<http_endpoint_options::Request>,
     pub response: Option<http_endpoint_options::Response>,
 }
 
