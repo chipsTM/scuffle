@@ -27,6 +27,7 @@ impl Function for Bool {
 }
 
 #[cfg(test)]
+#[cfg(feature = "prost")]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use tinc_cel::CelValue;

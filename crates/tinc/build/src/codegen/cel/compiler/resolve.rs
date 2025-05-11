@@ -544,6 +544,7 @@ fn resolve_unary(ctx: &Compiler, op: &cel_parser::UnaryOp, expr: &Expression) ->
 }
 
 #[cfg(test)]
+#[cfg(feature = "prost")]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use cel_parser::parse as parse_cel;

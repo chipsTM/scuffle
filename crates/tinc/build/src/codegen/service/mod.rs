@@ -19,9 +19,6 @@ use crate::types::{
 };
 
 mod openapi;
-mod optimize;
-
-pub(crate) use openapi::SchemaRegistry;
 
 enum BodyMethod {
     Bytes,
@@ -348,8 +345,8 @@ fn parse_route(route: &str) -> Vec<String> {
 pub(crate) struct OpenAPIMethod {
     pub path: String,
     pub http_verb: String,
-    pub input: Option<serde_json::Value>,
-    pub output: Option<serde_json::Value>,
+    pub input: Option<openapiv3_1::Schema>,
+    pub output: Option<openapiv3_1::Schema>,
     pub parameters: Vec<serde_json::Value>,
 }
 
@@ -369,7 +366,7 @@ impl GeneratedMethod {
         method: &ProtoServiceMethod,
         endpoint: &ProtoServiceMethodEndpoint,
         registry: &ProtoTypeRegistry,
-        schema: &mut SchemaRegistry,
+        component_schemas: &mut BTreeMap<String, openapiv3_1::Schema>,
     ) -> anyhow::Result<GeneratedMethod> {
         let (http_method_str, path) = match &endpoint.method {
             tinc_pb::http_endpoint_options::Method::Get(path) => ("get", path),
@@ -409,7 +406,7 @@ impl GeneratedMethod {
 
             openapi
                 .parameters
-                .extend(generate_path_parameter(registry, schema, &param_schemas)?);
+                .extend(generate_path_parameter(registry, component_schemas, &param_schemas)?);
 
             quote!({
                 let mut tracker = &mut tracker;
@@ -447,13 +444,13 @@ impl GeneratedMethod {
                     ProtoServiceMethodIo::Single(ProtoValueType::Message(path)) if field.is_empty() => {
                         openapi.parameters.extend(generate_query_parameter(
                             registry,
-                            schema,
+                            component_schemas,
                             registry
                                 .get_message(path)
                                 .with_context(|| format!("missing message: {path}"))?,
                             &used_paths,
                         )?);
-                        quote! {}
+                        quote!((tracker, target))
                     }
                     ProtoServiceMethodIo::Single(ProtoValueType::Message(message)) => {
                         exclude_path(&mut used_paths, &field).context("query field")?;
@@ -464,7 +461,7 @@ impl GeneratedMethod {
                             | ProtoType::Modified(ProtoModifiedValueType::Optional(ProtoValueType::Message(path))) => {
                                 openapi.parameters.extend(generate_query_parameter(
                                     registry,
-                                    schema,
+                                    component_schemas,
                                     registry
                                         .get_message(&path)
                                         .with_context(|| format!("missing message: {path}"))?,
@@ -494,8 +491,8 @@ impl GeneratedMethod {
                 quote!({
                     let mut tracker = &mut tracker;
                     let mut target = &mut target;
+                    let (tracker, target) = #extract;
 
-                    #extract
                     if let Err(err) = ::tinc::__private::deserialize_query_string(
                         &parts,
                         tracker,
@@ -520,7 +517,7 @@ impl GeneratedMethod {
                     let FieldExtract { tokens, ty, .. } = match &method.input {
                         ProtoServiceMethodIo::Single(ProtoValueType::Message(message)) => {
                             let message = registry.get_message(message).expect("message not found");
-                            tracker_field_extractor_generator(&field, registry, message)?
+                            tracker_field_extractor_generator(&content_type_field, registry, message)?
                         }
                         _ => anyhow::bail!("content_type_field is only supported on methods who have a message input."),
                     };
@@ -551,7 +548,7 @@ impl GeneratedMethod {
                     let body_method = BodyMethod::from_io(&method.input)?;
                     openapi.input = Some(generate_optimized(
                         registry,
-                        schema,
+                        component_schemas,
                         ProtoType::Value(method.input.value_type().clone()),
                         &CelExpressions {
                             field: method.cel.clone(),
@@ -564,7 +561,7 @@ impl GeneratedMethod {
                             BodyMethod::Json | BodyMethod::Text => BytesEncoding::Base64,
                         },
                     )?);
-                    (quote! {}, body_method)
+                    (quote!((tracker, target)), body_method)
                 } else if let ProtoServiceMethodIo::Single(ProtoValueType::Message(message)) = &method.input {
                     exclude_path(&mut used_paths, &field).context("body field")?;
                     let message = registry.get_message(message).expect("message not found");
@@ -572,7 +569,7 @@ impl GeneratedMethod {
                     let body_method = BodyMethod::from_ty(&ty);
                     openapi.input = Some(generate_optimized(
                         registry,
-                        schema,
+                        component_schemas,
                         ty,
                         &cel,
                         &BTreeMap::new(),
@@ -590,7 +587,7 @@ impl GeneratedMethod {
                 let de_func = method.deserialize_func();
 
                 let body = quote!({
-                    #tokens
+                    let (tracker, target) = #tokens;
                     if let Err(err) = ::tinc::__private::#de_func(&parts, body, tracker, target, &mut state).await {
                         return err;
                     }
@@ -619,7 +616,7 @@ impl GeneratedMethod {
             let body_method = BodyMethod::from_io(&method.output)?;
             openapi.output = Some(generate_optimized(
                 registry,
-                schema,
+                component_schemas,
                 ProtoType::Value(method.output.value_type().clone()),
                 &CelExpressions::default(),
                 &BTreeMap::default(),
@@ -638,7 +635,7 @@ impl GeneratedMethod {
             let body_method = BodyMethod::from_ty(&ty);
             openapi.output = Some(generate_optimized(
                 registry,
-                schema,
+                component_schemas,
                 ProtoType::Value(method.output.value_type().clone()),
                 &CelExpressions::default(),
                 &BTreeMap::default(),
@@ -664,7 +661,8 @@ impl GeneratedMethod {
             };
 
             let message = registry.get_message(message).expect("message not found");
-            let FieldExtract { tokens, ty, .. } = field_extractor_generator(&response.field, registry, message)?;
+            let FieldExtract { tokens, ty, .. } =
+                field_extractor_generator(&response.content_type_field, registry, message)?;
             let matcher = if optional { quote!(Some(ct)) } else { quote!(ct) };
             if !matches!(
                 ty,
@@ -675,6 +673,7 @@ impl GeneratedMethod {
             }
 
             quote!({
+                #[allow(irrefutable_let_patterns)]
                 if let #matcher = #tokens {
                     response_builder = response_builder.header(::tinc::reexports::http::header::CONTENT_TYPE, ct);
                 } else #ct
@@ -687,6 +686,7 @@ impl GeneratedMethod {
             let matcher = if optional { quote!(Some(body)) } else { quote!(body) };
             let body = match output_body_method {
                 BodyMethod::Text | BodyMethod::Bytes => quote!({
+                    #[allow(irrefutable_let_patterns)]
                     if let #matcher = #tokens {
                         ::tinc::reexports::axum::body::Body::from(body.clone())
                     } else {
@@ -794,6 +794,7 @@ pub(crate) struct ProcessedService {
     pub full_name: ProtoPath,
     pub package: ProtoPath,
     pub comments: Comments,
+    pub component_schemas: BTreeMap<String, openapiv3_1::Schema>,
     pub methods: IndexMap<String, ProcessedServiceMethod>,
 }
 
@@ -819,13 +820,14 @@ pub(super) fn handle_service(
     service: &ProtoService,
     package: &mut Package,
     registry: &ProtoTypeRegistry,
-    schema: &mut SchemaRegistry,
 ) -> anyhow::Result<()> {
     let name = service
         .full_name
         .strip_prefix(&*service.package)
         .and_then(|s| s.strip_prefix('.'))
         .unwrap_or(&*service.full_name);
+
+    let mut component_schemas = BTreeMap::new();
 
     let snake_name = field_ident_from_str(name);
     let pascal_name = type_ident_from_str(name);
@@ -844,7 +846,15 @@ pub(super) fn handle_service(
     for (name, method) in service.methods.iter() {
         let mut openapi = Vec::new();
         for (idx, endpoint) in method.endpoints.iter().enumerate() {
-            let gen_method = GeneratedMethod::new(name, &package_name, service, method, endpoint, registry, schema)?;
+            let gen_method = GeneratedMethod::new(
+                name,
+                &package_name,
+                service,
+                method,
+                endpoint,
+                registry,
+                &mut component_schemas,
+            )?;
             let function_name = quote::format_ident!("{name}_{idx}");
 
             method_tokens.push(gen_method.method_handler(
@@ -993,6 +1003,7 @@ pub(super) fn handle_service(
         full_name: service.full_name.clone(),
         package: service.package.clone(),
         comments: service.comments.clone(),
+        component_schemas,
         methods,
     });
 

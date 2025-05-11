@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use quote::{ToTokens, quote};
+use quote::ToTokens;
 use syn::parse_quote;
 
 use crate::Mode;
@@ -29,10 +29,6 @@ impl std::fmt::Debug for ExternPaths {
 impl ExternPaths {
     pub(crate) fn new(mode: Mode) -> Self {
         let mut paths = BTreeMap::new();
-
-        let mode = match mode {
-            Mode::Prost => quote!(prost),
-        };
 
         paths.insert(ProtoPath::new("google.protobuf"), parse_quote!(::tinc::well_known::#mode));
         paths.insert(ProtoPath::new("tinc"), parse_quote!(::tinc::well_known::#mode::tinc));

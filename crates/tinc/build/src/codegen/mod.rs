@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 
 pub(crate) use config::AttributeConfig;
-pub(crate) use service::SchemaRegistry;
 use service::{ProcessedService, handle_service};
 
 use self::serde::{handle_enum, handle_message};
@@ -41,10 +40,7 @@ impl std::ops::DerefMut for Package {
     }
 }
 
-pub(crate) fn generate_modules(
-    registry: &ProtoTypeRegistry,
-    schema: &mut SchemaRegistry,
-) -> anyhow::Result<BTreeMap<ProtoPath, Package>> {
+pub(crate) fn generate_modules(registry: &ProtoTypeRegistry) -> anyhow::Result<BTreeMap<ProtoPath, Package>> {
     let mut modules = BTreeMap::new();
 
     registry
@@ -57,9 +53,9 @@ pub(crate) fn generate_modules(
         .filter(|enum_| !registry.has_extern(&enum_.full_name))
         .try_for_each(|enum_| handle_enum(enum_, modules.entry(enum_.package.clone()).or_default(), registry))?;
 
-    registry.services().try_for_each(|service| {
-        handle_service(service, modules.entry(service.package.clone()).or_default(), registry, schema)
-    })?;
+    registry
+        .services()
+        .try_for_each(|service| handle_service(service, modules.entry(service.package.clone()).or_default(), registry))?;
 
     Ok(modules)
 }

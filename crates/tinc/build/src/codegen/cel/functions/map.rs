@@ -138,6 +138,7 @@ impl Function for Map {
 }
 
 #[cfg(test)]
+#[cfg(feature = "prost")]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use quote::quote;

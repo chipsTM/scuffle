@@ -39,7 +39,8 @@ futures-util = { version = "0.3", default-features = false, features = ["async-a
 hashbrown = { version = "0.15", default-features = false, features = ["default-hasher", "inline-more"] }
 hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "service"] }
-insta = { version = "1", features = ["filters", "json"] }
+indexmap = { version = "2", features = ["serde"] }
+insta = { version = "1", features = ["filters", "json", "redactions"] }
 itertools = { version = "0.14" }
 lalrpop-util = { version = "0.22", features = ["lexer"] }
 libc = { version = "0.2" }
@@ -103,7 +104,8 @@ futures-util = { version = "0.3", default-features = false, features = ["async-a
 hashbrown = { version = "0.15", default-features = false, features = ["default-hasher", "inline-more"] }
 hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "service"] }
-insta = { version = "1", features = ["filters", "json"] }
+indexmap = { version = "2", features = ["serde"] }
+insta = { version = "1", features = ["filters", "json", "redactions"] }
 itertools = { version = "0.14" }
 lalrpop-util = { version = "0.22", features = ["lexer"] }
 libc = { version = "0.2" }

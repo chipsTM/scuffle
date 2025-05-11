@@ -1674,6 +1674,7 @@ checksum = "cea70ddb795996207ad57735b50c5982d8844f38ba9ee5f1aedcfb708a2aa11e"
 dependencies = [
  "equivalent",
  "hashbrown 0.15.3",
+ "serde",
 ]
 
 [[package]]
@@ -1684,6 +1685,8 @@ checksum = "154934ea70c58054b556dd430b99a98c2a7ff5309ac9891597e339b5c28f4371"
 dependencies = [
  "console",
  "once_cell",
+ "pest",
+ "pest_derive",
  "regex",
  "serde",
  "similar",
@@ -2125,6 +2128,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6790f58c7ff633d8771f42965289203411a5e5c68388703c06e14f24770b41e"
 
 [[package]]
+name = "openapiv3_1"
+version = "0.1.0"
+dependencies = [
+ "bon",
+ "indexmap",
+ "insta",
+ "ordered-float",
+ "scuffle-workspace-hack",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "serde_norway",
+]
+
+[[package]]
 name = "openssl-probe"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2180,10 +2198,21 @@ dependencies = [
  "glob",
  "opentelemetry",
  "percent-encoding",
- "rand",
+ "rand 0.9.1",
  "serde_json",
  "thiserror 2.0.12",
  "tracing",
+]
+
+[[package]]
+name = "ordered-float"
+version = "5.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2c1f9f56e534ac6a9b8a4600bdf0f530fb393b5f393e7b4d03489c3cf0c3f01"
+dependencies = [
+ "num-traits",
+ "rand 0.8.5",
+ "serde",
 ]
 
 [[package]]
@@ -2663,7 +2692,7 @@ dependencies = [
  "bytes",
  "getrandom 0.3.3",
  "lru-slab",
- "rand",
+ "rand 0.9.1",
  "ring",
  "rustc-hash 2.1.1",
  "rustls",
@@ -2707,12 +2736,22 @@ checksum = "74765f6d916ee2faa39bc8e68e4f3ed8949b48cccdac59983d287a7cb71ce9c5"
 
 [[package]]
 name = "rand"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
+dependencies = [
+ "rand_core 0.6.4",
+ "serde",
+]
+
+[[package]]
+name = "rand"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9fbfd9d094a40bf3ae768db9361049ace4c0e04a4fd6b359518bd7b73a73dd97"
 dependencies = [
  "rand_chacha",
- "rand_core",
+ "rand_core 0.9.3",
 ]
 
 [[package]]
@@ -2722,7 +2761,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3022b5f1df60f26e1ffddd6c66e8aa15de382ae63b3a0c1bfc0e4d3e3f325cb"
 dependencies = [
  "ppv-lite86",
- "rand_core",
+ "rand_core 0.9.3",
+]
+
+[[package]]
+name = "rand_core"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -3239,7 +3287,7 @@ dependencies = [
  "insta",
  "libc",
  "nutype-enum",
- "rand",
+ "rand 0.9.1",
  "rusty_ffmpeg",
  "scuffle-mp4",
  "scuffle-workspace-hack",
@@ -3396,7 +3444,7 @@ version = "0.1.2"
 dependencies = [
  "flate2",
  "pprof",
- "rand",
+ "rand 0.9.1",
  "scuffle-workspace-hack",
  "thiserror 2.0.12",
 ]
@@ -3412,7 +3460,7 @@ dependencies = [
  "num-derive",
  "num-traits",
  "nutype-enum",
- "rand",
+ "rand 0.9.1",
  "scuffle-amf0",
  "scuffle-bytes-util",
  "scuffle-context",
@@ -3511,6 +3559,7 @@ dependencies = [
  "hashbrown 0.15.3",
  "hyper",
  "hyper-util",
+ "indexmap",
  "insta",
  "itertools 0.14.0",
  "lalrpop-util",
@@ -3529,7 +3578,7 @@ dependencies = [
  "quinn-proto",
  "quinn-udp",
  "quote",
- "rand",
+ "rand 0.9.1",
  "regex",
  "regex-automata 0.4.9",
  "regex-syntax 0.8.5",
@@ -3621,6 +3670,19 @@ dependencies = [
  "memchr",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "serde_norway"
+version = "0.9.42"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e408f29489b5fd500fab51ff1484fc859bb655f32c671f307dcd733b72e8168c"
+dependencies = [
+ "indexmap",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml-norway",
 ]
 
 [[package]]
@@ -3986,6 +4048,7 @@ dependencies = [
  "indexmap",
  "insta",
  "num-traits",
+ "openapiv3_1",
  "postcompile",
  "prettyplease",
  "proc-macro2",
@@ -4046,6 +4109,7 @@ dependencies = [
  "prost 0.13.5",
  "prost-build 0.13.5",
  "prost-types 0.13.5",
+ "rand 0.9.1",
  "scuffle-workspace-hack",
  "serde",
  "serde_json",
@@ -4448,7 +4512,7 @@ dependencies = [
  "http",
  "httparse",
  "log",
- "rand",
+ "rand 0.9.1",
  "sha1",
  "thiserror 2.0.12",
  "utf-8",
@@ -4489,6 +4553,12 @@ name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
+
+[[package]]
+name = "unsafe-libyaml-norway"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b39abd59bf32521c7f2301b52d05a6a2c975b6003521cbd0c6dc1582f0a22104"
 
 [[package]]
 name = "untrusted"

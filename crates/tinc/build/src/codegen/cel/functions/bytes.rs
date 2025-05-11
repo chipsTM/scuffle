@@ -39,6 +39,7 @@ impl Function for Bytes {
 }
 
 #[cfg(test)]
+#[cfg(feature = "prost")]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use quote::quote;

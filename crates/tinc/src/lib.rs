@@ -28,6 +28,9 @@ pub mod well_known;
 pub trait TincService {
     /// Convert the service into an axum router.
     fn into_router(self) -> axum::Router;
+
+    // /// Get the openapi spec for the tinc service
+    // fn openapi_spec_str(&self) -> &'static str;
 }
 
 /// Include the proto by specifying the package.

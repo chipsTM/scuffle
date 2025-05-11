@@ -17,6 +17,7 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)', 'cfg(v
 scuffle-workspace-hack.workspace = true
 tinc-pb.workspace = true
 tinc-cel.workspace = true
+openapiv3_1.workspace = true
 tonic-build = { version = "0.13.0", default-features = false }
 prost = { version = "0.13.5", optional = true }
 prost-build = { version = "0.13.5", optional = true }

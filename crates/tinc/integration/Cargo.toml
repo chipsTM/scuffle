@@ -21,6 +21,7 @@ http-body-util = "0.1"
 bytes = "1"
 tower = "0.5"
 tonic = "0.13"
+rand = "0.9"
 
 [build-dependencies]
 tinc-build.workspace = true

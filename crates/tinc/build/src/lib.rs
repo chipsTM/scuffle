@@ -25,6 +25,17 @@ pub enum Mode {
     Prost,
 }
 
+impl quote::ToTokens for Mode {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self {
+            #[cfg(feature = "prost")]
+            Mode::Prost => quote::quote!(prost).to_tokens(tokens),
+            #[cfg(not(feature = "prost"))]
+            _ => unreachable!(),
+        }
+    }
+}
+
 #[derive(Default, Debug)]
 struct PathConfigs {
     btree_maps: Vec<String>,
@@ -93,7 +104,6 @@ impl Config {
 
     #[cfg(feature = "prost")]
     fn compile_protos_prost(&mut self, protos: &[&str], includes: &[&str]) -> anyhow::Result<()> {
-        use codegen::SchemaRegistry;
         use codegen::prost_sanatize::to_snake;
         use codegen::utils::get_common_import_path;
         use prost_reflect::DescriptorPool;
@@ -147,9 +157,7 @@ impl Config {
             .process(&mut registry)
             .context("failed to process extensions")?;
 
-        let mut schema = SchemaRegistry::default();
-
-        let mut packages = codegen::generate_modules(&registry, &mut schema)?;
+        let mut packages = codegen::generate_modules(&registry)?;
 
         packages.iter_mut().for_each(|(path, package)| {
             if self.extern_paths.contains(path) {
@@ -202,6 +210,7 @@ impl Config {
             });
 
             package.extra_items.extend(package.services.iter().flat_map(|service| {
+                dbg!(&service);
                 let mut builder = tonic_build::CodeGenBuilder::new();
 
                 builder.emit_package(true).build_transport(true);

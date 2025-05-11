@@ -2,9 +2,10 @@ use std::collections::BTreeMap;
 
 use anyhow::Context;
 use base64::Engine;
+use indexmap::IndexMap;
+use openapiv3_1::{Object, Ref, Schema, Type};
 use tinc_cel::{CelValue, NumberTy};
 
-use super::optimize::optimize_json_schema;
 use crate::codegen::cel::compiler::{CompiledExpr, Compiler, CompilerTarget, ConstantCompiledExpr};
 use crate::codegen::cel::{CelExpression, CelExpressions, functions};
 use crate::types::{
@@ -63,26 +64,6 @@ fn cel_to_json(cel: &CelValue<'static>, type_registry: &ProtoTypeRegistry) -> an
         }
     }
 }
-
-#[derive(Default, Debug, serde_derive::Serialize)]
-pub(crate) struct SchemaRegistry {
-    items: BTreeMap<String, serde_json::Value>,
-}
-
-impl std::ops::Deref for SchemaRegistry {
-    type Target = BTreeMap<String, serde_json::Value>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.items
-    }
-}
-
-impl std::ops::DerefMut for SchemaRegistry {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.items
-    }
-}
-
 fn parse_resolve(compiler: &Compiler, expr: &str) -> anyhow::Result<CelValue<'static>> {
     let expr = cel_parser::parse(expr).context("parse")?;
     let resolved = compiler.resolve(&expr).context("resolve")?;
@@ -92,7 +73,7 @@ fn parse_resolve(compiler: &Compiler, expr: &str) -> anyhow::Result<CelValue<'st
     }
 }
 
-fn handle_expr(mut ctx: Compiler, ty: &ProtoType, expr: &CelExpression) -> anyhow::Result<Vec<serde_json::Value>> {
+fn handle_expr(mut ctx: Compiler, ty: &ProtoType, expr: &CelExpression) -> anyhow::Result<Vec<Schema>> {
     ctx.set_target(CompilerTarget::Serde);
 
     if let Some(this) = expr.this.clone() {
@@ -112,7 +93,7 @@ fn handle_expr(mut ctx: Compiler, ty: &ProtoType, expr: &CelExpression) -> anyho
         let value = parse_resolve(&ctx, schema)?;
         let value = cel_to_json(&value, ctx.registry())?;
         if !value.is_null() {
-            schemas.push(value);
+            schemas.push(serde_json::from_value(value).context("bad openapi schema")?);
         }
     }
 
@@ -157,7 +138,7 @@ pub(super) fn exclude_path(paths: &mut BTreeMap<String, ExcludePaths>, path: &st
 
 pub(super) fn generate_query_parameter(
     type_registry: &ProtoTypeRegistry,
-    schema_registry: &mut SchemaRegistry,
+    component_schemas: &mut BTreeMap<String, Schema>,
     ty: &ProtoMessageType,
     exclude_paths: &BTreeMap<String, ExcludePaths>,
 ) -> anyhow::Result<Vec<serde_json::Value>> {
@@ -174,7 +155,7 @@ pub(super) fn generate_query_parameter(
             "required": !field.options.serde_omittable.is_true(),
             "explode": true,
             "style": "deepObject",
-            "schema": generate_optimized(type_registry, schema_registry, field.ty.clone(), &field.options.cel_exprs, exclude_paths.unwrap_or(&BTreeMap::new()), GenerateDirection::Input, BytesEncoding::Base64)?,
+            "schema": generate_optimized(type_registry, component_schemas, field.ty.clone(), &field.options.cel_exprs, exclude_paths.unwrap_or(&BTreeMap::new()), GenerateDirection::Input, BytesEncoding::Base64)?,
         }))
     }
 
@@ -183,7 +164,7 @@ pub(super) fn generate_query_parameter(
 
 pub(super) fn generate_path_parameter(
     type_registry: &ProtoTypeRegistry,
-    schema_registry: &mut SchemaRegistry,
+    component_schemas: &mut BTreeMap<String, Schema>,
     paths: &BTreeMap<String, (ProtoValueType, CelExpressions)>,
 ) -> anyhow::Result<Vec<serde_json::Value>> {
     let mut params = Vec::new();
@@ -192,7 +173,7 @@ pub(super) fn generate_path_parameter(
         params.push(serde_json::json!({
             "name": path,
             "required": true,
-            "schema": generate_optimized(type_registry, schema_registry, ProtoType::Value(ty.clone()), cel, &BTreeMap::new(), GenerateDirection::Input, BytesEncoding::Base64)?,
+            "schema": generate_optimized(type_registry, component_schemas, ProtoType::Value(ty.clone()), cel, &BTreeMap::new(), GenerateDirection::Input, BytesEncoding::Base64)?,
         }))
     }
 
@@ -211,32 +192,29 @@ pub(super) enum GenerateDirection {
     Output,
 }
 
-#[inline(always)]
-const fn noop<T>(t: T) -> T {
-    t
-}
-
 pub(super) fn generate_optimized(
     type_registry: &ProtoTypeRegistry,
-    schema_registry: &mut SchemaRegistry,
+    component_schemas: &mut BTreeMap<String, Schema>,
     ty: ProtoType,
     cel: &CelExpressions,
     exclude_paths: &BTreeMap<String, ExcludePaths>,
     direction: GenerateDirection,
     bytes: BytesEncoding,
-) -> anyhow::Result<serde_json::Value> {
-    generate(type_registry, schema_registry, ty, cel, exclude_paths, direction, bytes).map(|v| optimize_json_schema([v]))
+) -> anyhow::Result<Schema> {
+    let mut schema = generate(type_registry, component_schemas, ty, cel, exclude_paths, direction, bytes)?;
+    schema.optimize();
+    Ok(schema)
 }
 
 fn generate(
     type_registry: &ProtoTypeRegistry,
-    schema_registry: &mut SchemaRegistry,
+    component_schemas: &mut BTreeMap<String, Schema>,
     ty: ProtoType,
     cel: &CelExpressions,
     exclude_paths: &BTreeMap<String, ExcludePaths>,
     direction: GenerateDirection,
     bytes: BytesEncoding,
-) -> anyhow::Result<serde_json::Value> {
+) -> anyhow::Result<Schema> {
     let mut schemas = Vec::new();
 
     let compiler = Compiler::new(type_registry);
@@ -250,83 +228,73 @@ fn generate(
     }
 
     schemas.push(match ty {
-        ProtoType::Modified(ProtoModifiedValueType::Map(key, value)) => serde_json::json!({
-            "type": "object",
-            "additionalProperties": true,
-            "propertyNames": match key {
-                ProtoValueType::String => {
-                    let mut schemas = Vec::with_capacity(1 + cel.map_key.len());
+        ProtoType::Modified(ProtoModifiedValueType::Map(key, value)) => Schema::object(
+            Object::builder()
+                .schema_type(Type::Object)
+                .additional_properties(true)
+                .property_names(match key {
+                    ProtoValueType::String => {
+                        let mut schemas = Vec::with_capacity(1 + cel.map_key.len());
 
-                    for expr in &cel.map_key {
-                        schemas.extend(handle_expr(compiler.child(), &ProtoType::Value(key.clone()), expr)?);
+                        for expr in &cel.map_key {
+                            schemas.extend(handle_expr(compiler.child(), &ProtoType::Value(key.clone()), expr)?);
+                        }
+
+                        schemas.push(Schema::object(Object::builder().schema_type(Type::String)));
+
+                        Object::all_ofs(schemas)
+                    }
+                    ProtoValueType::Int32 | ProtoValueType::Int64 => {
+                        Object::builder().schema_type(Type::String).pattern("^-?[0-9]+$").build()
+                    }
+                    ProtoValueType::UInt32 | ProtoValueType::UInt64 => {
+                        Object::builder().schema_type(Type::String).pattern("^[0-9]+$").build()
+                    }
+                    ProtoValueType::Bool => Object::builder()
+                        .schema_type(Type::String)
+                        .enum_values(["true", "false"])
+                        .build(),
+                    _ => Object::builder().schema_type(Type::String).build(),
+                })
+                .additional_items({
+                    let mut schemas = Vec::with_capacity(1 + cel.map_value.len());
+                    for expr in &cel.map_value {
+                        schemas.extend(handle_expr(compiler.child(), &ProtoType::Value(value.clone()), expr)?);
                     }
 
-                    schemas.push(serde_json::json!({
-                        "type": "string",
-                    }));
+                    schemas.push(generate(
+                        type_registry,
+                        component_schemas,
+                        ProtoType::Value(value),
+                        &CelExpressions::default(),
+                        &BTreeMap::new(),
+                        direction,
+                        bytes,
+                    )?);
 
-
-                    serde_json::json!({
-                        "allOf": schemas,
-                    })
-                }
-                ty @ (ProtoValueType::Int32 | ProtoValueType::Int64) => serde_json::json!({
-                    "type": "string",
-                    "title": if matches!(ty, ProtoValueType::Int32) {
-                        "int32"
-                    } else {
-                        "int64"
-                    },
-                    "pattern": "^-?[0-9]+$",
-                }),
-                ty @ (ProtoValueType::UInt32 | ProtoValueType::UInt64) => serde_json::json!({
-                    "type": "string",
-                    "title": if matches!(ty, ProtoValueType::UInt32) {
-                        "uint32"
-                    } else {
-                        "uint64"
-                    },
-                    "pattern": "^[0-9]+$",
-                }),
-                ProtoValueType::Bool => serde_json::json!({
-                    "type": "string",
-                    "title": "bool",
-                    "enum": ["true", "false"],
-                }),
-                _ => serde_json::json!({
-                    "type": "string",
-                }),
-            },
-            "additionalProperties": noop({
-                let mut schemas = Vec::with_capacity(1 + cel.map_value.len());
-                for expr in &cel.map_value {
-                    schemas.extend(handle_expr(compiler.child(), &ProtoType::Value(value.clone()), expr)?);
-                }
-
-                schemas.push(generate(
+                    Object::all_ofs(schemas)
+                })
+                .build(),
+        ),
+        ProtoType::Modified(ProtoModifiedValueType::Repeated(item)) => Schema::object(
+            Object::builder()
+                .schema_type(Type::Array)
+                .items(generate(
                     type_registry,
-                    schema_registry,
-                    ProtoType::Value(value),
-                    &CelExpressions::default(),
-                    &BTreeMap::new(),
+                    component_schemas,
+                    ProtoType::Value(item),
+                    cel,
+                    exclude_paths,
                     direction,
                     bytes,
-                )?);
-
-                serde_json::json!({
-                    "allOf": schemas,
-                })
-            }),
-        }),
-        ProtoType::Modified(ProtoModifiedValueType::Repeated(item)) => serde_json::json!({
-            "type": "array",
-            "items": generate(type_registry, schema_registry, ProtoType::Value(item), cel, exclude_paths, direction, bytes)?,
-        }),
-        ProtoType::Modified(ProtoModifiedValueType::OneOf(oneof)) => {
-            serde_json::json!({
-                "type": "object",
-                "title": oneof.full_name.as_ref(),
-                "oneOf": if let Some(tagged) = oneof.options.tagged {
+                )?)
+                .build(),
+        ),
+        ProtoType::Modified(ProtoModifiedValueType::OneOf(oneof)) => Schema::object(
+            Object::builder()
+                .schema_type(Type::Object)
+                .title(oneof.full_name.to_string())
+                .one_ofs(if let Some(tagged) = oneof.options.tagged {
                     oneof
                         .fields
                         .into_iter()
@@ -337,7 +305,7 @@ fn generate(
                         .map(|(name, field)| {
                             let ty = generate(
                                 type_registry,
-                                schema_registry,
+                                component_schemas,
                                 ProtoType::Value(field.ty),
                                 &field.options.cel_exprs,
                                 &BTreeMap::new(),
@@ -345,19 +313,28 @@ fn generate(
                                 bytes,
                             )?;
 
-                            anyhow::Ok(serde_json::json!({
-                                "type": "object",
-                                "title": name,
-                                "description": field.comments.to_string(),
-                                "properties": {
-                                    tagged.tag.as_str(): {
-                                        "type": "string",
-                                        "const": field.options.serde_name,
-                                    },
-                                    tagged.content.as_str(): ty,
-                                },
-                                "unevaluatedProperties": false,
-                            }))
+                            anyhow::Ok(Schema::object(
+                                Object::builder()
+                                    .schema_type(Type::Object)
+                                    .title(name)
+                                    .description(field.comments.to_string())
+                                    .properties({
+                                        let mut properties = IndexMap::new();
+                                        properties.insert(
+                                            tagged.tag.clone(),
+                                            Schema::object(
+                                                Object::builder()
+                                                    .schema_type(Type::String)
+                                                    .const_value(field.options.serde_name)
+                                                    .build(),
+                                            ),
+                                        );
+                                        properties.insert(tagged.content.clone(), ty);
+                                        properties
+                                    })
+                                    .unevaluated_properties(false)
+                                    .build(),
+                            ))
                         })
                         .collect::<anyhow::Result<Vec<_>>>()?
                 } else {
@@ -371,7 +348,7 @@ fn generate(
                         .map(|(name, field)| {
                             let ty = generate(
                                 type_registry,
-                                schema_registry,
+                                component_schemas,
                                 ProtoType::Value(field.ty),
                                 &field.options.cel_exprs,
                                 &BTreeMap::new(),
@@ -379,115 +356,104 @@ fn generate(
                                 bytes,
                             )?;
 
-                            anyhow::Ok(serde_json::json!({
-                                "type": "object",
-                                "title": name,
-                                "description": field.comments.to_string(),
-                                "properties": {
-                                    field.options.serde_name: ty,
-                                },
-                                "unevaluatedProperties": false,
-                            }))
+                            anyhow::Ok(Schema::object(
+                                Object::builder()
+                                    .schema_type(Type::Object)
+                                    .title(name)
+                                    .description(field.comments.to_string())
+                                    .properties({
+                                        let mut properties = IndexMap::new();
+                                        properties.insert(field.options.serde_name, ty);
+                                        properties
+                                    })
+                                    .unevaluated_properties(false)
+                                    .build(),
+                            ))
                         })
                         .collect::<anyhow::Result<Vec<_>>>()?
-                },
-                "unevaluatedProperties": false,
-            })
+                })
+                .unevaluated_properties(false)
+                .build(),
+        ),
+        ProtoType::Modified(ProtoModifiedValueType::Optional(value)) => Schema::object(
+            Object::builder()
+                .one_ofs([
+                    Schema::object(Object::builder().schema_type(Type::Null).build()),
+                    generate(
+                        type_registry,
+                        component_schemas,
+                        ProtoType::Value(value),
+                        cel,
+                        exclude_paths,
+                        direction,
+                        bytes,
+                    )?,
+                ])
+                .build(),
+        ),
+        ProtoType::Value(ProtoValueType::Bool) => Schema::object(Object::builder().schema_type(Type::Boolean).build()),
+        ProtoType::Value(ProtoValueType::Bytes) => Schema::object(
+            Object::builder()
+                .schema_type(Type::String)
+                .content_encoding(match bytes {
+                    BytesEncoding::Base64 => "base64",
+                    BytesEncoding::Binary => "binary",
+                })
+                .build(),
+        ),
+        ProtoType::Value(ProtoValueType::Double | ProtoValueType::Float) => {
+            Schema::object(Object::builder().schema_type(Type::Number).build())
         }
-        ProtoType::Modified(ProtoModifiedValueType::Optional(value)) => serde_json::json!({
-            "oneOf": [
-                { "type": null },
-                generate(type_registry, schema_registry, ProtoType::Value(value), cel, exclude_paths, direction, bytes)?,
-            ],
-        }),
-        ProtoType::Value(ProtoValueType::Bool) => serde_json::json!({
-            "type": "boolean",
-        }),
-        ProtoType::Value(ProtoValueType::Bytes) => serde_json::json!({
-            "type": "string",
-            "title": "bytes",
-            "contentEncoding": match bytes {
-                BytesEncoding::Base64 => "base64",
-                BytesEncoding::Binary => "binary",
-            },
-        }),
-        ProtoType::Value(ProtoValueType::Double | ProtoValueType::Float) => serde_json::json!({
-            "type": "number",
-        }),
-        ProtoType::Value(ProtoValueType::Int32) => serde_json::json!({
-            "type": "integer",
-            "title": "int32",
-            "minimum": i32::MIN,
-            "maximum": i32::MAX,
-        }),
-        ProtoType::Value(ProtoValueType::UInt32) => serde_json::json!({
-            "type": "integer",
-            "title": "uint32",
-            "minimum": u32::MIN,
-            "maximum": u32::MAX,
-        }),
-        ProtoType::Value(ProtoValueType::Int64) => serde_json::json!({
-            "type": "integer",
-            "title": "int64",
-            "minimum": i64::MIN,
-            "maximum": i64::MAX,
-        }),
-        ProtoType::Value(ProtoValueType::UInt64) => serde_json::json!({
-            "type": "integer",
-            "title": "uint64",
-            "minimum": u64::MIN,
-            "maximum": u64::MAX,
-        }),
-        ProtoType::Value(ProtoValueType::String) => serde_json::json!({
-            "type": "string",
-        }),
+        ProtoType::Value(ProtoValueType::Int32) => Schema::object(Object::int32()),
+        ProtoType::Value(ProtoValueType::UInt32) => Schema::object(Object::uint32()),
+        ProtoType::Value(ProtoValueType::Int64) => Schema::object(Object::int64()),
+        ProtoType::Value(ProtoValueType::UInt64) => Schema::object(Object::uint64()),
+        ProtoType::Value(ProtoValueType::String) => Schema::object(Object::builder().schema_type(Type::String).build()),
         ProtoType::Value(ProtoValueType::Enum(enum_path)) => {
-            if !schema_registry.contains_key(enum_path.as_ref()) {
+            if !component_schemas.contains_key(enum_path.as_ref()) {
                 let ety = type_registry
                     .get_enum(&enum_path)
                     .with_context(|| format!("missing enum: {enum_path}"))?;
-                let ty = if ety.options.repr_enum { "intger" } else { "string" };
-                let values = ety
-                    .variants
-                    .values()
-                    .filter(|v| match direction {
-                        GenerateDirection::Input => v.options.visibility.has_input(),
-                        GenerateDirection::Output => v.options.visibility.has_output(),
-                    })
-                    .map(|v| {
-                        if ety.options.repr_enum {
-                            serde_json::Value::from(v.value)
-                        } else {
-                            serde_json::Value::from(v.options.serde_name.clone())
-                        }
-                    })
-                    .collect::<Vec<_>>();
-
-                schema_registry.insert(
+                component_schemas.insert(
                     format!("{direction:?}.{enum_path}"),
-                    serde_json::json!({
-                        "type": ty,
-                        "title": enum_path.as_ref(),
-                        "description": ety.comments.to_string(),
-                        "enum": values,
-                    }),
+                    Schema::object(
+                        Object::builder()
+                            .schema_type(if ety.options.repr_enum { Type::Integer } else { Type::String })
+                            .enum_values(
+                                ety.variants
+                                    .values()
+                                    .filter(|v| match direction {
+                                        GenerateDirection::Input => v.options.visibility.has_input(),
+                                        GenerateDirection::Output => v.options.visibility.has_output(),
+                                    })
+                                    .map(|v| {
+                                        if ety.options.repr_enum {
+                                            serde_json::Value::from(v.value)
+                                        } else {
+                                            serde_json::Value::from(v.options.serde_name.clone())
+                                        }
+                                    })
+                                    .collect::<Vec<_>>(),
+                            )
+                            .title(enum_path.to_string())
+                            .description(ety.comments.to_string())
+                            .build(),
+                    ),
                 );
             }
 
-            serde_json::json!({
-                "$ref": format!("#/components/schemas/{direction:?}.{enum_path}"),
-            })
+            Schema::object(Ref::from_schema_name(format!("{direction:?}.{enum_path}")))
         }
         ProtoType::Value(ProtoValueType::Message(message_path)) => {
             let message_ty = type_registry
                 .get_message(&message_path)
                 .with_context(|| format!("missing message: {message_path}"))?;
 
-            if !schema_registry.contains_key(message_path.as_ref()) || !exclude_paths.is_empty() {
+            if !component_schemas.contains_key(message_path.as_ref()) || !exclude_paths.is_empty() {
                 if exclude_paths.is_empty() {
-                    schema_registry.insert(format!("{direction:?}.{message_path}"), serde_json::Value::Null);
+                    component_schemas.insert(format!("{direction:?}.{message_path}"), Schema::Bool(false));
                 }
-                let mut properties = serde_json::Map::new();
+                let mut properties = IndexMap::new();
                 let mut required = Vec::new();
                 let mut schemas = Vec::with_capacity(1);
                 for (name, field) in message_ty.fields.iter().filter(|(_, field)| match direction {
@@ -510,7 +476,7 @@ fn generate(
 
                     let field_schema = generate(
                         type_registry,
-                        schema_registry,
+                        component_schemas,
                         ty,
                         &field.options.cel_exprs,
                         exclude_paths.unwrap_or(&BTreeMap::new()),
@@ -524,87 +490,92 @@ fn generate(
                         let schema = if field.options.nullable
                             && !matches!(&field.ty, ProtoType::Modified(ProtoModifiedValueType::Optional(_)))
                         {
-                            serde_json::json!({
-                                "oneOf": [
-                                    { "type": null },
-                                    field_schema,
-                                ]
-                            })
+                            Schema::object(
+                                Object::builder()
+                                    .one_ofs([Object::builder().schema_type(Type::Null).build().into(), field_schema])
+                                    .build(),
+                            )
                         } else {
                             field_schema
                         };
 
                         properties.insert(
                             field.options.serde_name.clone(),
-                            serde_json::json!({
-                                "allOf": [
-                                    schema,
-                                    serde_json::json!({
-                                        "description": field.comments.to_string(),
-                                    }),
-                                ],
-                            }),
+                            Schema::object(Object::all_ofs([
+                                schema,
+                                Schema::object(Object::builder().description(field.comments.to_string()).build()),
+                            ])),
                         );
                     }
                 }
 
-                schemas.push(serde_json::json!({
-                    "type": "object",
-                    "title": message_path.as_ref(),
-                    "description": message_ty.comments.to_string(),
-                    "properties": properties,
-                    "required": required,
-                    "unevaluatedProperties": false,
-                }));
+                schemas.push(Schema::object(
+                    Object::builder()
+                        .schema_type(Type::Object)
+                        .title(message_path.to_string())
+                        .description(message_ty.comments.to_string())
+                        .properties(properties)
+                        .required(required)
+                        .unevaluated_properties(false)
+                        .build(),
+                ));
 
                 if exclude_paths.is_empty() {
-                    schema_registry.insert(format!("{direction:?}.{message_path}"), optimize_json_schema(schemas));
-                    serde_json::json!({
-                        "$ref": format!("#/components/schemas/{direction:?}.{message_path}"),
-                    })
+                    component_schemas.insert(
+                        format!("{direction:?}.{message_path}"),
+                        Schema::object({
+                            let mut obj = Object::all_ofs(schemas);
+
+                            obj.optimize();
+
+                            obj
+                        }),
+                    );
+                    Schema::object(Ref::from_schema_name(format!("{direction:?}.{message_path}")))
                 } else {
-                    serde_json::json!({
-                        "allOf": schemas,
-                    })
+                    Schema::object(Object::all_ofs(schemas))
                 }
             } else {
-                serde_json::json!({
-                    "$ref": format!("#/components/schemas/{direction:?}.{message_path}"),
-                })
+                Schema::object(Ref::from_schema_name(format!("{direction:?}.{message_path}")))
             }
         }
-        ProtoType::Value(ProtoValueType::WellKnown(ProtoWellKnownType::Timestamp)) => serde_json::json!({
-            "type": "string",
-            "format": "date-time",
-        }),
-        ProtoType::Value(ProtoValueType::WellKnown(ProtoWellKnownType::Duration)) => serde_json::json!({
-            "type": "string",
-            "format": "duration",
-        }),
-        ProtoType::Value(ProtoValueType::WellKnown(ProtoWellKnownType::Empty)) => serde_json::json!({
-            "type": "object",
-            "unevaluatedProperties": false,
-        }),
-        ProtoType::Value(ProtoValueType::WellKnown(ProtoWellKnownType::ListValue)) => serde_json::json!({
-            "type": "array",
-        }),
-        ProtoType::Value(ProtoValueType::WellKnown(ProtoWellKnownType::Value)) => serde_json::json!({
-            "type": ["null", "boolean", "object", "array", "number", "string"],
-        }),
-        ProtoType::Value(ProtoValueType::WellKnown(ProtoWellKnownType::Struct)) => serde_json::json!({
-            "type": "object",
-        }),
-        ProtoType::Value(ProtoValueType::WellKnown(ProtoWellKnownType::Any)) => serde_json::json!({
-            "type": "object",
-            "properties": {
-                "@type": {
-                    "type": "string"
-                }
-            }
-        }),
+        ProtoType::Value(ProtoValueType::WellKnown(ProtoWellKnownType::Timestamp)) => {
+            Schema::object(Object::builder().schema_type(Type::String).format("date-time").build())
+        }
+        ProtoType::Value(ProtoValueType::WellKnown(ProtoWellKnownType::Duration)) => {
+            Schema::object(Object::builder().schema_type(Type::String).format("duration").build())
+        }
+        ProtoType::Value(ProtoValueType::WellKnown(ProtoWellKnownType::Empty)) => Schema::object(
+            Object::builder()
+                .schema_type(Type::Object)
+                .unevaluated_properties(false)
+                .build(),
+        ),
+        ProtoType::Value(ProtoValueType::WellKnown(ProtoWellKnownType::ListValue)) => {
+            Schema::object(Object::builder().schema_type(Type::Array).build())
+        }
+        ProtoType::Value(ProtoValueType::WellKnown(ProtoWellKnownType::Value)) => Schema::object(
+            Object::builder()
+                .schema_type(vec![
+                    Type::Null,
+                    Type::Boolean,
+                    Type::Object,
+                    Type::Array,
+                    Type::Number,
+                    Type::String,
+                ])
+                .build(),
+        ),
+        ProtoType::Value(ProtoValueType::WellKnown(ProtoWellKnownType::Struct)) => {
+            Schema::object(Object::builder().schema_type(Type::Object).build())
+        }
+        ProtoType::Value(ProtoValueType::WellKnown(ProtoWellKnownType::Any)) => Schema::object(
+            Object::builder()
+                .schema_type(Type::Object)
+                .property("@type", Object::builder().schema_type(Type::String))
+                .build(),
+        ),
     });
 
-    Ok(serde_json::json!({
-        "allOf": schemas,
-    }))
+    Ok(Schema::object(Object::all_ofs(schemas)))
 }

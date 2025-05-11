@@ -47,6 +47,7 @@ impl Function for IsUri {
 }
 
 #[cfg(test)]
+#[cfg(feature = "prost")]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use syn::parse_quote;

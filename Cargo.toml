@@ -35,6 +35,7 @@ members = [
     "crates/tinc/build",
     "crates/tinc/derive",
     "crates/tinc/integration",
+    "crates/openapiv3_1",
 ]
 
 resolver = "2"
@@ -72,6 +73,7 @@ tinc-cel = { path = "crates/tinc/cel", version = "0.1.0" }
 tinc-pb = { path = "crates/tinc/pb", version = "0.1.0" }
 tinc-build = { path = "crates/tinc/build", version = "0.1.0" }
 tinc-derive = { path = "crates/tinc/derive", version = "0.1.0" }
+openapiv3_1 = { path = "crates/openapiv3_1", version = "0.1.0" }
 
 [profile.release-debug]
 inherits = "release"
