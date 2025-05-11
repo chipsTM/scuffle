@@ -7,8 +7,6 @@ use std::task::{Context, Poll};
 use bytes::{Buf, Bytes};
 use http_body::Frame;
 
-use crate::backend::h3::body::H3BodyError;
-
 /// An error that can occur when reading the body of an incoming request.
 #[derive(thiserror::Error, Debug)]
 pub enum IncomingBodyError {
@@ -21,7 +19,7 @@ pub enum IncomingBodyError {
     #[error("h3 body error: {0}")]
     #[cfg(feature = "http3")]
     #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
-    H3(#[from] H3BodyError),
+    H3(#[from] crate::backend::h3::body::H3BodyError),
 }
 
 /// The body of an incoming request.

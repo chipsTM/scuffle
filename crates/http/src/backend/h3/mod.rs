@@ -131,9 +131,9 @@ where
                                         Some(Ok(Some(resolver))) => {
                                             let (req, stream) = match resolver.resolve_request().await {
                                                 Ok(r) => r,
-                                                Err(err) => {
+                                                Err(_err) => {
                                                     #[cfg(feature = "tracing")]
-                                                    tracing::warn!("error on accept: {}", err);
+                                                    tracing::warn!("error on accept: {}", _err);
                                                     continue;
                                                 }
                                             };
