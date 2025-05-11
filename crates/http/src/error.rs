@@ -22,13 +22,20 @@ where
     #[cfg(all(feature = "http3", feature = "tls-rustls"))]
     #[cfg_attr(docsrs, doc(cfg(all(feature = "http3", feature = "tls-rustls"))))]
     NoInitialCipherSuite(#[from] h3_quinn::quinn::crypto::rustls::NoInitialCipherSuite),
-    /// Any h3 error.
+    /// h3 connection error.
     ///
-    /// Refer to [`h3::Error`] for more information.
-    #[error("h3 error: {0}")]
+    /// Refer to [`h3::error::ConnectionError`] for more information.
+    #[error("h3 connection error: {0}")]
     #[cfg(feature = "http3")]
     #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
-    H3(#[from] h3::Error),
+    H3Connection(#[from] h3::error::ConnectionError),
+    /// h3 stream error.
+    ///
+    /// Refer to [`h3::error::StreamError`] for more information.
+    #[error("h3 stream error: {0}")]
+    #[cfg(feature = "http3")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
+    H3Stream(#[from] h3::error::StreamError),
     /// An error that occurred while handling a hyper connection.
     #[error("hyper connection: {0}")]
     #[cfg(any(feature = "http1", feature = "http2"))]

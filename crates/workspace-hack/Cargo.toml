@@ -121,8 +121,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 bitflags = { version = "2", default-features = false, features = ["std"] }
 bytes = { version = "1" }
 getrandom = { version = "0.3", default-features = false, features = ["std"] }
-h3 = { version = "0.0.7", default-features = false, features = ["tracing"] }
-h3-quinn = { version = "0.0.9", default-features = false, features = ["tracing"] }
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 libc = { version = "0.2", default-features = false, features = ["extra_traits"] }
@@ -140,8 +138,6 @@ bitflags = { version = "2", default-features = false, features = ["std"] }
 bytes = { version = "1" }
 cc = { version = "1", default-features = false, features = ["parallel"] }
 getrandom = { version = "0.3", default-features = false, features = ["std"] }
-h3 = { version = "0.0.7", default-features = false, features = ["tracing"] }
-h3-quinn = { version = "0.0.9", default-features = false, features = ["tracing"] }
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 libc = { version = "0.2", default-features = false, features = ["extra_traits"] }
@@ -158,8 +154,6 @@ tower = { version = "0.5", default-features = false, features = ["timeout"] }
 bitflags = { version = "2", default-features = false, features = ["std"] }
 bytes = { version = "1" }
 getrandom = { version = "0.3", default-features = false, features = ["std"] }
-h3 = { version = "0.0.7", default-features = false, features = ["tracing"] }
-h3-quinn = { version = "0.0.9", default-features = false, features = ["tracing"] }
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 libc = { version = "0.2", default-features = false, features = ["extra_traits"] }
@@ -177,8 +171,6 @@ bitflags = { version = "2", default-features = false, features = ["std"] }
 bytes = { version = "1" }
 cc = { version = "1", default-features = false, features = ["parallel"] }
 getrandom = { version = "0.3", default-features = false, features = ["std"] }
-h3 = { version = "0.0.7", default-features = false, features = ["tracing"] }
-h3-quinn = { version = "0.0.9", default-features = false, features = ["tracing"] }
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 libc = { version = "0.2", default-features = false, features = ["extra_traits"] }
@@ -195,8 +187,6 @@ tower = { version = "0.5", default-features = false, features = ["timeout"] }
 bitflags = { version = "2", default-features = false, features = ["std"] }
 bytes = { version = "1" }
 getrandom = { version = "0.3", default-features = false, features = ["std"] }
-h3 = { version = "0.0.7", default-features = false, features = ["tracing"] }
-h3-quinn = { version = "0.0.9", default-features = false, features = ["tracing"] }
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 libc = { version = "0.2", default-features = false, features = ["extra_traits"] }
@@ -214,8 +204,6 @@ bitflags = { version = "2", default-features = false, features = ["std"] }
 bytes = { version = "1" }
 cc = { version = "1", default-features = false, features = ["parallel"] }
 getrandom = { version = "0.3", default-features = false, features = ["std"] }
-h3 = { version = "0.0.7", default-features = false, features = ["tracing"] }
-h3-quinn = { version = "0.0.9", default-features = false, features = ["tracing"] }
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 libc = { version = "0.2", default-features = false, features = ["extra_traits"] }
@@ -232,8 +220,6 @@ tower = { version = "0.5", default-features = false, features = ["timeout"] }
 bitflags = { version = "2", default-features = false, features = ["std"] }
 bytes = { version = "1" }
 getrandom = { version = "0.3", default-features = false, features = ["std"] }
-h3 = { version = "0.0.7", default-features = false, features = ["tracing"] }
-h3-quinn = { version = "0.0.9", default-features = false, features = ["tracing"] }
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 libc = { version = "0.2", default-features = false, features = ["extra_traits"] }
@@ -251,8 +237,6 @@ bitflags = { version = "2", default-features = false, features = ["std"] }
 bytes = { version = "1" }
 cc = { version = "1", default-features = false, features = ["parallel"] }
 getrandom = { version = "0.3", default-features = false, features = ["std"] }
-h3 = { version = "0.0.7", default-features = false, features = ["tracing"] }
-h3-quinn = { version = "0.0.9", default-features = false, features = ["tracing"] }
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 libc = { version = "0.2", default-features = false, features = ["extra_traits"] }
@@ -266,8 +250,6 @@ tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
 
 [target.x86_64-pc-windows-msvc.dependencies]
-h3 = { version = "0.0.7", default-features = false, features = ["tracing"] }
-h3-quinn = { version = "0.0.9", default-features = false, features = ["tracing"] }
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 quinn = { version = "0.11", default-features = false, features = ["futures-io", "log", "platform-verifier", "runtime-tokio", "rustls", "rustls-aws-lc-rs"] }
@@ -283,8 +265,6 @@ windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", feat
 
 [target.x86_64-pc-windows-msvc.build-dependencies]
 cc = { version = "1", default-features = false, features = ["parallel"] }
-h3 = { version = "0.0.7", default-features = false, features = ["tracing"] }
-h3-quinn = { version = "0.0.9", default-features = false, features = ["tracing"] }
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 quinn = { version = "0.11", default-features = false, features = ["futures-io", "log", "platform-verifier", "runtime-tokio", "rustls", "rustls-aws-lc-rs"] }
@@ -299,8 +279,6 @@ windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", feat
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
 
 [target.x86_64-pc-windows-gnu.dependencies]
-h3 = { version = "0.0.7", default-features = false, features = ["tracing"] }
-h3-quinn = { version = "0.0.9", default-features = false, features = ["tracing"] }
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 quinn = { version = "0.11", default-features = false, features = ["futures-io", "log", "platform-verifier", "runtime-tokio", "rustls", "rustls-aws-lc-rs"] }
@@ -316,8 +294,6 @@ windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", feat
 
 [target.x86_64-pc-windows-gnu.build-dependencies]
 cc = { version = "1", default-features = false, features = ["parallel"] }
-h3 = { version = "0.0.7", default-features = false, features = ["tracing"] }
-h3-quinn = { version = "0.0.9", default-features = false, features = ["tracing"] }
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 quinn = { version = "0.11", default-features = false, features = ["futures-io", "log", "platform-verifier", "runtime-tokio", "rustls", "rustls-aws-lc-rs"] }
