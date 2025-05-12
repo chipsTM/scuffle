@@ -29,6 +29,13 @@ members = [
     "crates/transmuxer",
     "crates/workspace-hack",
     "dev-tools/xtask",
+    "crates/tinc",
+    "crates/tinc/cel",
+    "crates/tinc/pb-prost",
+    "crates/tinc/build",
+    "crates/tinc/derive",
+    "crates/tinc/integration",
+    "crates/openapiv3_1",
 ]
 
 resolver = "2"
@@ -61,6 +68,12 @@ scuffle-mp4 = { path = "crates/mp4", version = "0.1.2" }
 scuffle-rtmp = { path = "crates/rtmp", version = "0.2.0" }
 scuffle-transmuxer = { path = "crates/transmuxer", version = "0.2.0" }
 scuffle-workspace-hack = { version = "0.1.0" }
+tinc = { path = "crates/tinc", version = "0.1.0" }
+tinc-cel = { path = "crates/tinc/cel", version = "0.0.1" }
+tinc-pb-prost = { path = "crates/tinc/pb-prost", version = "0.1.0" }
+tinc-build = { path = "crates/tinc/build", version = "0.1.0" }
+tinc-derive = { path = "crates/tinc/derive", version = "0.1.0" }
+openapiv3_1 = { path = "crates/openapiv3_1", version = "0.1.0" }
 
 [profile.release-debug]
 inherits = "release"
