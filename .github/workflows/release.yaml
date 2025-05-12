@@ -33,6 +33,11 @@ jobs:
           tools: just,cargo-hakari,release-plz
           cache_backend: ubicloud
 
+      - name: Setup Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Remove cargo registries
         run: |
           rm -rf ~/.cargo/registry
