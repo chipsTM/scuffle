@@ -192,7 +192,7 @@ message TestRequest {
 
 1. Use a custom proto definition for the proto schema instead of using [google predefined ones](https://github.com/googleapis/googleapis/blob/master/google/api/http.proto).
 
-The reasoning is because I wanted to support additional features that google did not have, we can add a compatibility layer to convert from google to our version if we want in the future. Such as CEL based validation, openapi schema, json flatten / tagged oneofs.
+The reasoning is because we wanted to support additional features that google did not have, we can add a compatibility layer to convert from google to our version if we want in the future. Such as CEL based validation, openapi schema, json flatten / tagged oneofs.
 
 2. Non-proto3-optional fields are required for JSON.
 
@@ -200,7 +200,7 @@ If a field is not marked as `optional` then it is required by default and not pr
 
 3. Stop on last error.
 
-Typically when using serde we stop on the first error. I believe this makes errors less valuable since we only ever get the first error that occurred in the stream instead of every error we had. There are some libraries that aim to solve this issue such as [`eserde`](https://lib.rs/crates/eserde) however I opted to build our solution fully custom since their's have quite a few drawbacks and we (at compile time) know the full structure since its defined in the protobuf schema, allowing us to generate better code for the deserialization process and store errors more effectively without introducing much/any runtime overhead.
+Typically when using serde we stop on the first error. We believe that makes errors less valuable since we only ever get the first error that occurred in the stream instead of every error we had. There are some libraries that aim to solve this issue such as [`eserde`](https://lib.rs/crates/eserde) however we opted to build our solution fully custom since their's have quite a few drawbacks and we (at compile time) know the full structure since its defined in the protobuf schema, allowing us to generate better code for the deserialization process and store errors more effectively without introducing much/any runtime overhead.
 
 ## Alternatives to this
 
@@ -209,7 +209,7 @@ Typically when using serde we stop on the first error. I believe this makes erro
 GRPc-Gateway is the most popular way of converting from GRPc endpoint to rest endpoints using google's protoschema for doing so. The reason I dont like grpc-gateway stems from 2 things: 
 
 1. grpc gateway requires a reverse proxy or external service which does the transcoding and then forwards you http requests. 
-5. You do not have any control over how the json is structured. It uses protobuf-json schema encoding.
+2. You do not have any control over how the json is structured. It uses protobuf-json schema encoding.
 
 ### 2. [GRPc-Web](https://github.com/grpc/grpc-web)
 
