@@ -50,3 +50,7 @@ scuffle-workspace-hack.workspace = true
 prost = ["dep:prost", "dep:prost-types"]
 tonic = ["dep:tonic", "dep:tonic-types"]
 default = ["prost", "tonic"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

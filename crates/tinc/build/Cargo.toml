@@ -48,3 +48,7 @@ postcompile.workspace = true
 [features]
 default = ["prost"]
 prost = ["dep:prost", "dep:prost-reflect", "dep:prost-build"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
