@@ -1,7 +1,6 @@
 use anyhow::Context;
 use quote::{ToTokens, quote};
 use syn::parse_quote;
-use tinc_pb_prost::oneof_options::Tagged;
 
 use super::Package;
 use super::cel::compiler::{CompiledExpr, Compiler};
@@ -9,7 +8,7 @@ use super::cel::types::CelType;
 use super::cel::{CelExpression, eval_message_fmt, functions};
 use crate::types::{
     ProtoEnumType, ProtoFieldOptions, ProtoFieldSerdeOmittable, ProtoMessageField, ProtoMessageType, ProtoModifiedValueType,
-    ProtoOneOfType, ProtoType, ProtoTypeRegistry, ProtoValueType, ProtoVisibility,
+    ProtoOneOfType, ProtoType, ProtoTypeRegistry, ProtoValueType, ProtoVisibility, Tagged,
 };
 
 fn handle_oneof(

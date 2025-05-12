@@ -224,21 +224,6 @@ pub(crate) enum ProtoFieldSerdeOmittable {
 }
 
 impl ProtoFieldSerdeOmittable {
-    pub(crate) fn from_pb(value: tinc_pb_prost::JsonOmittable, nullable: bool) -> Self {
-        match value {
-            tinc_pb_prost::JsonOmittable::Unspecified => {
-                if nullable {
-                    Self::TrueButStillSerialize
-                } else {
-                    Self::False
-                }
-            }
-            tinc_pb_prost::JsonOmittable::True => Self::True,
-            tinc_pb_prost::JsonOmittable::False => Self::False,
-            tinc_pb_prost::JsonOmittable::TrueButStillSerialize => Self::TrueButStillSerialize,
-        }
-    }
-
     pub(crate) fn is_true(&self) -> bool {
         matches!(self, Self::True | Self::TrueButStillSerialize)
     }
@@ -297,7 +282,13 @@ impl ProtoOneOfType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ProtoOneOfOptions {
-    pub tagged: Option<tinc_pb_prost::oneof_options::Tagged>,
+    pub tagged: Option<Tagged>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct Tagged {
+    pub tag: String,
+    pub content: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]

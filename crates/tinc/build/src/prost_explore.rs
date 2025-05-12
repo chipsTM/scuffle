@@ -17,7 +17,7 @@ use crate::types::{
     ProtoFieldSerdeOmittable, ProtoMessageField, ProtoMessageOptions, ProtoMessageType, ProtoModifiedValueType,
     ProtoOneOfField, ProtoOneOfOptions, ProtoOneOfType, ProtoPath, ProtoService, ProtoServiceMethod,
     ProtoServiceMethodEndpoint, ProtoServiceMethodIo, ProtoServiceOptions, ProtoType, ProtoTypeRegistry, ProtoValueType,
-    ProtoVisibility,
+    ProtoVisibility, Tagged,
 };
 
 pub(crate) struct Extension<T> {
@@ -402,7 +402,7 @@ impl<'a> FileWalker<'a> {
             let visibility = ProtoVisibility::from_pb(opts.visibility());
 
             let field_opts = ProtoFieldOptions {
-                serde_omittable: ProtoFieldSerdeOmittable::from_pb(opts.json_omittable(), proto3_optional),
+                serde_omittable: ProtoFieldSerdeOmittable::from_prost_pb(opts.json_omittable(), proto3_optional),
                 nullable: proto3_optional,
                 visibility,
                 flatten: opts.flatten(),
@@ -447,7 +447,7 @@ impl<'a> FileWalker<'a> {
                 indexmap::map::Entry::Occupied(ref mut entry) => entry.get_mut(),
                 indexmap::map::Entry::Vacant(entry) => {
                     let visibility = ProtoVisibility::from_pb(opts.visibility());
-                    let json_omittable = ProtoFieldSerdeOmittable::from_pb(opts.json_omittable(), false);
+                    let json_omittable = ProtoFieldSerdeOmittable::from_prost_pb(opts.json_omittable(), false);
 
                     entry.insert(ProtoMessageField {
                         full_name: ProtoPath::new(oneof.full_name()),
@@ -469,7 +469,10 @@ impl<'a> FileWalker<'a> {
                             message: message_full_name.clone(),
                             fields: IndexMap::new(),
                             options: ProtoOneOfOptions {
-                                tagged: opts.tagged.clone(),
+                                tagged: opts.tagged.clone().map(|tagged| Tagged {
+                                    content: tagged.content,
+                                    tag: tagged.tag,
+                                }),
                             },
                         })),
                     })
@@ -757,5 +760,22 @@ fn location_to_comments(location: &Location) -> Comments {
         leading: location.leading_comments.as_deref().map(Into::into),
         detached: location.leading_detached_comments.iter().map(|s| s.as_str().into()).collect(),
         trailing: location.trailing_comments.as_deref().map(Into::into),
+    }
+}
+
+impl ProtoFieldSerdeOmittable {
+    pub(crate) fn from_prost_pb(value: tinc_pb_prost::JsonOmittable, nullable: bool) -> Self {
+        match value {
+            tinc_pb_prost::JsonOmittable::Unspecified => {
+                if nullable {
+                    Self::TrueButStillSerialize
+                } else {
+                    Self::False
+                }
+            }
+            tinc_pb_prost::JsonOmittable::True => Self::True,
+            tinc_pb_prost::JsonOmittable::False => Self::False,
+            tinc_pb_prost::JsonOmittable::TrueButStillSerialize => Self::TrueButStillSerialize,
+        }
     }
 }
