@@ -27,3 +27,9 @@ authors = ["@troykomodo"]
 category = "feat"
 description = "initial implementation"
 authors = ["@troykomodo"]
+
+[[postcompile]]
+category = "fix"
+description = "fix spacing in output"
+authors = ["@troykomodo"]
+breaking = true
