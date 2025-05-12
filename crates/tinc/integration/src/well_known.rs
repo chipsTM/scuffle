@@ -35,7 +35,8 @@ fn test_well_known() {
                     "string_value": "item2"
                 }
             }
-        ]
+        ],
+        "bytes_value": "OjNzbyBmdWNraW5nIGR1bWI="
     }"#,
     );
 
@@ -163,6 +164,25 @@ fn test_well_known() {
                 ],
             },
         ),
+        bytes_value: [
+            58,
+            51,
+            115,
+            111,
+            32,
+            102,
+            117,
+            99,
+            107,
+            105,
+            110,
+            103,
+            32,
+            100,
+            117,
+            109,
+            98,
+        ],
     }
     "#);
     insta::assert_debug_snapshot!(tracker, @r"
@@ -210,6 +230,9 @@ fn test_well_known() {
                     ),
                 ),
             ),
+            bytes_value: Some(
+                BytesTracker<alloc::vec::Vec<u8>>,
+            ),
         },
     )
     ");
@@ -236,7 +259,8 @@ fn test_well_known() {
             "string_value": "item2"
           }
         }
-      ]
+      ],
+      "bytes_value": "OjNzbyBmdWNraW5nIGR1bWI="
     }
     "#);
 }
@@ -305,6 +329,13 @@ fn test_well_known_map() {
                 "item5"
             ],
             "second": []
+        },
+        "bytes_value": {
+            "one": "OjNzbyBmdWNraW5nIGR1bWI",
+            "two": "OjNzbyBmdWNraW5nIGR1bWI",
+            "three": "OjNzbyBmdWNraW5nIGR1bWLwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoA=",
+            "four": "OjNzbyBmdWNraW5nIGR1bWLwn5KA8J-SgPCfkoDwn5KA8J-SgPCfkoDwn5KA8J-SgPCfkoDwn5KA8J-SgPCfkoA",
+            "invalid": "invalid b64"
         }
     }"#,
     );
@@ -338,6 +369,13 @@ fn test_well_known_map() {
                 },
                 fatal: true,
                 path: "empty[\"non_empty_map\"]",
+            },
+            TrackedError {
+                kind: InvalidField {
+                    message: "Invalid symbol 32, offset 7. at line 62 column 36",
+                },
+                fatal: true,
+                path: "bytes_value[\"invalid\"]",
             },
         ],
     }
@@ -545,6 +583,180 @@ fn test_well_known_map() {
                 values: [],
             },
         },
+        bytes_value: {
+            "four": [
+                58,
+                51,
+                115,
+                111,
+                32,
+                102,
+                117,
+                99,
+                107,
+                105,
+                110,
+                103,
+                32,
+                100,
+                117,
+                109,
+                98,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+            ],
+            "one": [
+                58,
+                51,
+                115,
+                111,
+                32,
+                102,
+                117,
+                99,
+                107,
+                105,
+                110,
+                103,
+                32,
+                100,
+                117,
+                109,
+                98,
+            ],
+            "three": [
+                58,
+                51,
+                115,
+                111,
+                32,
+                102,
+                117,
+                99,
+                107,
+                105,
+                110,
+                103,
+                32,
+                100,
+                117,
+                109,
+                98,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+            ],
+            "two": [
+                58,
+                51,
+                115,
+                111,
+                32,
+                102,
+                117,
+                99,
+                107,
+                105,
+                110,
+                103,
+                32,
+                100,
+                117,
+                109,
+                98,
+            ],
+        },
     }
     "#);
     insta::assert_debug_snapshot!(tracker, @r#"
@@ -593,6 +805,15 @@ fn test_well_known_map() {
                 {
                     "first": WellKnownTracker<prost_types::protobuf::ListValue>,
                     "second": WellKnownTracker<prost_types::protobuf::ListValue>,
+                },
+            ),
+            bytes_value: Some(
+                {
+                    "one": BytesTracker<alloc::vec::Vec<u8>>,
+                    "two": BytesTracker<alloc::vec::Vec<u8>>,
+                    "three": BytesTracker<alloc::vec::Vec<u8>>,
+                    "four": BytesTracker<alloc::vec::Vec<u8>>,
+                    "invalid": BytesTracker<alloc::vec::Vec<u8>>,
                 },
             ),
         },
@@ -652,6 +873,12 @@ fn test_well_known_map() {
           "item5"
         ],
         "second": []
+      },
+      "bytes_value": {
+        "four": "OjNzbyBmdWNraW5nIGR1bWLwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoA=",
+        "one": "OjNzbyBmdWNraW5nIGR1bWI=",
+        "three": "OjNzbyBmdWNraW5nIGR1bWLwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoA=",
+        "two": "OjNzbyBmdWNraW5nIGR1bWI="
       }
     }
     "#);
@@ -715,6 +942,12 @@ fn test_well_known_repeated() {
                 "item5"
             ],
             []
+        ],
+        "bytes_value": [
+            "OjNzbyBmdWNraW5nIGR1bWI",
+            "OjNzbyBmdWNraW5nIGR1bWI",
+            "OjNzbyBmdWNraW5nIGR1bWLwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoA=",
+            "OjNzbyBmdWNraW5nIGR1bWLwn5KA8J-SgPCfkoDwn5KA8J-SgPCfkoDwn5KA8J-SgPCfkoDwn5KA8J-SgPCfkoA"
         ]
     }"#,
     );
@@ -933,6 +1166,180 @@ fn test_well_known_repeated() {
                 values: [],
             },
         ],
+        bytes_value: [
+            [
+                58,
+                51,
+                115,
+                111,
+                32,
+                102,
+                117,
+                99,
+                107,
+                105,
+                110,
+                103,
+                32,
+                100,
+                117,
+                109,
+                98,
+            ],
+            [
+                58,
+                51,
+                115,
+                111,
+                32,
+                102,
+                117,
+                99,
+                107,
+                105,
+                110,
+                103,
+                32,
+                100,
+                117,
+                109,
+                98,
+            ],
+            [
+                58,
+                51,
+                115,
+                111,
+                32,
+                102,
+                117,
+                99,
+                107,
+                105,
+                110,
+                103,
+                32,
+                100,
+                117,
+                109,
+                98,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+            ],
+            [
+                58,
+                51,
+                115,
+                111,
+                32,
+                102,
+                117,
+                99,
+                107,
+                105,
+                110,
+                103,
+                32,
+                100,
+                117,
+                109,
+                98,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+                240,
+                159,
+                146,
+                128,
+            ],
+        ],
     }
     "#);
     insta::assert_debug_snapshot!(tracker, @r"
@@ -989,6 +1396,16 @@ fn test_well_known_repeated() {
                     [
                         WellKnownTracker<prost_types::protobuf::ListValue>,
                         WellKnownTracker<prost_types::protobuf::ListValue>,
+                    ],
+                ),
+            ),
+            bytes_value: Some(
+                RepeatedVecTracker(
+                    [
+                        BytesTracker<alloc::vec::Vec<u8>>,
+                        BytesTracker<alloc::vec::Vec<u8>>,
+                        BytesTracker<alloc::vec::Vec<u8>>,
+                        BytesTracker<alloc::vec::Vec<u8>>,
                     ],
                 ),
             ),
@@ -1049,7 +1466,80 @@ fn test_well_known_repeated() {
           "item5"
         ],
         []
+      ],
+      "bytes_value": [
+        "OjNzbyBmdWNraW5nIGR1bWI=",
+        "OjNzbyBmdWNraW5nIGR1bWI=",
+        "OjNzbyBmdWNraW5nIGR1bWLwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoA=",
+        "OjNzbyBmdWNraW5nIGR1bWLwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoDwn5KA8J+SgPCfkoA="
       ]
+    }
+    "#);
+}
+
+#[test]
+fn test_well_known_one_of() {
+    let mut message = pb::WellKnownOneOfMessage::default();
+    let mut tracker = <pb::WellKnownOneOfMessage as TrackerFor>::Tracker::default();
+    let mut state = TrackerSharedState {
+        fail_fast: false,
+        ..Default::default()
+    };
+    let mut de = serde_json::Deserializer::from_str(
+        r#"{
+    "well_known": {
+        "value": 5
+    }
+}"#,
+    );
+
+    deserialize_tracker_target(&mut state, &mut de, &mut tracker, &mut message).unwrap();
+    state.in_scope(|| {
+        TincValidate::validate(&message, Some(&tracker)).unwrap();
+    });
+
+    insta::assert_debug_snapshot!(state, @r"
+    TrackerSharedState {
+        fail_fast: false,
+        errors: [],
+    }
+    ");
+    insta::assert_debug_snapshot!(message, @r"
+    WellKnownOneOfMessage {
+        well_known: Some(
+            Value(
+                Value {
+                    kind: Some(
+                        NumberValue(
+                            5.0,
+                        ),
+                    ),
+                },
+            ),
+        ),
+    }
+    ");
+    insta::assert_debug_snapshot!(tracker, @r"
+    StructTracker(
+        WellKnownOneOfMessageTracker {
+            well_known: Some(
+                OneOfTracker(
+                    Some(
+                        Value(
+                            WellKnownTracker<prost_types::protobuf::Value>,
+                        ),
+                    ),
+                ),
+            ),
+        },
+    )
+    ");
+
+    insta::assert_json_snapshot!(message, @r#"
+    {
+      "well_known": {
+        "value": 5.0
+      }
     }
     "#);
 }

@@ -21,6 +21,7 @@ message WellKnownMessage {
     google.protobuf.Duration duration = 4;
     google.protobuf.Value value = 5;
     google.protobuf.ListValue list_value = 6;
+    bytes bytes_value = 7;
 }
 
 message WellKnownMapMessage {
@@ -34,6 +35,7 @@ message WellKnownMapMessage {
     map<string, google.protobuf.Duration> duration = 4;
     map<string, google.protobuf.Value> value = 5;
     map<string, google.protobuf.ListValue> list_value = 6;
+    map<string, bytes> bytes_value = 7;
 }
 
 message WellKnownRepeatedMessage {
@@ -47,4 +49,21 @@ message WellKnownRepeatedMessage {
     repeated google.protobuf.Duration duration = 4;
     repeated google.protobuf.Value value = 5;
     repeated google.protobuf.ListValue list_value = 6;
+    repeated bytes bytes_value = 7;
+}
+
+message WellKnownOneOfMessage {
+    option (tinc.message) = {
+        rename_all: SNAKE_CASE
+    };
+
+    oneof well_known {
+        google.protobuf.Empty empty = 1;
+        google.protobuf.Struct struct = 2;
+        google.protobuf.Timestamp timestamp = 3;
+        google.protobuf.Duration duration = 4;
+        google.protobuf.Value value = 5;
+        google.protobuf.ListValue list_value = 6;
+        bytes bytes_value = 7;
+    }
 }

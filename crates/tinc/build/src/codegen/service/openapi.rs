@@ -65,6 +65,7 @@ fn cel_to_json(cel: &CelValue<'static>, type_registry: &ProtoTypeRegistry) -> an
         }
     }
 }
+
 fn parse_resolve(compiler: &Compiler, expr: &str) -> anyhow::Result<CelValue<'static>> {
     let expr = cel_parser::parse(expr).context("parse")?;
     let resolved = compiler.resolve(&expr).context("resolve")?;
