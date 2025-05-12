@@ -716,7 +716,7 @@ fn cel_expressions(
             if is_message {
                 value_exprs.push(quote!({
                     let tracker = match #tracker_accessor {
-                        ::core::option::Option::Some(t) => Some(t.get(key).expect("todo: handle error")),
+                        ::core::option::Option::Some(t) => Some(t.get(key).expect("map tracker state missing item, this is a bug report it.")),
                         ::core::option::Option::None => None
                     };
                     ::tinc::__private::TincValidate::validate(value, tracker)?;
@@ -755,7 +755,7 @@ fn cel_expressions(
             if is_message {
                 exprs.push(quote!({
                     let tracker = match #tracker_accessor {
-                        ::core::option::Option::Some(t) => Some(t.get(idx).expect("todo: handle error")),
+                        ::core::option::Option::Some(t) => Some(t.get(idx).expect("repeated tracker state missing item, this is a bug report it.")),
                         ::core::option::Option::None => None
                     };
                     ::tinc::__private::TincValidate::validate(item, tracker)?;
