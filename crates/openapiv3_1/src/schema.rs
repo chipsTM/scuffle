@@ -334,29 +334,47 @@ impl<T> From<T> for RefOr<T> {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq, Copy)]
+/// JSON Schema Type
+/// <https://www.learnjsonschema.com/2020-12/validation/type>
+#[derive(Serialize, Deserialize, Clone, Eq, PartialEq, Copy)]
+#[cfg_attr(feature = "debug", derive(Debug))]
 #[non_exhaustive]
 pub enum Type {
+    /// JSON array
     #[serde(rename = "array")]
     Array,
+    /// The JSON true or false constants
     #[serde(rename = "boolean")]
     Boolean,
+    /// A JSON number that represents an integer
     #[serde(rename = "integer")]
     Integer,
+    /// The JSON null constant
     #[serde(rename = "null")]
     Null,
+    /// A JSON number
     #[serde(rename = "number")]
     Number,
+    /// A JSON object
     #[serde(rename = "object")]
     Object,
+    /// A JSON string
     #[serde(rename = "string")]
     String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+/// JSON Schema Type
+///
+/// `type` can either be a singular type or an array of types.
+///
+/// <https://www.learnjsonschema.com/2020-12/validation/type>
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
+#[cfg_attr(feature = "debug", derive(Debug))]
 #[serde(untagged)]
 pub enum Types {
+    /// A singular type
     Single(Type),
+    /// Multiple types
     Multi(Vec<Type>),
 }
 
@@ -404,144 +422,261 @@ impl IsEmpty for String {
     }
 }
 
+/// A JSON Schema Object as per JSON Schema specification.
+/// <https://www.learnjsonschema.com/2020-12/>
 #[derive(serde_derive::Serialize, serde_derive::Deserialize, Clone, PartialEq, Default, bon::Builder)]
 #[serde(default, deny_unknown_fields)]
 #[builder(on(_, into))]
+#[cfg_attr(feature = "debug", derive(Debug))]
 #[non_exhaustive]
 pub struct Object {
+    /// The `properties` keyword restricts object properties to the given subschemas.
+    /// Collected annotations report which properties were evaluated.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/properties/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(field)]
     pub properties: IndexMap<String, Schema>,
+    /// The `examples` keyword provides example instances for documentation.
+    /// Does not affect validation.
+    /// <https://www.learnjsonschema.com/2020-12/meta-data/examples/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(field)]
     pub examples: Vec<serde_json::Value>,
+    /// The `prefixItems` keyword validates the first items of an array against a sequence of subschemas.
+    /// Remaining items fall back to `items`, if present.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/prefixitems/>
     #[serde(rename = "prefixItems", skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(field)]
     pub prefix_items: Option<Vec<Schema>>,
+    /// The `enum` keyword restricts instances to a finite set of values.
+    /// <https://www.learnjsonschema.com/2020-12/validation/enum/>
     #[serde(rename = "enum", skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(field)]
     pub enum_values: Option<Vec<serde_json::Value>>,
+    /// The `required` keyword lists property names that must be present in an object.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/required/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(field)]
     pub required: Vec<String>,
+    /// The `allOf` keyword requires instance validation against all subschemas.
+    /// <https://www.learnjsonschema.com/2020-12/validation/allof/>
     #[serde(rename = "allOf", skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(field)]
     pub all_of: Vec<Schema>,
+    /// The `anyOf` keyword requires validation against at least one subschema.
+    /// <https://www.learnjsonschema.com/2020-12/validation/anyof/>
     #[serde(rename = "anyOf", skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(field)]
     pub any_of: Option<Vec<Schema>>,
+    /// The `oneOf` keyword requires validation against exactly one subschema.
+    /// <https://www.learnjsonschema.com/2020-12/validation/oneof/>
     #[serde(rename = "oneOf", skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(field)]
     pub one_of: Option<Vec<Schema>>,
+    /// The `$id` keyword defines a unique identifier for the schema.
+    /// <https://www.learnjsonschema.com/2020-12/meta-data/id/>
     #[serde(rename = "$id", skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(default)]
     pub id: String,
+    /// The `$schema` keyword declares the JSON Schema version.
+    /// <https://www.learnjsonschema.com/2020-12/meta-data/schema/>
     #[serde(rename = "$schema", skip_serializing_if = "IsEmpty::is_empty")]
     pub schema: Option<Schema>,
+    /// The `$ref` keyword references an external or internal schema by URI.
+    /// <https://www.learnjsonschema.com/2020-12/structure/$ref/>
     #[serde(rename = "$ref", skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(default, name = "reference")]
     pub reference: String,
+    /// The `$comment` keyword provides annotations for documentation.
+    /// <https://www.learnjsonschema.com/2020-12/meta-data/comment/>
     #[serde(rename = "$comment", skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(default)]
     pub comment: String,
+    /// The `title` keyword provides a short descriptive title.
+    /// <https://www.learnjsonschema.com/2020-12/meta-data/title/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(default)]
     pub title: String,
+    /// The `description` keyword provides a detailed description.
+    /// <https://www.learnjsonschema.com/2020-12/meta-data/description/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(default)]
     pub description: String,
+    /// The `summary` keyword offers a brief summary for documentation.
+    /// <https://www.learnjsonschema.com/2020-12/meta-data/summary/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(default)]
     pub summary: String,
+    /// The `default` keyword provides a default instance value.
+    /// <https://www.learnjsonschema.com/2020-12/validation/default/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     pub default: Option<serde_json::Value>,
+    /// The `readOnly` keyword marks a property as read-only.
+    /// <https://www.learnjsonschema.com/2020-12/validation/readOnly/>
     #[serde(rename = "readOnly", skip_serializing_if = "IsEmpty::is_empty")]
     pub read_only: Option<bool>,
+    /// The `deprecated` keyword marks a schema as deprecated.
+    /// <https://www.learnjsonschema.com/2020-12/meta-data/deprecated/>
     #[serde(rename = "deprecated", skip_serializing_if = "IsEmpty::is_empty")]
     pub deprecated: Option<bool>,
+    /// The `writeOnly` keyword marks a property as write-only.
+    /// <https://www.learnjsonschema.com/2020-12/validation/writeOnly/>
     #[serde(rename = "writeOnly", skip_serializing_if = "IsEmpty::is_empty")]
     pub write_only: Option<bool>,
+    /// The `multipleOf` keyword ensures the number is a multiple of this value.
+    /// <https://www.learnjsonschema.com/2020-12/validation/multipleOf/>
     #[serde(rename = "multipleOf", skip_serializing_if = "IsEmpty::is_empty")]
     pub multiple_of: Option<OrderedFloat<f64>>,
+    /// The `maximum` keyword defines the maximum numeric value.
+    /// <https://www.learnjsonschema.com/2020-12/validation/maximum/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     pub maximum: Option<OrderedFloat<f64>>,
+    /// The `exclusiveMaximum` keyword requires the number to be less than this value.
+    /// <https://www.learnjsonschema.com/2020-12/validation/exclusiveMaximum/>
     #[serde(rename = "exclusiveMaximum", skip_serializing_if = "IsEmpty::is_empty")]
     pub exclusive_maximum: Option<OrderedFloat<f64>>,
+    /// The `minimum` keyword defines the minimum numeric value.
+    /// <https://www.learnjsonschema.com/2020-12/validation/minimum/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     pub minimum: Option<OrderedFloat<f64>>,
+    /// The `exclusiveMinimum` keyword requires the number to be greater than this value.
+    /// <https://www.learnjsonschema.com/2020-12/validation/exclusiveMinimum/>
     #[serde(rename = "exclusiveMinimum", skip_serializing_if = "IsEmpty::is_empty")]
     pub exclusive_minimum: Option<OrderedFloat<f64>>,
+    /// The `maxLength` keyword restricts string length to at most this value.
+    /// <https://www.learnjsonschema.com/2020-12/validation/maxLength/>
     #[serde(rename = "maxLength", skip_serializing_if = "IsEmpty::is_empty")]
     pub max_length: Option<u64>,
+    /// The `minLength` keyword restricts string length to at least this value.
+    /// <https://www.learnjsonschema.com/2020-12/validation/minLength/>
     #[serde(rename = "minLength", skip_serializing_if = "IsEmpty::is_empty")]
     pub min_length: Option<u64>,
+    /// The `pattern` keyword restricts strings to those matching this regular expression.
+    /// <https://www.learnjsonschema.com/2020-12/validation/pattern/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     pub pattern: Option<String>,
+    /// The `additionalItems` keyword defines the schema for array elements beyond those covered by a tuple definition.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/additionalItems/>
     #[serde(rename = "additionalItems", skip_serializing_if = "IsEmpty::is_empty")]
     pub additional_items: Option<Schema>,
+    /// The `items` keyword restricts all elements in an array to this schema, or provides a tuple of schemas for positional validation.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/items/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     pub items: Option<Schema>,
+    /// The `maxItems` keyword restricts the number of elements in an array to at most this value.
+    /// <https://www.learnjsonschema.com/2020-12/validation/maxItems/>
     #[serde(rename = "maxItems", skip_serializing_if = "IsEmpty::is_empty")]
     pub max_items: Option<u64>,
+    /// The `minItems` keyword restricts the number of elements in an array to at least this value.
+    /// <https://www.learnjsonschema.com/2020-12/validation/minItems/>
     #[serde(rename = "minItems", skip_serializing_if = "IsEmpty::is_empty")]
     pub min_items: Option<u64>,
+    /// The `uniqueItems` keyword ensures that all elements in an array are unique.
+    /// <https://www.learnjsonschema.com/2020-12/validation/uniqueItems/>
     #[serde(rename = "uniqueItems", skip_serializing_if = "IsEmpty::is_empty")]
     pub unique_items: Option<bool>,
+    /// The `contains` keyword ensures that at least one element in the array matches the specified schema.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/contains/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     pub contains: Option<Schema>,
+    /// The `maxProperties` keyword restricts the number of properties in an object to at most this value.
+    /// <https://www.learnjsonschema.com/2020-12/validation/maxProperties/>
     #[serde(rename = "maxProperties", skip_serializing_if = "IsEmpty::is_empty")]
     pub max_properties: Option<u64>,
+    /// The `minProperties` keyword restricts the number of properties in an object to at least this value.
+    /// <https://www.learnjsonschema.com/2020-12/validation/minProperties/>
     #[serde(rename = "minProperties", skip_serializing_if = "IsEmpty::is_empty")]
     pub min_properties: Option<u64>,
+    /// The `maxContains` keyword limits how many items matching `contains` may appear in an array.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/maxContains/>
     #[serde(rename = "maxContains", skip_serializing_if = "IsEmpty::is_empty")]
     pub max_contains: Option<u64>,
+    /// The `minContains` keyword requires at least this many items matching `contains` in an array.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/minContains/>
     #[serde(rename = "minContains", skip_serializing_if = "IsEmpty::is_empty")]
     pub min_contains: Option<u64>,
+    /// The `additionalProperties` keyword defines the schema for object properties not explicitly listed.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/additionalProperties/>
     #[serde(rename = "additionalProperties", skip_serializing_if = "IsEmpty::is_empty")]
     pub additional_properties: Option<Schema>,
+    /// The `definitions` section holds reusable schema definitions for reference.
+    /// <https://www.learnjsonschema.com/2020-12/meta-data/definitions/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(default)]
     pub definitions: IndexMap<String, Schema>,
+    /// The `patternProperties` keyword maps regex patterns to schemas for matching property names.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/patternProperties/>
     #[serde(rename = "patternProperties", skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(default)]
     pub pattern_properties: IndexMap<String, Schema>,
+    /// The `dependencies` keyword specifies schema or property dependencies for an object.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/dependencies/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(default)]
     pub dependencies: IndexMap<String, Schema>,
+    /// The `propertyNames` keyword restricts all property names in an object to match this schema.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/propertyNames/>
     #[serde(rename = "propertyNames", skip_serializing_if = "IsEmpty::is_empty")]
     pub property_names: Option<Schema>,
+    /// The `const` keyword requires the instance to be exactly this value.
+    /// <https://www.learnjsonschema.com/2020-12/validation/const/>
     #[serde(rename = "const", skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(name = "const_value")]
     pub const_value: Option<serde_json::Value>,
+    /// The `type` keyword restricts the instance to the specified JSON types.
+    /// <https://www.learnjsonschema.com/2020-12/validation/type/>
     #[serde(rename = "type", skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(name = "schema_type")]
     pub schema_type: Option<Types>,
+    /// The `format` keyword provides semantic validation hints, such as "email" or "date-time".
+    /// <https://www.learnjsonschema.com/2020-12/meta-data/format/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(default)]
     pub format: String,
+    /// The `contentMediaType` annotation describes the media type for string content.
+    /// <https://www.learnjsonschema.com/2020-12/annotations/contentMediaType/>
     #[serde(rename = "contentMediaType", skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(default)]
     pub content_media_type: String,
+    /// The `contentEncoding` annotation describes the encoding (e.g., "base64") for string content.
+    /// <https://www.learnjsonschema.com/2020-12/annotations/contentEncoding/>
     #[serde(rename = "contentEncoding", skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(default)]
     pub content_encoding: String,
+    /// The `contentSchema` annotation defines a schema for binary media represented as a string.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/contentSchema/>
     #[serde(rename = "contentSchema", skip_serializing_if = "IsEmpty::is_empty")]
     pub content_schema: Option<Schema>,
+    /// The `if` keyword applies conditional schema validation when this subschema is valid.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/if/>
     #[serde(rename = "if", skip_serializing_if = "IsEmpty::is_empty")]
     pub if_cond: Option<Schema>,
+    /// The `then` keyword applies this subschema when the `if` condition is met.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/then/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     #[builder(name = "then_cond")]
     pub then: Option<Schema>,
-    #[serde(rename = "else_cond", skip_serializing_if = "IsEmpty::is_empty")]
+    /// The `else` keyword applies this subschema when the `if` condition is not met.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/else/>
+    #[serde(rename = "else", skip_serializing_if = "IsEmpty::is_empty")]
     pub else_cond: Option<Schema>,
+    /// The `not` keyword ensures the instance does *not* match this subschema.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/not/>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     pub not: Option<Schema>,
+    /// The `unevaluatedItems` keyword applies schemas to items not covered by `items` or `contains`.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/unevaluatedItems/>
     #[serde(rename = "unevaluatedItems", skip_serializing_if = "IsEmpty::is_empty")]
     pub unevaluated_items: Option<Schema>,
+    /// The `unevaluatedProperties` keyword applies schemas to properties not covered by `properties` or pattern-based keywords.
+    /// <https://www.learnjsonschema.com/2020-12/applicator/unevaluatedProperties/>
     #[serde(rename = "unevaluatedProperties", skip_serializing_if = "IsEmpty::is_empty")]
     pub unevaluated_properties: Option<Schema>,
+    /// The `discriminator` keyword provides object property-based type differentiation (OpenAPI).
+    /// <https://spec.openapis.org/oas/v3.1.0#discriminator-object>
     #[serde(skip_serializing_if = "IsEmpty::is_empty")]
     pub discriminator: Option<Discriminator>,
+    /// All additional, unrecognized fields are stored here as extensions.
     #[serde(flatten)]
     pub extensions: Option<Extensions>,
 }
@@ -557,74 +692,89 @@ impl From<Ref> for Object {
 }
 
 impl<S: object_builder::State> ObjectBuilder<S> {
+    /// Extend the properties using the iterator of `(name, schema)`
     pub fn properties<P: Into<String>, C: Into<Schema>>(mut self, properties: impl IntoIterator<Item = (P, C)>) -> Self {
         self.properties
             .extend(properties.into_iter().map(|(p, s)| (p.into(), s.into())));
         self
     }
 
+    /// Add a singular property
     pub fn property(mut self, name: impl Into<String>, schema: impl Into<Schema>) -> Self {
         self.properties.insert(name.into(), schema.into());
         self
     }
 
+    /// Add a singular schema into the `allOf` array
     pub fn all_of(mut self, all_of: impl Into<Schema>) -> Self {
         self.all_of.push(all_of.into());
         self
     }
 
+    /// Extend the `allOf` array using the iterator of schemas
     pub fn all_ofs<C: Into<Schema>>(mut self, all_ofs: impl IntoIterator<Item = C>) -> Self {
         self.all_of.extend(all_ofs.into_iter().map(|s| s.into()));
         self
     }
 
+    /// Extend the `anyOf` array using the iterator of schemas
     pub fn any_ofs<C: Into<Schema>>(self, any_ofs: impl IntoIterator<Item = C>) -> Self {
         any_ofs.into_iter().fold(self, |this, c| this.any_of(c))
     }
 
+    /// Add a singular schema into the `anyOf` array
     pub fn any_of(mut self, any_of: impl Into<Schema>) -> Self {
         self.any_of.get_or_insert_default().push(any_of.into());
         self
     }
 
+    /// Extend the `oneOfs` array using the iterator of schemas
     pub fn one_ofs<C: Into<Schema>>(self, one_ofs: impl IntoIterator<Item = C>) -> Self {
         one_ofs.into_iter().fold(self, |this, c| this.one_of(c))
     }
 
+    /// Add a singular schema into the `oneOf` array
     pub fn one_of(mut self, one_of: impl Into<Schema>) -> Self {
         self.one_of.get_or_insert_default().push(one_of.into());
         self
     }
 
+    /// Add a singular item into the `enum` array
     pub fn enum_value(mut self, enum_value: impl Into<serde_json::Value>) -> Self {
         self.enum_values.get_or_insert_default().push(enum_value.into());
         self
     }
 
+    /// Extend the `enum` array using an iterator of items
     pub fn enum_values<E: Into<serde_json::Value>>(self, enum_values: impl IntoIterator<Item = E>) -> Self {
         enum_values.into_iter().fold(self, |this, e| this.enum_value(e))
     }
 
+    /// Add a single field into the `required` array
     pub fn require(mut self, require: impl Into<String>) -> Self {
         self.required.push(require.into());
         self
     }
 
+    /// Extend the `required` array from the iterator of fields.
     pub fn required<R: Into<String>>(self, required: impl IntoIterator<Item = R>) -> Self {
         required.into_iter().fold(self, |this, e| this.require(e))
     }
 
+    /// Add a single example to the `examples` array
     pub fn example(mut self, example: impl Into<serde_json::Value>) -> Self {
         self.examples.push(example.into());
         self
     }
 
+    /// Extend the `examples` array using an iterator of examples.
     pub fn examples<E: Into<serde_json::Value>>(self, examples: impl IntoIterator<Item = E>) -> Self {
         examples.into_iter().fold(self, |this, e| this.example(e))
     }
 }
 
 impl<S: object_builder::IsComplete> ObjectBuilder<S> {
+    /// Convert the object into an array of this type
     pub fn to_array(self) -> ObjectBuilder<object_builder::SetItems<object_builder::SetSchemaType>> {
         Object::builder().schema_type(Type::Array).items(self)
     }
@@ -643,10 +793,20 @@ impl<S: object_builder::IsComplete> From<ObjectBuilder<S>> for Schema {
 }
 
 impl Object {
+    /// Create a new object builder with the schema type.
+    /// Short hand for
+    /// ```rust
+    /// # use openapiv3_1::{Object, schema::Type};
+    /// # let ty = Type::Null;
+    /// # let _ = {
+    /// Object::builder().schema_type(ty)
+    /// # };
+    /// ```
     pub fn with_type(ty: impl Into<Types>) -> ObjectBuilder<object_builder::SetSchemaType> {
         Object::builder().schema_type(ty)
     }
 
+    /// An object that represents an [`i32`]
     pub fn int32() -> Object {
         Object::builder()
             .schema_type(Type::Integer)
@@ -655,6 +815,7 @@ impl Object {
             .build()
     }
 
+    /// An object that represents an [`i64`]
     pub fn int64() -> Object {
         Object::builder()
             .schema_type(Type::Integer)
@@ -663,6 +824,7 @@ impl Object {
             .build()
     }
 
+    /// An object that represents an [`u32`]
     pub fn uint32() -> Object {
         Object::builder()
             .schema_type(Type::Integer)
@@ -671,6 +833,7 @@ impl Object {
             .build()
     }
 
+    /// An object that represents an [`u64`]
     pub fn uint64() -> Object {
         Object::builder()
             .schema_type(Type::Integer)
@@ -679,46 +842,22 @@ impl Object {
             .build()
     }
 
+    /// Convert the object into an array of that type.
     pub fn to_array(self) -> Self {
         Self::builder().schema_type(Type::Array).items(self).build()
     }
 
+    /// Builds a new object where its an aggregate of all the objects in the iterator.
+    /// Short hand for
+    /// ```rust
+    /// # use openapiv3_1::{Object, schema::Type};
+    /// # let all_ofs = [true];
+    /// # let _ = {
+    /// Object::builder().all_ofs(all_ofs).build()
+    /// # };
+    /// ```
     pub fn all_ofs<S: Into<Schema>>(all_ofs: impl IntoIterator<Item = S>) -> Object {
         Object::builder().all_ofs(all_ofs).build()
-    }
-}
-
-macro_rules! impl_debug {
-    (
-        $self:ident, $debug:ident, [$($field:ident),*$(,)?]$(,)?
-    ) => {
-        $(
-            if !IsEmpty::is_empty(&$self.$field) {
-                $debug.field(stringify!($field), &$self.$field);
-            }
-        )*
-    };
-}
-
-impl std::fmt::Debug for Object {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut debug = f.debug_struct(stringify!(SchemaObject));
-
-        #[rustfmt::skip]
-        impl_debug!(self, debug, [
-            id, schema, reference, comment, title, description, default, read_only,
-            examples, multiple_of, maximum, exclusive_maximum, minimum,
-            exclusive_minimum, max_length, min_length, pattern,
-            additional_items, items, prefix_items, max_items, min_items, unique_items,
-            contains, max_properties, min_properties, max_contains, min_contains, required,
-            additional_properties, definitions, properties, pattern_properties,
-            dependencies, property_names, const_value, enum_values, schema_type, format,
-            content_media_type, content_encoding, if_cond, then, else_cond, all_of,
-            any_of, one_of, not, unevaluated_items, unevaluated_properties,
-            deprecated, write_only, content_schema, summary,
-        ]);
-
-        debug.finish()
     }
 }
 
@@ -743,16 +882,6 @@ macro_rules! merge_item {
     })*};
 }
 
-macro_rules! impl_is_empty {
-    (
-        $self:ident, [$($field:ident),*$(,)?]$(,)?
-    ) => {
-        true $(
-            && IsEmpty::is_empty(&$self.$field)
-        )*
-    };
-}
-
 fn dedupe_array<T: PartialEq>(items: &mut Vec<T>) {
     let mut dedupe = Vec::new();
     for item in items.drain(..) {
@@ -765,6 +894,8 @@ fn dedupe_array<T: PartialEq>(items: &mut Vec<T>) {
 }
 
 impl Object {
+    /// Optimize the openapi schema
+    /// This will compress nested `allOfs` and try merge things together.
     pub fn optimize(&mut self) {
         // Collect allofs.
         let mut all_ofs = Vec::new();
@@ -818,27 +949,17 @@ impl Object {
         }
     }
 
+    /// Convert the value into an optimized version of itself.
     pub fn into_optimized(mut self) -> Self {
         self.optimize();
         self
     }
 
+    /// Returns true if the object is in the default state.
     pub fn is_empty(&self) -> bool {
-        #[rustfmt::skip]
-        let empty = impl_is_empty!(self, [
-            id, schema, reference, comment, title, description, default, read_only,
-            examples, multiple_of, maximum, exclusive_maximum, minimum,
-            exclusive_minimum, max_length, min_length, pattern,
-            additional_items, items, prefix_items, max_items, min_items, unique_items,
-            contains, max_properties, min_properties, max_contains, min_contains, required,
-            additional_properties, definitions, properties, pattern_properties,
-            dependencies, property_names, const_value, enum_values, schema_type, format,
-            content_media_type, content_encoding, if_cond, then, else_cond, all_of,
-            any_of, one_of, not, unevaluated_items, unevaluated_properties,
-            deprecated, write_only, content_schema, summary,
-        ]);
+        static DEFAULT: std::sync::LazyLock<Object> = std::sync::LazyLock::new(Object::default);
 
-        empty
+        self == &*DEFAULT
     }
 
     fn take_all_ofs(&mut self, collection: &mut Vec<Schema>) {
@@ -1051,11 +1172,15 @@ fn merge_multiple_of(value: &mut Option<OrderedFloat<f64>>, other: &mut Option<O
     *value = lcm_f64(*value, other);
 }
 
-#[derive(serde_derive::Serialize, serde_derive::Deserialize, Clone, Debug, PartialEq)]
+/// A JSON Schema can either be the [`Object`] or a [`bool`]
+#[derive(serde_derive::Serialize, serde_derive::Deserialize, Clone, PartialEq)]
+#[cfg_attr(feature = "debug", derive(Debug))]
 #[serde(untagged)]
 #[non_exhaustive]
 pub enum Schema {
+    /// A json schema object
     Object(Box<Object>),
+    /// A singular boolean value
     Bool(bool),
 }
 
@@ -1072,10 +1197,12 @@ impl From<bool> for Schema {
 }
 
 impl Schema {
+    /// Converts the schema into an array of this type.
     pub fn to_array(self) -> Self {
         Self::object(Object::builder().schema_type(Type::Array).items(self))
     }
 
+    /// Optimizes the schema
     pub fn optimize(&mut self) {
         match self {
             Self::Bool(_) => {}
@@ -1083,6 +1210,7 @@ impl Schema {
         }
     }
 
+    /// Converts the schema into an optimized version
     pub fn into_optimized(mut self) -> Self {
         match &mut self {
             Self::Bool(_) => {}
@@ -1091,6 +1219,7 @@ impl Schema {
         self
     }
 
+    /// Make a schema from an object
     pub fn object(value: impl Into<Object>) -> Self {
         Self::Object(value.into().into())
     }
@@ -1102,6 +1231,7 @@ impl Schema {
         }
     }
 
+    /// Returns true if the object is in its default state.
     pub fn is_empty(&self) -> bool {
         match self {
             Self::Bool(result) => *result,

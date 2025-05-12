@@ -73,7 +73,6 @@ The following table has a list of all functions that are available in the CEL ex
 | `double` | `double` | None | `double` | interpreted, native | Returns the value as `double`. (noop) |
 | `double` | `bool` | None | `double` | interpreted, native | Converts the value to a `double`, where `true` is 1.0 and `false` is 0.0. |
 | `bool` | `string` | None | `bool` | interpreted, native | Converts the value to a `bool`, where `true` is any non-empty string and `false` is an empty string. |
-| `const` | None | `<expr -> U>` | `U` | interpreted | Forces the expression to be evaluated at compile time, otherwise an error will be returned. |
 | `dyn` | None | `<expr -> U>` | `U` | native | Forces the expression to be evaluated at runtime, otherwise an error will be returned. |
 | `floor` | `double` | None | `double` | interpreted, native | Returns the largest integer less than or equal to the value. |
 | `ceil` | `double` | None | `double` | interpreted, native | Returns the smallest integer greater than or equal to the value. |

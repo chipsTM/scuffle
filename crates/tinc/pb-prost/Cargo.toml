@@ -1,5 +1,5 @@
 [package]
-name = "tinc-pb"
+name = "tinc-pb-prost"
 version = "0.1.0"
 edition = "2024"
 description = "Protobuf generated schama for tinc"
@@ -8,7 +8,7 @@ authors = ["Scuffle <opensource@scuffle.cloud>"]
 readme = "README.md"
 documentation = "https://docs.rs/tinc-pb"
 license = "MIT OR Apache-2.0"
-keywords = ["grpc", "protobuf", "tonic", "codegen"]
+keywords = ["grpc", "protobuf", "prost", "codegen"]
 
 [dependencies]
 prost = "0.13.5"

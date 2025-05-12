@@ -4067,13 +4067,13 @@ dependencies = [
  "syn",
  "thiserror 2.0.12",
  "tinc-cel",
- "tinc-pb",
+ "tinc-pb-prost",
  "tonic-build",
 ]
 
 [[package]]
 name = "tinc-cel"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "bytes",
  "chrono",
@@ -4123,7 +4123,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tinc-pb"
+name = "tinc-pb-prost"
 version = "0.1.0"
 dependencies = [
  "prost 0.13.5",

@@ -4,7 +4,7 @@ use openapi::{BodyMethod, GeneratedBody, GeneratedParams, InputGenerator, Output
 use openapiv3_1::HttpMethod;
 use quote::{format_ident, quote};
 use syn::{Ident, parse_quote};
-use tinc_pb::http_endpoint_options;
+use tinc_pb_prost::http_endpoint_options;
 
 use super::Package;
 use super::utils::{field_ident_from_str, type_ident_from_str};
@@ -34,11 +34,11 @@ impl GeneratedMethod {
         components: &mut openapiv3_1::Components,
     ) -> anyhow::Result<GeneratedMethod> {
         let (http_method_oa, path) = match &endpoint.method {
-            tinc_pb::http_endpoint_options::Method::Get(path) => (openapiv3_1::HttpMethod::Get, path),
-            tinc_pb::http_endpoint_options::Method::Post(path) => (openapiv3_1::HttpMethod::Post, path),
-            tinc_pb::http_endpoint_options::Method::Put(path) => (openapiv3_1::HttpMethod::Put, path),
-            tinc_pb::http_endpoint_options::Method::Delete(path) => (openapiv3_1::HttpMethod::Delete, path),
-            tinc_pb::http_endpoint_options::Method::Patch(path) => (openapiv3_1::HttpMethod::Patch, path),
+            tinc_pb_prost::http_endpoint_options::Method::Get(path) => (openapiv3_1::HttpMethod::Get, path),
+            tinc_pb_prost::http_endpoint_options::Method::Post(path) => (openapiv3_1::HttpMethod::Post, path),
+            tinc_pb_prost::http_endpoint_options::Method::Put(path) => (openapiv3_1::HttpMethod::Put, path),
+            tinc_pb_prost::http_endpoint_options::Method::Delete(path) => (openapiv3_1::HttpMethod::Delete, path),
+            tinc_pb_prost::http_endpoint_options::Method::Patch(path) => (openapiv3_1::HttpMethod::Patch, path),
         };
 
         let trimmed_path = path.trim_start_matches('/');

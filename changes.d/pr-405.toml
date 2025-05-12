@@ -3,7 +3,17 @@ category = "feat"
 description = "initial implementation"
 authors = ["@troykomodo"]
 
-[[tinc-pb]]
+[[tinc-cel]]
+category = "feat"
+description = "initial implementation"
+authors = ["@troykomodo"]
+
+[[tinc-pb-prost]]
+category = "feat"
+description = "initial implementation"
+authors = ["@troykomodo"]
+
+[[tinc-build]]
 category = "feat"
 description = "initial implementation"
 authors = ["@troykomodo"]
@@ -13,7 +23,7 @@ category = "feat"
 description = "initial implementation"
 authors = ["@troykomodo"]
 
-[[tinc-build]]
+[[openapiv3_1]]
 category = "feat"
 description = "initial implementation"
 authors = ["@troykomodo"]

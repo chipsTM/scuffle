@@ -94,7 +94,7 @@ trait ProstExtension: prost::Message + Default {
     fn get_options(incoming: &Self::Incoming) -> Option<prost_reflect::DynamicMessage>;
 }
 
-impl ProstExtension for tinc_pb::MessageOptions {
+impl ProstExtension for tinc_pb_prost::MessageOptions {
     type Incoming = prost_reflect::MessageDescriptor;
 
     fn get_options(incoming: &Self::Incoming) -> Option<prost_reflect::DynamicMessage> {
@@ -102,7 +102,7 @@ impl ProstExtension for tinc_pb::MessageOptions {
     }
 }
 
-impl ProstExtension for tinc_pb::FieldOptions {
+impl ProstExtension for tinc_pb_prost::FieldOptions {
     type Incoming = prost_reflect::FieldDescriptor;
 
     fn get_options(incoming: &Self::Incoming) -> Option<prost_reflect::DynamicMessage> {
@@ -110,7 +110,7 @@ impl ProstExtension for tinc_pb::FieldOptions {
     }
 }
 
-impl ProstExtension for tinc_pb::PredefinedConstraints {
+impl ProstExtension for tinc_pb_prost::PredefinedConstraints {
     type Incoming = prost_reflect::FieldDescriptor;
 
     fn get_options(incoming: &Self::Incoming) -> Option<prost_reflect::DynamicMessage> {
@@ -118,7 +118,7 @@ impl ProstExtension for tinc_pb::PredefinedConstraints {
     }
 }
 
-impl ProstExtension for tinc_pb::EnumOptions {
+impl ProstExtension for tinc_pb_prost::EnumOptions {
     type Incoming = prost_reflect::EnumDescriptor;
 
     fn get_options(incoming: &Self::Incoming) -> Option<prost_reflect::DynamicMessage> {
@@ -126,7 +126,7 @@ impl ProstExtension for tinc_pb::EnumOptions {
     }
 }
 
-impl ProstExtension for tinc_pb::EnumVariantOptions {
+impl ProstExtension for tinc_pb_prost::EnumVariantOptions {
     type Incoming = prost_reflect::EnumValueDescriptor;
 
     fn get_options(incoming: &Self::Incoming) -> Option<prost_reflect::DynamicMessage> {
@@ -134,7 +134,7 @@ impl ProstExtension for tinc_pb::EnumVariantOptions {
     }
 }
 
-impl ProstExtension for tinc_pb::MethodOptions {
+impl ProstExtension for tinc_pb_prost::MethodOptions {
     type Incoming = prost_reflect::MethodDescriptor;
 
     fn get_options(incoming: &Self::Incoming) -> Option<prost_reflect::DynamicMessage> {
@@ -142,7 +142,7 @@ impl ProstExtension for tinc_pb::MethodOptions {
     }
 }
 
-impl ProstExtension for tinc_pb::ServiceOptions {
+impl ProstExtension for tinc_pb_prost::ServiceOptions {
     type Incoming = prost_reflect::ServiceDescriptor;
 
     fn get_options(incoming: &Self::Incoming) -> Option<prost_reflect::DynamicMessage> {
@@ -150,7 +150,7 @@ impl ProstExtension for tinc_pb::ServiceOptions {
     }
 }
 
-impl ProstExtension for tinc_pb::OneofOptions {
+impl ProstExtension for tinc_pb_prost::OneofOptions {
     type Incoming = prost_reflect::OneofDescriptor;
 
     fn get_options(incoming: &Self::Incoming) -> Option<prost_reflect::DynamicMessage> {
@@ -158,35 +158,35 @@ impl ProstExtension for tinc_pb::OneofOptions {
     }
 }
 
-fn rename_field(field: &str, style: tinc_pb::RenameAll) -> Option<String> {
+fn rename_field(field: &str, style: tinc_pb_prost::RenameAll) -> Option<String> {
     match style {
-        tinc_pb::RenameAll::LowerCase => Some(field.to_lowercase()),
-        tinc_pb::RenameAll::UpperCase => Some(field.to_uppercase()),
-        tinc_pb::RenameAll::PascalCase => Some(field.to_case(Case::Pascal)),
-        tinc_pb::RenameAll::CamelCase => Some(field.to_case(Case::Camel)),
-        tinc_pb::RenameAll::SnakeCase => Some(field.to_case(Case::Snake)),
-        tinc_pb::RenameAll::KebabCase => Some(field.to_case(Case::Kebab)),
-        tinc_pb::RenameAll::ScreamingSnakeCase => Some(field.to_case(Case::UpperSnake)),
-        tinc_pb::RenameAll::ScreamingKebabCase => Some(field.to_case(Case::UpperKebab)),
-        tinc_pb::RenameAll::Unspecified => None,
+        tinc_pb_prost::RenameAll::LowerCase => Some(field.to_lowercase()),
+        tinc_pb_prost::RenameAll::UpperCase => Some(field.to_uppercase()),
+        tinc_pb_prost::RenameAll::PascalCase => Some(field.to_case(Case::Pascal)),
+        tinc_pb_prost::RenameAll::CamelCase => Some(field.to_case(Case::Camel)),
+        tinc_pb_prost::RenameAll::SnakeCase => Some(field.to_case(Case::Snake)),
+        tinc_pb_prost::RenameAll::KebabCase => Some(field.to_case(Case::Kebab)),
+        tinc_pb_prost::RenameAll::ScreamingSnakeCase => Some(field.to_case(Case::UpperSnake)),
+        tinc_pb_prost::RenameAll::ScreamingKebabCase => Some(field.to_case(Case::UpperKebab)),
+        tinc_pb_prost::RenameAll::Unspecified => None,
     }
 }
 
 pub(crate) struct Extensions<'a> {
     pool: &'a DescriptorPool,
     // Message extensions.
-    ext_message: Extension<tinc_pb::MessageOptions>,
-    ext_field: Extension<tinc_pb::FieldOptions>,
-    ext_oneof: Extension<tinc_pb::OneofOptions>,
-    ext_predefined: Extension<tinc_pb::PredefinedConstraints>,
+    ext_message: Extension<tinc_pb_prost::MessageOptions>,
+    ext_field: Extension<tinc_pb_prost::FieldOptions>,
+    ext_oneof: Extension<tinc_pb_prost::OneofOptions>,
+    ext_predefined: Extension<tinc_pb_prost::PredefinedConstraints>,
 
     // Enum extensions.
-    ext_enum: Extension<tinc_pb::EnumOptions>,
-    ext_variant: Extension<tinc_pb::EnumVariantOptions>,
+    ext_enum: Extension<tinc_pb_prost::EnumOptions>,
+    ext_variant: Extension<tinc_pb_prost::EnumVariantOptions>,
 
     // Service extensions.
-    ext_method: Extension<tinc_pb::MethodOptions>,
-    ext_service: Extension<tinc_pb::ServiceOptions>,
+    ext_method: Extension<tinc_pb_prost::MethodOptions>,
+    ext_service: Extension<tinc_pb_prost::ServiceOptions>,
 }
 
 impl<'a> Extensions<'a> {
@@ -208,7 +208,15 @@ impl<'a> Extensions<'a> {
         self.pool
             .files()
             .map(|file| FileWalker::new(file, self))
-            .try_for_each(|file| file.process(registry))
+            .try_for_each(|file| {
+                anyhow::ensure!(
+                    !file.file.package_name().is_empty(),
+                    "you must provide a proto package for file: {}",
+                    file.file.name()
+                );
+
+                file.process(registry)
+            })
     }
 }
 
@@ -367,7 +375,7 @@ impl<'a> FileWalker<'a> {
 
         let opts = opts.unwrap_or_default();
         let message_full_name = ProtoPath::new(message.full_name());
-        let rename_all = opts.rename_all.and_then(|v| tinc_pb::RenameAll::try_from(v).ok());
+        let rename_all = opts.rename_all.and_then(|v| tinc_pb_prost::RenameAll::try_from(v).ok());
 
         let mut message_type = ProtoMessageType {
             full_name: message_full_name.clone(),
@@ -529,8 +537,8 @@ impl<'a> FileWalker<'a> {
         let opts = opts.unwrap_or_default();
         let rename_all = opts
             .rename_all
-            .and_then(|v| tinc_pb::RenameAll::try_from(v).ok())
-            .unwrap_or(tinc_pb::RenameAll::ScreamingSnakeCase);
+            .and_then(|v| tinc_pb_prost::RenameAll::try_from(v).ok())
+            .unwrap_or(tinc_pb_prost::RenameAll::ScreamingSnakeCase);
 
         let mut enum_opts = ProtoEnumType {
             full_name: ProtoPath::new(enum_.full_name()),
@@ -580,7 +588,7 @@ enum CelInput {
 }
 
 pub(crate) fn gather_cel_expressions(
-    extension: &Extension<tinc_pb::PredefinedConstraints>,
+    extension: &Extension<tinc_pb_prost::PredefinedConstraints>,
     field_options: &prost_reflect::DynamicMessage,
 ) -> anyhow::Result<CelExpressions> {
     let Some(extension) = extension.descriptor() else {
@@ -595,18 +603,18 @@ pub(crate) fn gather_cel_expressions(
         let predef = value
             .as_message()
             .context("expected message")?
-            .transcode_to::<tinc_pb::PredefinedConstraints>()
+            .transcode_to::<tinc_pb_prost::PredefinedConstraints>()
             .context("invalid predefined constraint")?;
         match predef.r#type() {
-            tinc_pb::predefined_constraints::Type::Unspecified => {}
-            tinc_pb::predefined_constraints::Type::CustomExpression => {}
-            tinc_pb::predefined_constraints::Type::WrapperMapKey => {
+            tinc_pb_prost::predefined_constraints::Type::Unspecified => {}
+            tinc_pb_prost::predefined_constraints::Type::CustomExpression => {}
+            tinc_pb_prost::predefined_constraints::Type::WrapperMapKey => {
                 input = CelInput::MapKey;
             }
-            tinc_pb::predefined_constraints::Type::WrapperMapValue => {
+            tinc_pb_prost::predefined_constraints::Type::WrapperMapValue => {
                 input = CelInput::MapValue;
             }
-            tinc_pb::predefined_constraints::Type::WrapperRepeatedItem => {
+            tinc_pb_prost::predefined_constraints::Type::WrapperRepeatedItem => {
                 input = CelInput::RepeatedItem;
             }
         }
@@ -644,16 +652,16 @@ fn explore_fields(
             let predef = message
                 .as_message()
                 .unwrap()
-                .transcode_to::<tinc_pb::PredefinedConstraints>()
+                .transcode_to::<tinc_pb_prost::PredefinedConstraints>()
                 .unwrap();
             match predef.r#type() {
-                tinc_pb::predefined_constraints::Type::Unspecified => {}
-                tinc_pb::predefined_constraints::Type::CustomExpression => {
+                tinc_pb_prost::predefined_constraints::Type::Unspecified => {}
+                tinc_pb_prost::predefined_constraints::Type::CustomExpression => {
                     if let Some(list) = value.as_list() {
                         results.entry(input).or_default().extend(
                             list.iter()
                                 .filter_map(|item| item.as_message())
-                                .filter_map(|msg| msg.transcode_to::<tinc_pb::CelExpression>().ok())
+                                .filter_map(|msg| msg.transcode_to::<tinc_pb_prost::CelExpression>().ok())
                                 .map(|expr| CelExpression {
                                     expression: expr.expression,
                                     jsonschemas: expr.jsonschemas,
@@ -664,13 +672,13 @@ fn explore_fields(
                     }
                     continue;
                 }
-                tinc_pb::predefined_constraints::Type::WrapperMapKey => {
+                tinc_pb_prost::predefined_constraints::Type::WrapperMapKey => {
                     input = CelInput::MapKey;
                 }
-                tinc_pb::predefined_constraints::Type::WrapperMapValue => {
+                tinc_pb_prost::predefined_constraints::Type::WrapperMapValue => {
                     input = CelInput::MapValue;
                 }
-                tinc_pb::predefined_constraints::Type::WrapperRepeatedItem => {
+                tinc_pb_prost::predefined_constraints::Type::WrapperRepeatedItem => {
                     input = CelInput::RepeatedItem;
                 }
             }

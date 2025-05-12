@@ -328,6 +328,7 @@ pub enum HttpMethod {
 }
 
 impl HttpMethod {
+    /// Returns the lower-case string representation of tghe http method
     pub const fn as_str(&self) -> &str {
         match self {
             Self::Get => "get",
@@ -358,14 +359,6 @@ impl std::fmt::Display for HttpMethod {
 #[builder(on(_, into))]
 pub struct Operation {
     /// List of tags used for grouping operations.
-    ///
-    /// When used with derive [`#[utoipa::path(...)]`][derive_path] attribute macro the default
-    /// value used will be resolved from handler path provided in `#[openapi(paths(...))]` with
-    /// [`#[derive(OpenApi)]`][derive_openapi] macro. If path resolves to `None` value `crate` will
-    /// be used by default.
-    ///
-    /// [derive_path]: ../../attr.path.html
-    /// [derive_openapi]: ../../derive.OpenApi.html
     #[serde(skip_serializing_if = "Option::is_none", default)]
     #[builder(field)]
     pub tags: Option<Vec<String>>,
@@ -394,29 +387,14 @@ pub struct Operation {
     pub security: Option<Vec<SecurityRequirement>>,
 
     /// Short summary what [`Operation`] does.
-    ///
-    /// When used with derive [`#[utoipa::path(...)]`][derive_path] attribute macro the value
-    /// is taken from **first line** of doc comment.
-    ///
-    /// [derive_path]: ../../attr.path.html
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub summary: Option<String>,
 
     /// Long explanation of [`Operation`] behaviour. Markdown syntax is supported.
-    ///
-    /// When used with derive [`#[utoipa::path(...)]`][derive_path] attribute macro the
-    /// doc comment is used as value for description.
-    ///
-    /// [derive_path]: ../../attr.path.html
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub description: Option<String>,
 
     /// Unique identifier for the API [`Operation`]. Most typically this is mapped to handler function name.
-    ///
-    /// When used with derive [`#[utoipa::path(...)]`][derive_path] attribute macro the handler function
-    /// name will be used by default.
-    ///
-    /// [derive_path]: ../../attr.path.html
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub operation_id: Option<String>,
 

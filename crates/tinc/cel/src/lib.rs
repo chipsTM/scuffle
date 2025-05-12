@@ -4,8 +4,8 @@
 #![deny(unreachable_pub)]
 #![doc(hidden)]
 
-//! Currently is currently a fully private api used by `tinc` and `tinc-build` to
-//! Compile & Execute cel expressions.
+//! Currently this is a fully private api used by `tinc` and `tinc-build` to
+//! compile and execute [CEL](https://cel.dev/) expressions.
 
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};

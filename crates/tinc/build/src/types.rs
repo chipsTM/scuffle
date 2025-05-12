@@ -3,7 +3,7 @@ use std::fmt::Write;
 use std::sync::Arc;
 
 use indexmap::IndexMap;
-use tinc_pb::http_endpoint_options;
+use tinc_pb_prost::http_endpoint_options;
 
 use crate::codegen::cel::{CelExpression, CelExpressions};
 use crate::codegen::utils::{field_ident_from_str, get_common_import_path, type_ident_from_str};
@@ -224,18 +224,18 @@ pub(crate) enum ProtoFieldSerdeOmittable {
 }
 
 impl ProtoFieldSerdeOmittable {
-    pub(crate) fn from_pb(value: tinc_pb::JsonOmittable, nullable: bool) -> Self {
+    pub(crate) fn from_pb(value: tinc_pb_prost::JsonOmittable, nullable: bool) -> Self {
         match value {
-            tinc_pb::JsonOmittable::Unspecified => {
+            tinc_pb_prost::JsonOmittable::Unspecified => {
                 if nullable {
                     Self::TrueButStillSerialize
                 } else {
                     Self::False
                 }
             }
-            tinc_pb::JsonOmittable::True => Self::True,
-            tinc_pb::JsonOmittable::False => Self::False,
-            tinc_pb::JsonOmittable::TrueButStillSerialize => Self::TrueButStillSerialize,
+            tinc_pb_prost::JsonOmittable::True => Self::True,
+            tinc_pb_prost::JsonOmittable::False => Self::False,
+            tinc_pb_prost::JsonOmittable::TrueButStillSerialize => Self::TrueButStillSerialize,
         }
     }
 
@@ -253,12 +253,12 @@ pub(crate) enum ProtoVisibility {
 }
 
 impl ProtoVisibility {
-    pub(crate) fn from_pb(visibility: tinc_pb::Visibility) -> Self {
+    pub(crate) fn from_pb(visibility: tinc_pb_prost::Visibility) -> Self {
         match visibility {
-            tinc_pb::Visibility::Skip => ProtoVisibility::Skip,
-            tinc_pb::Visibility::InputOnly => ProtoVisibility::InputOnly,
-            tinc_pb::Visibility::OutputOnly => ProtoVisibility::OutputOnly,
-            tinc_pb::Visibility::Unspecified => ProtoVisibility::Default,
+            tinc_pb_prost::Visibility::Skip => ProtoVisibility::Skip,
+            tinc_pb_prost::Visibility::InputOnly => ProtoVisibility::InputOnly,
+            tinc_pb_prost::Visibility::OutputOnly => ProtoVisibility::OutputOnly,
+            tinc_pb_prost::Visibility::Unspecified => ProtoVisibility::Default,
         }
     }
 
@@ -297,7 +297,7 @@ impl ProtoOneOfType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ProtoOneOfOptions {
-    pub tagged: Option<tinc_pb::oneof_options::Tagged>,
+    pub tagged: Option<tinc_pb_prost::oneof_options::Tagged>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -1,11 +1,26 @@
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 #![deny(unreachable_pub)]
 #![cfg_attr(not(feature = "prost"), allow(unused_variables, dead_code))]
 
-//! Tinc build
-//! TODO: Crate Level Docs.
+//! The code generator for [`tinc`](https://crates.io/crates/tinc).
+//!
+//! ## Usage
+//!
+//! In your `build.rs`:
+//!
+//! ```rust,no_run
+//! # #[allow(clippy::needless_doctest_main)]
+//! fn main() {
+//!     tinc_build::Config::prost()
+//!         .compile_protos(&["proto/test.proto"], &["proto"])
+//!         .unwrap();
+//! }
+//! ```
+//!
+//! Look at [`Config`] to see different options to configure the generator.
 
 use anyhow::Context;
 use extern_paths::ExternPaths;
@@ -20,8 +35,9 @@ mod types;
 /// The mode to use for the generator, currently we only support `prost` codegen.
 #[derive(Debug, Clone, Copy)]
 pub enum Mode {
-    #[cfg(feature = "prost")]
     /// Use `prost` to generate the protobuf structures
+    #[cfg(feature = "prost")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "prost")))]
     Prost,
 }
 
@@ -55,6 +71,7 @@ pub struct Config {
 impl Config {
     /// New config with prost mode.
     #[cfg(feature = "prost")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "prost")))]
     pub fn prost() -> Self {
         Self::new(Mode::Prost)
     }
@@ -129,10 +146,10 @@ impl Config {
         {
             let tinc_out = out_dir.join("tinc");
             std::fs::create_dir_all(&tinc_out).context("failed to create tinc directory")?;
-            std::fs::write(tinc_out.join("annotations.proto"), tinc_pb::TINC_ANNOTATIONS)
+            std::fs::write(tinc_out.join("annotations.proto"), tinc_pb_prost::TINC_ANNOTATIONS)
                 .context("failed to write tinc_annotations.rs")?;
             includes.push(&out_dir_str);
-            config.protoc_arg(format!("--descriptor_set_in={}", tinc_pb::TINC_ANNOTATIONS_PB_PATH));
+            config.protoc_arg(format!("--descriptor_set_in={}", tinc_pb_prost::TINC_ANNOTATIONS_PB_PATH));
         }
 
         let fds = config.load_fds(protos, &includes).context("failed to generate tonic fds")?;
@@ -210,7 +227,6 @@ impl Config {
             });
 
             package.extra_items.extend(package.services.iter().flat_map(|service| {
-                dbg!(&service);
                 let mut builder = tonic_build::CodeGenBuilder::new();
 
                 builder.emit_package(true).build_transport(true);

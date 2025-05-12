@@ -1,11 +1,6 @@
 //! Implements [OpenAPI Metadata][info] types.
 //!
-//! Refer to [`OpenApi`][openapi_trait] trait and [derive documentation][derive]
-//! for examples and usage details.
-//!
 //! [info]: <https://spec.openapis.org/oas/latest.html#info-object>
-//! [openapi_trait]: ../../trait.OpenApi.html
-//! [derive]: ../../derive.OpenApi.html
 
 use serde_derive::{Deserialize, Serialize};
 
@@ -83,6 +78,12 @@ impl Info {
     }
 }
 
+/// OpenAPI [`Contact`][contact] object represents metadata of the API.
+///
+/// You can use [`Contact::new`] to construct a new [`Contact`] object or alternatively use [`Contact::builder`]
+/// to construct a new [`Contact`] with chainable configuration methods.
+///
+/// [contact]: <https://spec.openapis.org/oas/latest.html#contact-object>
 #[non_exhaustive]
 #[derive(Serialize, Deserialize, Default, Clone, PartialEq, Eq, bon::Builder)]
 #[cfg_attr(feature = "debug", derive(Debug))]

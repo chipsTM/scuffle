@@ -13,17 +13,13 @@ use super::extensions::Extensions;
 /// OpenAPI [security requirement][security] object.
 ///
 /// Security requirement holds list of required [`SecurityScheme`] *names* and possible *scopes* required
-/// to execute the operation. They can be defined in [`#[utoipa::path(...)]`][path] or in `#[openapi(...)]`
-/// of [`OpenApi`][openapi].
+/// to execute the operation.
 ///
-/// Applying the security requirement to [`OpenApi`][openapi] will make it globally
-/// available to all operations. When applied to specific [`#[utoipa::path(...)]`][path] will only
-/// make the security requirements available for that operation. Only one of the requirements must be
+/// Applying the security requirement to [`OpenApi`][crate::OpenApi] will make it globally
+/// available to all operations. Only one of the requirements must be
 /// satisfied.
 ///
 /// [security]: https://spec.openapis.org/oas/latest.html#security-requirement-object
-/// [path]: ../../attr.path.html
-/// [openapi]: ../../derive.OpenApi.html
 #[non_exhaustive]
 #[derive(Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "debug", derive(Debug))]

@@ -18,6 +18,7 @@ pub struct Extensions {
 }
 
 impl Extensions {
+    /// Create a new extension from an iterator
     pub fn new<K: Into<String>, V: Into<serde_json::Value>>(items: impl IntoIterator<Item = (K, V)>) -> Self {
         items.into_iter().fold(Self::default(), |this, (k, v)| this.add(k, v))
     }
@@ -27,6 +28,7 @@ impl Extensions {
         self.extensions.extend(other.extensions);
     }
 
+    /// Add an extension to the list
     pub fn add(mut self, key: impl Into<String>, value: impl Into<serde_json::Value>) -> Self {
         let mut key = key.into();
         if !key.starts_with(EXTENSION_PREFIX) {

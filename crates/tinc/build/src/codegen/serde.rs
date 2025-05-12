@@ -1,7 +1,7 @@
 use anyhow::Context;
 use quote::{ToTokens, quote};
 use syn::parse_quote;
-use tinc_pb::oneof_options::Tagged;
+use tinc_pb_prost::oneof_options::Tagged;
 
 use super::Package;
 use super::cel::compiler::{CompiledExpr, Compiler};
