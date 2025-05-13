@@ -17,9 +17,9 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 bytes = "1.5"
 byteorder = "1.5"
 bitflags = "2.9.0"
-scuffle-expgolomb.workspace = true
-scuffle-bytes-util.workspace = true
-nutype-enum.workspace = true
+scuffle-expgolomb = "0.1.1"
+scuffle-bytes-util = "0.1.1"
+nutype-enum = "0.1.3"
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]

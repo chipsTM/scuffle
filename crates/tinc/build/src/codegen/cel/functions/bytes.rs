@@ -110,7 +110,7 @@ mod tests {
             postcompile::config! {
                 test: true,
                 dependencies: vec![
-                    postcompile::Dependency::workspace("tinc"),
+                    postcompile::Dependency::version("tinc", "*"),
                 ],
             },
             quote! {

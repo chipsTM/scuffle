@@ -11,7 +11,10 @@ license = "MIT OR Apache-2.0"
 keywords = ["rtmp", "server", "streaming"]
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)', 'cfg(valgrind)'] }
+unexpected_cfgs = { level = "warn", check-cfg = [
+  'cfg(coverage_nightly)',
+  'cfg(valgrind)',
+] }
 
 [[example]]
 name = "scuffle-rtmp-basic"
@@ -34,11 +37,11 @@ num-traits = "0.2"
 num-derive = "0.4"
 bitmask-enum = "2.2.5"
 
-nutype-enum.workspace = true
-scuffle-amf0 = { workspace = true, features = ["serde"] }
-scuffle-bytes-util.workspace = true
-scuffle-future-ext.workspace = true
-scuffle-context.workspace = true
+nutype-enum = "0.1.2"
+scuffle-amf0 = { version = "0.2.0", features = ["serde"] }
+scuffle-bytes-util = "0.1.1"
+scuffle-future-ext = "0.1.1"
+scuffle-context = "0.1.1"
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
@@ -48,4 +51,4 @@ serde_json = "1.0"
 # For examples:
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
-scuffle-flv = { workspace = true }
+scuffle-flv = "0.2.0"
