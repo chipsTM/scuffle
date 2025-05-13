@@ -14,6 +14,10 @@ keywords = ["postcompile", "snapshot", "test", "proc-macro"]
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(trybuild_no_target)', 'cfg(postcompile_no_target)', 'cfg(coverage_nightly)', 'cfg(valgrind)'] }
 
+[features]
+## Enables changelog and documentation of feature flags
+docs = ["dep:scuffle-changelog", "dep:document-features"]
+
 [dependencies]
 prettyplease = "0.2"
 syn = "2"
@@ -22,7 +26,29 @@ cargo-manifest = "0.19"
 cargo_metadata = "0.19"
 target-triple = "0.1"
 regex = "1"
+scuffle-changelog = { version = "0.1", optional = true }
+document-features = { version = "0.2", optional = true }
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 insta = "1.42.0"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+
+[package.metadata.xtask.powerset]
+additive-features = ["docs"]
+
+[package.metadata.cargo-sync-rdme.rustdoc.mappings]
+changelog = "./CHANGELOG.md"
+
+[package.metadata.cargo-sync-rdme.badge]
+style = "flat-square"
+
+[package.metadata.cargo-sync-rdme.badge.badges]
+license = true
+docs-rs = true
+crates-io = true
+github-actions = { workflows = "ci.yaml" }
+codecov = true

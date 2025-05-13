@@ -1,0 +1,37 @@
+[package]
+name = "scuffle-changelog"
+version = "0.1.0"
+edition = "2024"
+description = "A helper macro to embed changelogs in crate docs."
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-changelog"
+license = "MIT OR Apache-2.0"
+keywords = ["documentation", "changelog", "embed"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "2"
+proc-macro2 = "1"
+quote = "1"
+regex = "1"
+convert_case = "0.8.0"
+semver = "1"
+fmtools = "0.1"
+scuffle-workspace-hack.workspace = true
+
+[package.metadata.cargo-sync-rdme.badge]
+style = "flat-square"
+
+[package.metadata.cargo-sync-rdme.badge.badges]
+license = true
+docs-rs = true
+crates-io = true
+github-actions = { workflows = "ci.yaml" }
+codecov = true

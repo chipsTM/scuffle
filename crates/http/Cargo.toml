@@ -28,6 +28,25 @@ name = "scuffle-http-axum"
 path = "examples/axum.rs"
 required-features = ["default", "tls-rustls", "http3", "tower", "tracing"]
 
+[features]
+default = ["http1", "http2", "tower"]
+## Enables tracing support
+tracing = ["dep:tracing", "quinn?/log", "h3-quinn?/tracing", "h3?/tracing", "tokio-rustls?/logging", "rustls?/logging"]
+## Enables http1 support
+http1 = ["dep:hyper", "dep:hyper-util", "dep:libc", "hyper/http1", "hyper-util/http1"]
+## Enabled http2 support
+http2 = ["dep:hyper", "dep:hyper-util", "dep:libc", "hyper/http2", "hyper-util/http2"]
+## Enables http3 support
+http3 = ["dep:quinn", "dep:h3-quinn", "dep:h3"]
+## Enables tls via rustls
+tls-rustls = ["dep:tokio-rustls", "dep:rustls"]
+## Alias for ["http3", "tls-rustls"]
+http3-tls-rustls = ["http3", "tls-rustls"]
+## Enables tower service support
+tower = ["dep:tower"]
+## Enables changelog and documentation of feature flags
+docs = ["dep:scuffle-changelog", "dep:document-features"]
+
 [dependencies]
 tokio = { version = "1.43.0" }
 thiserror = "2.0.11"
@@ -61,6 +80,9 @@ rustls = { version = "0.23.21", default-features = false, features = ["aws_lc_rs
 # Tower Services
 tower = { version = "0.5.2", default-features = false, features = ["make"], optional = true }
 
+scuffle-changelog = { version = "0.1", optional = true }
+document-features = { version = "0.2", optional = true }
+
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
@@ -76,21 +98,23 @@ tokio = { version = "1.43.0", features = ["full"] }
 tracing = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 
-# https://doc.rust-lang.org/cargo/reference/features.html#dependency-features
-[features]
-default = ["http1", "http2", "tower"]
-tracing = ["dep:tracing", "quinn?/log", "h3-quinn?/tracing", "h3?/tracing", "tokio-rustls?/logging", "rustls?/logging"]
-http1 = ["dep:hyper", "dep:hyper-util", "dep:libc", "hyper/http1", "hyper-util/http1"]
-http2 = ["dep:hyper", "dep:hyper-util", "dep:libc", "hyper/http2", "hyper-util/http2"]
-http3 = ["dep:quinn", "dep:h3-quinn", "dep:h3"]
-tls-rustls = ["dep:tokio-rustls", "dep:rustls"]
-http3-tls-rustls = ["http3", "tls-rustls"]
-tower = ["dep:tower"]
-
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
 
 [package.metadata.xtask.powerset]
-additive-features = ["tracing", "tower"]
+additive-features = ["tracing", "tower", "docs"]
 ignore-features = ["http3"]
+
+[package.metadata.cargo-sync-rdme.rustdoc.mappings]
+changelog = "./CHANGELOG.md"
+
+[package.metadata.cargo-sync-rdme.badge]
+style = "flat-square"
+
+[package.metadata.cargo-sync-rdme.badge.badges]
+license = true
+docs-rs = true
+crates-io = true
+github-actions = { workflows = "ci.yaml" }
+codecov = true

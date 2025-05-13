@@ -19,14 +19,35 @@ num-derive = "0.4"
 thiserror = "2.0"
 bytestring = "1.4.0"
 scuffle-bytes-util = "0.1.1"
+scuffle-changelog = { version = "0.1", optional = true }
+document-features = { version = "0.2", optional = true }
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 serde_derive = "1"
 
 [features]
+## Enables serde support
 serde = ["dep:serde", "scuffle-bytes-util/serde"]
+## Enables changelog and documentation of feature flags
+docs = ["dep:scuffle-changelog", "dep:document-features"]
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+
+[package.metadata.xtask.powerset]
+additive-features = ["docs", "serde"]
+
+[package.metadata.cargo-sync-rdme.rustdoc.mappings]
+changelog = "./CHANGELOG.md"
+
+[package.metadata.cargo-sync-rdme.badge]
+style = "flat-square"
+
+[package.metadata.cargo-sync-rdme.badge.badges]
+license = true
+docs-rs = true
+crates-io = true
+github-actions = { workflows = "ci.yaml" }
+codecov = true

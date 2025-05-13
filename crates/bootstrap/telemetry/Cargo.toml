@@ -34,6 +34,8 @@ scuffle-bootstrap = "0.1.2"
 scuffle-context = "0.1.0"
 scuffle-http = "0.2.1"
 scuffle-pprof = { version= "0.1.0", optional = true }
+scuffle-changelog = { version = "0.1", optional = true }
+document-features = { version = "0.2", optional = true }
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
@@ -42,12 +44,20 @@ reqwest = { version = "0.12.12", default-features = false }
 
 [features]
 default = ["prometheus", "pprof", "opentelemetry-metrics", "opentelemetry-traces", "opentelemetry-logs"]
+## Enables prometheus support
 prometheus = ["prometheus-client", "opentelemetry"]
+## Enables pprof profiling
 pprof = ["scuffle-pprof", "querystring", "tokio"]
+## Enables opentelemetry
 opentelemetry = ["dep:opentelemetry", "dep:opentelemetry_sdk", "thiserror", "tokio"]
+## Enables opentelemetry metricx exporting
 opentelemetry-metrics = ["opentelemetry"]
+## Enables opentelemetry trace exporting
 opentelemetry-traces = ["opentelemetry", "tracing-opentelemetry"]
+## Enables opentelemetry log exporting
 opentelemetry-logs = ["opentelemetry", "opentelemetry-appender-tracing"]
+## Enables changelog and documentation of feature flags
+docs = ["dep:scuffle-changelog", "dep:document-features"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -61,4 +71,18 @@ additive-features = [
     "opentelemetry-metrics",
     "opentelemetry-traces",
     "opentelemetry-logs",
+    "docs",
 ]
+
+[package.metadata.cargo-sync-rdme.rustdoc.mappings]
+changelog = "./CHANGELOG.md"
+
+[package.metadata.cargo-sync-rdme.badge]
+style = "flat-square"
+
+[package.metadata.cargo-sync-rdme.badge.badges]
+license = true
+docs-rs = true
+crates-io = true
+github-actions = { workflows = "ci.yaml" }
+codecov = true

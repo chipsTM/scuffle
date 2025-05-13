@@ -36,6 +36,7 @@ members = [
     "crates/tinc/derive",
     "crates/tinc/integration",
     "crates/openapiv3_1",
+    "crates/changelog",
 ]
 
 resolver = "2"
@@ -82,3 +83,4 @@ tinc-pb-prost.path = "crates/tinc/pb-prost"
 tinc-build.path = "crates/tinc/build"
 tinc-derive.path = "crates/tinc/derive"
 openapiv3_1.path = "crates/openapiv3_1"
+scuffle-changelog.path = "crates/changelog"

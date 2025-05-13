@@ -27,6 +27,8 @@ rand = "0.9"
 bon = "3.3.2"
 thiserror = "2.0"
 va_list = "0.2"
+scuffle-changelog = { version = "0.1", optional = true }
+document-features = { version = "0.2", optional = true }
 
 [dev-dependencies]
 insta = { version = "1.42", features = ["filters"] }
@@ -38,21 +40,41 @@ sha2 = "0.10"
 bytes = "1"
 
 [features]
-channel = ["dep:bytes"]
-tokio-channel = ["channel", "dep:tokio"]
-crossbeam-channel = ["channel", "dep:crossbeam-channel"]
-tracing = ["dep:tracing"]
-link_system_ffmpeg = ["rusty_ffmpeg/link_system_ffmpeg"]
-link_vcpkg_ffmpeg = ["rusty_ffmpeg/link_vcpkg_ffmpeg"]
 default = ["link_system_ffmpeg"]
+## Enables channel support for IO
+channel = ["dep:bytes"]
+## Enables tokio channel support
+tokio-channel = ["channel", "dep:tokio"]
+## Enables crossbeam-channel support
+crossbeam-channel = ["channel", "dep:crossbeam-channel"]
+## Enables tracing support
+tracing = ["dep:tracing"]
+## Links ffmpeg via system
+link_system_ffmpeg = ["rusty_ffmpeg/link_system_ffmpeg"]
+## Links ffmpeg via vcpkg
+link_vcpkg_ffmpeg = ["rusty_ffmpeg/link_vcpkg_ffmpeg"]
+## Enables changelog and documentation of feature flags
+docs = ["dep:scuffle-changelog", "dep:document-features"]
 
 [package.metadata.xtask.powerset]
 # Note: `link_system_ffmpeg` nor `link_vcpkg_ffmpeg` are additive features because
 # they change the build.rs and therefore require a full rebuild of the crate.
-additive-features = ["channel", "tokio-channel", "crossbeam-channel", "tracing"]
-
+additive-features = ["channel", "tokio-channel", "crossbeam-channel", "tracing", "docs"]
 always_include_features = ["link_system_ffmpeg"]
 
 [package.metadata.docs.rs]
-features = ["channel", "tokio-channel", "crossbeam-channel", "tracing"]
-rustdoc-args = ["--cfg", "docsrs"]
+features = ["channel", "tokio-channel", "crossbeam-channel", "tracing", "docs"]
+rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+
+[package.metadata.cargo-sync-rdme.rustdoc.mappings]
+changelog = "./CHANGELOG.md"
+
+[package.metadata.cargo-sync-rdme.badge]
+style = "flat-square"
+
+[package.metadata.cargo-sync-rdme.badge.badges]
+license = true
+docs-rs = true
+crates-io = true
+github-actions = { workflows = "ci.yaml" }
+codecov = true

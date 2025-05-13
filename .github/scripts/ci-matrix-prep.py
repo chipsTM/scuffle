@@ -105,6 +105,9 @@ class FmtMatrix:
 class HakariMatrix:
     pass
 
+@dataclass
+class ReadmeMatrix:
+    pass
 
 @dataclass
 class SemverChecksMatrix:
@@ -127,6 +130,7 @@ class Job:
         | FmtMatrix
         | HakariMatrix
         | SemverChecksMatrix
+        | ReadmeMatrix
     )
     job: str
     secrets: Optional[list[str]] = None
@@ -641,6 +645,29 @@ def create_semver_checks_jobs() -> list[Job]:
 
     return jobs
 
+def create_readme_jobs() -> list[Job]:
+    jobs: list[Job] = []
+
+    jobs.append(
+        Job(
+            runner=LINUX_X86_64,
+            job_name="Sync Rdme",
+            job="sync-rdme",
+            ffmpeg=FfmpegSetup(),
+            setup_protoc=True,
+            inputs=ReadmeMatrix(),
+            rust=RustSetup(
+                toolchain="nightly",
+                components="rust-docs",
+                tools="cargo-binstall",
+                shared_key="cargo-sync-rdme",
+                cache_backend="ubicloud",
+            )
+        )
+    )
+
+    return jobs
+
 
 def create_jobs() -> list[Job]:
     jobs = (
@@ -652,6 +679,7 @@ def create_jobs() -> list[Job]:
         + create_hakari_jobs()
         + create_semver_checks_jobs()
         + create_docusaurus_jobs()
+        + create_readme_jobs()
     )
 
     return jobs

@@ -10,5 +10,34 @@ documentation = "https://docs.rs/nutype-enum"
 description = "Helper macro to create a nutype that behaves like an enum."
 keywords = ["enum", "nutype"]
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
+
+[features]
+## Enables changelog and documentation of feature flags
+docs = ["dep:scuffle-changelog", "dep:document-features"]
+
 [dependencies]
+scuffle-changelog = { version = "0.1", optional = true }
+document-features = { version = "0.2", optional = true }
 scuffle-workspace-hack.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+
+[package.metadata.xtask.powerset]
+additive-features = ["docs"]
+
+[package.metadata.cargo-sync-rdme.rustdoc.mappings]
+changelog = "./CHANGELOG.md"
+
+[package.metadata.cargo-sync-rdme.badge]
+style = "flat-square"
+
+[package.metadata.cargo-sync-rdme.badge.badges]
+license = true
+docs-rs = true
+crates-io = true
+github-actions = { workflows = "ci.yaml" }
+codecov = true

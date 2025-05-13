@@ -13,6 +13,10 @@ keywords = ["flv", "demuxer"]
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 
+[features]
+## Enables changelog and documentation of feature flags
+docs = ["dep:scuffle-changelog", "dep:document-features"]
+
 [dependencies]
 serde = "1"
 serde_derive = "1"
@@ -30,7 +34,29 @@ scuffle-bytes-util = "0.1.2"
 scuffle-av1 = "0.1.2"
 scuffle-amf0 = { version = "0.2.0", features = ["serde"] }
 nutype-enum = "0.1.2"
+scuffle-changelog = { version = "0.1", optional = true }
+document-features = { version = "0.2", optional = true }
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 insta = "1.42"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+
+[package.metadata.xtask.powerset]
+additive-features = ["docs"]
+
+[package.metadata.cargo-sync-rdme.rustdoc.mappings]
+changelog = "./CHANGELOG.md"
+
+[package.metadata.cargo-sync-rdme.badge]
+style = "flat-square"
+
+[package.metadata.cargo-sync-rdme.badge.badges]
+license = true
+docs-rs = true
+crates-io = true
+github-actions = { workflows = "ci.yaml" }
+codecov = true

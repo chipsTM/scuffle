@@ -10,20 +10,47 @@ documentation = "https://docs.rs/scuffle-mp4"
 license = "MIT OR Apache-2.0"
 keywords = ["mp4", "video", "codec"]
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
+
+[features]
+## Enables changelog and documentation of feature flags
+docs = ["dep:scuffle-changelog", "dep:document-features"]
+
 [dependencies]
 byteorder = "1.5"
 bytes = "1.5"
 fixed = "1.24"
 paste = "1.0"
-
-
 scuffle-h264 = "0.2.0"
 scuffle-h265 = "0.2.0"
 scuffle-av1 = "0.1.2"
 scuffle-aac = "0.1.2"
 scuffle-bytes-util = "0.1.2"
+scuffle-changelog = { version = "0.1", optional = true }
+document-features = { version = "0.2", optional = true }
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+
+[package.metadata.xtask.powerset]
+additive-features = ["docs"]
+
+[package.metadata.cargo-sync-rdme.rustdoc.mappings]
+changelog = "./CHANGELOG.md"
+
+[package.metadata.cargo-sync-rdme.badge]
+style = "flat-square"
+
+[package.metadata.cargo-sync-rdme.badge.badges]
+license = true
+docs-rs = true
+crates-io = true
+github-actions = { workflows = "ci.yaml" }
+codecov = true

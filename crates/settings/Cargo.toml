@@ -13,6 +13,32 @@ keywords = ["settings", "configuration", "environment", "config"]
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 
+[features]
+## Enables cli parsing using clap
+cli = ["clap"]
+## Enables the ron format
+ron = ["config/ron"]
+## Enables the toml format
+toml = ["config/toml"]
+## Enables the yaml format
+yaml = ["config/yaml"]
+## Enables the json format
+json = ["config/json"]
+## Enables the json5 formast
+json5 = ["config/json5"]
+## Enables the ini format
+ini = ["config/ini"]
+## Enables all formats
+all-formats = ["toml", "json", "yaml", "json5", "ini", "ron"]
+## Enables templating support via jinja
+templates = ["minijinja"]
+## Enables scuffle-bootstrap support
+bootstrap = ["scuffle-bootstrap", "anyhow", "cli"]
+## Enables everything
+full = ["all-formats", "templates", "cli", "bootstrap"]
+## Enables changelog and documentation of feature flags
+docs = ["dep:scuffle-changelog", "dep:document-features"]
+
 [[example]]
 name = "scuffle-settings-cli"
 path = "examples/cli.rs"
@@ -26,27 +52,15 @@ serde = "1"
 serde_derive = "1"
 thiserror = "2"
 anyhow = { version = "1.0", optional = true }
-scuffle-bootstrap = { optional = true, version = "0.1.1"}
+scuffle-bootstrap = { version = "0.1.1", optional = true }
+scuffle-changelog = { version = "0.1", optional = true }
+document-features = { version = "0.2", optional = true }
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 # For examples:
 smart-default = "0.7"
 serde_derive = "1"
-
-[features]
-cli = ["clap"]
-ron = ["config/ron"]
-toml = ["config/toml"]
-yaml = ["config/yaml"]
-json = ["config/json"]
-json5 = ["config/json5"]
-ini = ["config/ini"]
-templates = ["minijinja"]
-
-all-formats = ["toml", "json", "yaml", "json5", "ini", "ron"]
-full = ["all-formats", "templates", "cli", "bootstrap"]
-bootstrap = ["scuffle-bootstrap", "anyhow", "cli"]
 
 [package.metadata.xtask.powerset]
 additive-features = [
@@ -61,4 +75,23 @@ additive-features = [
     "all-formats",
     "full",
     "bootstrap",
+    "docs",
 ]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+
+[package.metadata.cargo-sync-rdme.rustdoc.mappings]
+changelog = "./CHANGELOG.md"
+scuffle_bootstrap = "https://docs.rs/scuffle-bootstrap"
+
+[package.metadata.cargo-sync-rdme.badge]
+style = "flat-square"
+
+[package.metadata.cargo-sync-rdme.badge.badges]
+license = true
+docs-rs = true
+crates-io = true
+github-actions = { workflows = "ci.yaml" }
+codecov = true

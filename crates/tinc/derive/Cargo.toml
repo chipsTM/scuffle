@@ -10,6 +10,9 @@ documentation = "https://docs.rs/tinc-derive"
 license = "MIT OR Apache-2.0"
 keywords = ["grpc", "protobuf", "tonic", "codegen"]
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
+
 [lib]
 proc-macro = true
 
@@ -18,3 +21,17 @@ syn = { version = "2" }
 quote = { version = "1.0" }
 proc-macro2 = { version = "1.0" }
 scuffle-workspace-hack.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+
+[package.metadata.cargo-sync-rdme.badge]
+style = "flat-square"
+
+[package.metadata.cargo-sync-rdme.badge.badges]
+license = true
+docs-rs = true
+crates-io = true
+github-actions = { workflows = "ci.yaml" }
+codecov = true

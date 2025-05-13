@@ -13,11 +13,19 @@ keywords = ["signal", "async"]
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)', 'cfg(valgrind)'] }
 
+[features]
+## Enables scuffle-bootstrap support
+bootstrap = ["scuffle-bootstrap", "scuffle-context", "anyhow", "tokio/macros"]
+## Enables changelog and documentation of feature flags
+docs = ["dep:scuffle-changelog", "dep:document-features"]
+
 [dependencies]
 tokio = { version = "1", default-features = false, features = ["signal"] }
 scuffle-bootstrap = { optional = true, version = "0.1.1" }
 scuffle-context = { optional = true, version = "0.1.1" }
 anyhow = { version = "1", optional = true }
+scuffle-changelog = { version = "0.1", optional = true }
+document-features = { version = "0.2", optional = true }
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
@@ -30,5 +38,22 @@ libc = "0.2"
 [target.'cfg(windows)'.dev-dependencies]
 tokio-stream = { version = "0.1", features = ["sync"] }
 
-[features]
-bootstrap = ["scuffle-bootstrap", "scuffle-context", "anyhow", "tokio/macros"]
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+
+[package.metadata.xtask.powerset]
+additive-features = ["docs", "bootstrap"]
+
+[package.metadata.cargo-sync-rdme.rustdoc.mappings]
+changelog = "./CHANGELOG.md"
+
+[package.metadata.cargo-sync-rdme.badge]
+style = "flat-square"
+
+[package.metadata.cargo-sync-rdme.badge.badges]
+license = true
+docs-rs = true
+crates-io = true
+github-actions = { workflows = "ci.yaml" }
+codecov = true

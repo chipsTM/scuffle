@@ -13,6 +13,15 @@ keywords = ["grpc", "protobuf", "tonic", "rest"]
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 
+[features]
+default = ["prost", "tonic"]
+## Enables prost support
+prost = ["dep:prost", "dep:prost-types"]
+## Enables tonic support
+tonic = ["dep:tonic", "dep:tonic-types"]
+## Enables changelog and documentation of feature flags
+docs = ["dep:scuffle-changelog", "dep:document-features"]
+
 [dependencies]
 http = "1"
 axum = "0.8"
@@ -43,14 +52,27 @@ linear-map = "1.2.0"
 tinc-derive = "0.1.0"
 openapiv3_1 = "0.1.0"
 tinc-cel = { version = "0.0.1", features = ["runtime"] }
-
+scuffle-changelog = { version = "0.1", optional = true }
+document-features = { version = "0.2", optional = true }
 scuffle-workspace-hack.workspace = true
-
-[features]
-prost = ["dep:prost", "dep:prost-types"]
-tonic = ["dep:tonic", "dep:tonic-types"]
-default = ["prost", "tonic"]
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+
+[package.metadata.xtask.powerset]
+additive-features = ["docs", "prost", "tonic"]
+
+[package.metadata.cargo-sync-rdme.rustdoc.mappings]
+changelog = "./CHANGELOG.md"
+Annotations = "./annotations.proto"
+
+[package.metadata.cargo-sync-rdme.badge]
+style = "flat-square"
+
+[package.metadata.cargo-sync-rdme.badge.badges]
+license = true
+docs-rs = true
+crates-io = true
+github-actions = { workflows = "ci.yaml" }
+codecov = true

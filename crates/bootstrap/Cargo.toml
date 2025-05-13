@@ -25,6 +25,10 @@ path = "examples/cli.rs"
 name = "scuffle-bootstrap-tracing"
 path = "examples/tracing.rs"
 
+[features]
+## Enables changelog and documentation of feature flags
+docs = ["dep:scuffle-changelog", "dep:document-features"]
+
 [dependencies]
 anyhow = "1.0"
 tokio = { version = "1", features = ["full"] }
@@ -34,6 +38,8 @@ pin-project-lite = "0.2"
 scuffle-context = "0.1.2"
 scuffle-bootstrap-derive = "0.1.2"
 scuffle-workspace-hack.workspace = true
+scuffle-changelog = { version = "0.1", optional = true }
+document-features = { version = "0.2", optional = true }
 
 [dev-dependencies]
 insta = "1.42"
@@ -48,3 +54,21 @@ smart-default = "0.7"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 scuffle-settings = { version = "0.1.1", features = ["bootstrap"] }
+
+[package.metadata.docs.rs]
+all-features = true
+cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]
+rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+
+[package.metadata.cargo-sync-rdme.rustdoc.mappings]
+changelog = "./CHANGELOG.md"
+
+[package.metadata.cargo-sync-rdme.badge]
+style = "flat-square"
+
+[package.metadata.cargo-sync-rdme.badge.badges]
+license = true
+docs-rs = true
+crates-io = true
+github-actions = { workflows = "ci.yaml" }
+codecov = true

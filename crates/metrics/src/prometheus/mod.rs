@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use opentelemetry::{InstrumentationScope, KeyValue, otel_error, otel_warn};
+use opentelemetry::{InstrumentationScope, KeyValue};
 use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::metrics::data::{Gauge, Histogram, ResourceMetrics, Sum};
 use opentelemetry_sdk::metrics::reader::MetricReader;
@@ -294,7 +294,14 @@ impl prometheus_client::collector::Collector for PrometheusExporter {
         };
 
         if let Err(err) = self.reader.collect(&mut metrics) {
-            otel_error!(name: "prometheus_collector_collect_error", error = err.to_string());
+            #[cfg(feature = "tracing")]
+            tracing::error!(
+                name = "prometheus_collector_collect_error",
+                target = env!("CARGO_PKG_NAME"),
+                error = err.to_string(),
+                ""
+            );
+            let _ = err;
             return Err(std::fmt::Error);
         }
 
@@ -307,7 +314,13 @@ impl prometheus_client::collector::Collector for PrometheusExporter {
         for scope_metrics in &metrics.scope_metrics {
             for metric in &scope_metrics.metrics {
                 let Some(known_metric) = KnownMetric::from_any(metric.data.as_any()) else {
-                    otel_warn!(name: "prometheus_collector_unknown_metric_type", metric_name = metric.name.as_ref());
+                    #[cfg(feature = "tracing")]
+                    tracing::warn!(
+                        name = "prometheus_collector_unknown_metric_type",
+                        target = env!("CARGO_PKG_NAME"),
+                        metric_name = metric.name.as_ref(),
+                        ""
+                    );
                     continue;
                 };
 

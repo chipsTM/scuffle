@@ -22,3 +22,13 @@ scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 scuffle-metrics = "0.2.0"
+
+[package.metadata.cargo-sync-rdme.badge]
+style = "flat-square"
+
+[package.metadata.cargo-sync-rdme.badge.badges]
+license = true
+docs-rs = true
+crates-io = true
+github-actions = { workflows = "ci.yaml" }
+codecov = true

@@ -1,0 +1,164 @@
+[[scuffle-aac]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-amf0]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-av1]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-batching]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-bootstrap]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-bootstrap-derive]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-bootstrap-telemetry]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-bytes-util]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-context]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-expgolomb]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-ffmpeg]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-flv]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-future-ext]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-h264]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-h265]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-http]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-metrics]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-metrics-derive]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-mp4]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[nutype-enum]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[postcompile]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-pprof]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-rtmp]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-settings]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-signal]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-transmuxer]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[tinc]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[tinc-cel]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[tinc-pb-prost]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[tinc-build]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[tinc-derive]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[openapiv3_1]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]
+
+[[scuffle-changelog]]
+category = "chore"
+description = "cleanup readme and crate docs"
+authors = ["@troykomodo"]

@@ -13,6 +13,12 @@ keywords = ["grpc", "protobuf", "tonic", "codegen"]
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 
+[features]
+## Enables runtime enum type indexing
+runtime = []
+## Enables changelog and documentation of feature flags
+docs = ["dep:scuffle-changelog", "dep:document-features"]
+
 [dependencies]
 num-traits = "0.2.19"
 bytes = "1.5"
@@ -25,11 +31,29 @@ fmtools = "0.1"
 uuid = "1"
 url = "2"
 email_address = "0.2.9"
+scuffle-changelog = { version = "0.1", optional = true }
+document-features = { version = "0.2", optional = true }
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 insta = "1.43"
 
-[features]
-runtime = []
+[package.metadata.xtask.powerset]
+additive-features = ["docs"]
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+
+[package.metadata.cargo-sync-rdme.rustdoc.mappings]
+changelog = "./CHANGELOG.md"
+
+[package.metadata.cargo-sync-rdme.badge]
+style = "flat-square"
+
+[package.metadata.cargo-sync-rdme.badge.badges]
+license = true
+docs-rs = true
+crates-io = true
+github-actions = { workflows = "ci.yaml" }
+codecov = true
