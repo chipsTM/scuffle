@@ -41,7 +41,7 @@ hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "service"] }
 indexmap = { version = "2", features = ["serde"] }
 insta = { version = "1", features = ["filters", "json", "redactions"] }
-itertools = { version = "0.13" }
+itertools = { version = "0.14" }
 lalrpop-util = { version = "0.22", features = ["lexer"] }
 libc = { version = "0.2" }
 log = { version = "0.4", default-features = false, features = ["std"] }
@@ -106,7 +106,7 @@ hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "service"] }
 indexmap = { version = "2", features = ["serde"] }
 insta = { version = "1", features = ["filters", "json", "redactions"] }
-itertools = { version = "0.13" }
+itertools = { version = "0.14" }
 lalrpop-util = { version = "0.22", features = ["lexer"] }
 libc = { version = "0.2" }
 log = { version = "0.4", default-features = false, features = ["std"] }
