@@ -204,8 +204,10 @@ impl std::fmt::Display for CompileOutput {
 fn cargo(config: &Config, manifest_path: &Path, subcommand: &str) -> Command {
     let mut program = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()));
     program.arg(subcommand);
+    program.current_dir(manifest_path.parent().unwrap());
 
-    program.envs(std::env::vars());
+    program.env_clear();
+    program.envs(std::env::vars().filter(|(k, _)| !k.starts_with("CARGO_") && k != "OUT_DIR"));
     program.env("CARGO_TERM_COLOR", "never");
     program.stderr(std::process::Stdio::piped());
     program.stdout(std::process::Stdio::piped());
@@ -239,7 +241,7 @@ fn write_tmp_file(tokens: &str, tmp_file: &Path) {
     std::fs::write(tmp_file, tokens).unwrap();
 }
 
-fn generate_cargo_toml(config: &Config, crate_name: &str) -> std::io::Result<String> {
+fn generate_cargo_toml(config: &Config, crate_name: &str) -> std::io::Result<(String, String)> {
     let metadata = cargo_metadata::MetadataCommand::new()
         .manifest_path(config.manifest.as_ref())
         .exec()
@@ -348,10 +350,29 @@ fn generate_cargo_toml(config: &Config, crate_name: &str) -> std::io::Result<Str
 
             deps
         }),
+        patch: workspace_manifest.patch.clone().map(|mut patch| {
+            patch.values_mut().for_each(|deps| {
+                deps.values_mut().for_each(|dep| {
+                    if let cargo_manifest::Dependency::Detailed(dep) = dep {
+                        if let Some(path) = &mut dep.path {
+                            if std::path::Path::new(path.as_str()).is_relative() {
+                                *path = metadata.workspace_root.join(path.as_str()).to_string()
+                            }
+                        }
+                    }
+                });
+            });
+
+            patch
+        }),
         ..Default::default()
     };
 
-    toml::to_string(&manifest).map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err))
+
+    Ok((
+        toml::to_string(&manifest).map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err))?,
+        std::fs::read_to_string(metadata.workspace_root.join("Cargo.lock"))?,
+    ))
 }
 
 static TEST_TIME_RE: std::sync::LazyLock<regex::Regex> =
@@ -366,8 +387,10 @@ pub fn compile_custom(tokens: impl std::fmt::Display, config: &Config) -> std::i
     std::fs::create_dir_all(&tmp_crate_path)?;
 
     let manifest_path = tmp_crate_path.join("Cargo.toml");
+    let (cargo_toml, cargo_lock) = generate_cargo_toml(config, &crate_name)?;
 
-    std::fs::write(&manifest_path, generate_cargo_toml(config, &crate_name)?)?;
+    std::fs::write(&manifest_path, cargo_toml)?;
+    std::fs::write(tmp_crate_path.join("Cargo.lock"), cargo_lock)?;
 
     let main_path = tmp_crate_path.join("src").join("main.rs");
 
@@ -376,11 +399,15 @@ pub fn compile_custom(tokens: impl std::fmt::Display, config: &Config) -> std::i
     let mut program = cargo(config, &manifest_path, "rustc");
 
     // The first invoke is used to get the macro expanded code.
-    // We set this env variable so that this compiler can accept nightly options.
+    // We set this env variable so that this compiler can accept nightly options.)
     program.env("RUSTC_BOOTSTRAP", "1");
     program.arg("--").arg("-Zunpretty=expanded");
 
+    let start = std::time::Instant::now();
+
     let output = program.output().unwrap();
+
+    dbg!(start.elapsed());
 
     let stdout = String::from_utf8(output.stdout).unwrap();
     let syn_file = syn::parse_file(&stdout);
@@ -418,7 +445,9 @@ pub fn compile_custom(tokens: impl std::fmt::Display, config: &Config) -> std::i
             program.arg("--no-run");
         }
 
+        let start = std::time::Instant::now();
         let comp_output = program.output().unwrap();
+        dbg!(start.elapsed());
         result.status = if comp_output.status.success() {
             ExitStatus::Success
         } else {
