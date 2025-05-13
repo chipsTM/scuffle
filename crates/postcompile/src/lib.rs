@@ -402,11 +402,7 @@ pub fn compile_custom(tokens: impl std::fmt::Display, config: &Config) -> std::i
     program.env("RUSTC_BOOTSTRAP", "1");
     program.arg("--").arg("-Zunpretty=expanded");
 
-    let start = std::time::Instant::now();
-
     let output = program.output().unwrap();
-
-    dbg!(start.elapsed());
 
     let stdout = String::from_utf8(output.stdout).unwrap();
     let syn_file = syn::parse_file(&stdout);
@@ -444,9 +440,7 @@ pub fn compile_custom(tokens: impl std::fmt::Display, config: &Config) -> std::i
             program.arg("--no-run");
         }
 
-        let start = std::time::Instant::now();
         let comp_output = program.output().unwrap();
-        dbg!(start.elapsed());
         result.status = if comp_output.status.success() {
             ExitStatus::Success
         } else {
