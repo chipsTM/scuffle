@@ -368,7 +368,6 @@ fn generate_cargo_toml(config: &Config, crate_name: &str) -> std::io::Result<(St
         ..Default::default()
     };
 
-
     Ok((
         toml::to_string(&manifest).map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err))?,
         std::fs::read_to_string(metadata.workspace_root.join("Cargo.lock"))?,
