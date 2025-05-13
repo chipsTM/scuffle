@@ -41,43 +41,44 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-scuffle-aac = { path = "crates/aac", version = "0.1.2" }
-scuffle-amf0 = { path = "crates/amf0", version = "0.2.0" }
-scuffle-av1 = { path = "crates/av1", version = "0.1.2" }
-scuffle-batching = { path = "crates/batching", version = "0.1.2" }
-scuffle-bootstrap = { path = "crates/bootstrap", version = "0.1.2" }
-scuffle-bootstrap-derive = { path = "crates/bootstrap/derive", version = "0.1.2" }
-scuffle-bootstrap-telemetry = { path = "crates/bootstrap/telemetry", version = "0.2.1" }
-scuffle-bytes-util = { path = "crates/bytes-util", version = "0.1.2" }
-scuffle-context = { path = "crates/context", version = "0.1.2" }
-scuffle-expgolomb = { path = "crates/expgolomb", version = "0.1.2" }
-scuffle-ffmpeg = { path = "crates/ffmpeg", version = "0.3.0" }
-scuffle-flv = { path = "crates/flv", version = "0.2.0" }
-scuffle-future-ext = { path = "crates/future-ext", version = "0.1.2" }
-scuffle-http = { path = "crates/http", version = "0.2.1" }
-scuffle-metrics = { path = "crates/metrics", version = "0.2.0" }
-scuffle-metrics-derive = { path = "crates/metrics/derive", version = "0.1.2" }
-postcompile = { path = "crates/postcompile", version = "0.2.0" }
-scuffle-pprof = { path = "crates/pprof", version = "0.1.2" }
-scuffle-settings = { path = "crates/settings", version = "0.1.2" }
-scuffle-signal = { path = "crates/signal", version = "0.3.0" }
-nutype-enum = { path = "crates/nutype_enum", version = "0.1.3" }
-scuffle-h264 = { path = "crates/h264", version = "0.2.0" }
-scuffle-h265 = { path = "crates/h265", version = "0.2.0" }
-scuffle-mp4 = { path = "crates/mp4", version = "0.1.2" }
-scuffle-rtmp = { path = "crates/rtmp", version = "0.2.0" }
-scuffle-transmuxer = { path = "crates/transmuxer", version = "0.2.0" }
 scuffle-workspace-hack = { version = "0.1.0" }
-tinc = { path = "crates/tinc", version = "0.1.0" }
-tinc-cel = { path = "crates/tinc/cel", version = "0.0.1" }
-tinc-pb-prost = { path = "crates/tinc/pb-prost", version = "0.1.0" }
-tinc-build = { path = "crates/tinc/build", version = "0.1.0" }
-tinc-derive = { path = "crates/tinc/derive", version = "0.1.0" }
-openapiv3_1 = { path = "crates/openapiv3_1", version = "0.1.0" }
+
 
 [profile.release-debug]
 inherits = "release"
 debug = true
 
-[patch.crates-io.scuffle-workspace-hack]
-path = "crates/workspace-hack"
+[patch.crates-io]
+scuffle-workspace-hack.path = "crates/workspace-hack"
+scuffle-aac.path = "crates/aac"
+scuffle-amf0.path = "crates/amf0"
+scuffle-av1.path = "crates/av1"
+scuffle-batching.path = "crates/batching"
+scuffle-bootstrap.path = "crates/bootstrap"
+scuffle-bootstrap-derive.path = "crates/bootstrap/derive"
+scuffle-bootstrap-telemetry.path = "crates/bootstrap/telemetry"
+scuffle-bytes-util.path = "crates/bytes-util"
+scuffle-context.path = "crates/context"
+scuffle-expgolomb.path = "crates/expgolomb"
+scuffle-ffmpeg.path = "crates/ffmpeg"
+scuffle-flv.path = "crates/flv"
+scuffle-future-ext.path = "crates/future-ext"
+scuffle-http.path = "crates/http"
+scuffle-metrics.path = "crates/metrics"
+scuffle-metrics-derive.path = "crates/metrics/derive"
+postcompile.path = "crates/postcompile"
+scuffle-pprof.path = "crates/pprof"
+scuffle-settings.path = "crates/settings"
+scuffle-signal.path = "crates/signal"
+nutype-enum.path = "crates/nutype_enum"
+scuffle-h264.path = "crates/h264"
+scuffle-h265.path = "crates/h265"
+scuffle-mp4.path = "crates/mp4"
+scuffle-rtmp.path = "crates/rtmp"
+scuffle-transmuxer.path = "crates/transmuxer"
+tinc.path = "crates/tinc"
+tinc-cel.path = "crates/tinc/cel"
+tinc-pb-prost.path = "crates/tinc/pb-prost"
+tinc-build.path = "crates/tinc/build"
+tinc-derive.path = "crates/tinc/derive"
+openapiv3_1.path = "crates/openapiv3_1"

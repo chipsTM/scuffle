@@ -16,10 +16,10 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 [dependencies]
 bytes = "1.5"
 byteorder = "1.5"
-scuffle-expgolomb.workspace = true
-scuffle-bytes-util.workspace = true
+scuffle-expgolomb = "0.1.1"
+scuffle-bytes-util = "0.1.1"
 scuffle-workspace-hack.workspace = true
-nutype-enum.workspace = true
+nutype-enum = "0.1.2"
 
 [dev-dependencies]
 insta = "1.42"

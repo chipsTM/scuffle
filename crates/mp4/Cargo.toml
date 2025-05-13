@@ -17,11 +17,11 @@ fixed = "1.24"
 paste = "1.0"
 
 
-scuffle-h264.workspace = true
-scuffle-h265.workspace = true
-scuffle-av1.workspace = true
-scuffle-aac.workspace = true
-scuffle-bytes-util.workspace = true
+scuffle-h264 = "0.2.0"
+scuffle-h265 = "0.2.0"
+scuffle-av1 = "0.1.2"
+scuffle-aac = "0.1.2"
+scuffle-bytes-util = "0.1.2"
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]

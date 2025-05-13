@@ -40,9 +40,9 @@ num-traits = "0.2.19"
 regex = "1"
 linear-map = "1.2.0"
 
-tinc-derive.workspace = true
-openapiv3_1.workspace = true
-tinc-cel = { workspace = true, features = ["runtime"] }
+tinc-derive = "0.1.0"
+openapiv3_1 = "0.1.0"
+tinc-cel = { version = "0.0.1", features = ["runtime"] }
 
 scuffle-workspace-hack.workspace = true
 

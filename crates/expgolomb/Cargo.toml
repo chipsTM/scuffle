@@ -14,7 +14,7 @@ keywords = ["exp-golomb", "video", "h264", "h265"]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 
 [dependencies]
-scuffle-bytes-util.workspace = true
+scuffle-bytes-util = "0.1.1"
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
