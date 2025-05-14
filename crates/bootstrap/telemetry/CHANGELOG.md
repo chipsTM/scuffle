@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2](https://github.com/ScuffleCloud/scuffle/compare/scuffle-bootstrap-telemetry-v0.2.1...scuffle-bootstrap-telemetry-v0.2.2) - 2025-05-14
+
+[View diff on diff.rs](https://diff.rs/scuffle-bootstrap-telemetry/0.2.1/scuffle-bootstrap-telemetry/0.2.2/Cargo.toml)
+
+### 🛠️ Non-breaking changes
+
+- chore: cleanup readme and crate docs ([#458](https://github.com/scufflecloud/scuffle/pull/458)) (@troykomodo)
+
 ## [0.2.1](https://github.com/ScuffleCloud/scuffle/compare/scuffle-bootstrap-telemetry-v0.2.0...scuffle-bootstrap-telemetry-v0.2.1) - 2025-04-27
 
 ### 🛠️ Non-breaking changes

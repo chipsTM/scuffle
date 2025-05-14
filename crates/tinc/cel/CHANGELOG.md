@@ -14,3 +14,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.0.2](https://github.com/ScuffleCloud/scuffle/compare/tinc-cel-v0.0.1...tinc-cel-v0.0.2) - 2025-05-14
+
+[View diff on diff.rs](https://diff.rs/tinc-cel/0.0.1/tinc-cel/0.0.2/Cargo.toml)
+
+### 🛠️ Non-breaking changes
+
+- chore: cleanup readme and crate docs ([#458](https://github.com/scufflecloud/scuffle/pull/458)) (@troykomodo)
+- feat: initial implementation ([#405](https://github.com/scufflecloud/scuffle/pull/405)) (@troykomodo)
