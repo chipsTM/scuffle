@@ -16,7 +16,6 @@ anyhow = "1.0"
 cargo_metadata = "0.19.1"
 clap = { features = ["derive", "env"], version = "4.5.23" }
 next_version = "0.2.24"
-os_pipe = "1.2.1"
 regex = "1.11.1"
 semver = "1.0.26"
 serde = "1"

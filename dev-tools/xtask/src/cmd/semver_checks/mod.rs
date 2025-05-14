@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::io;
 use std::io::Read;
 
 use anyhow::{Context, Result};
@@ -30,12 +31,13 @@ impl SemverChecks {
         let current_metadata = metadata().context("getting current metadata")?;
         let current_crates_set = workspace_crates_in_folder(&current_metadata, "crates");
 
-        let common_crates: HashSet<_> = current_metadata
+        let all_crate_info: HashSet<_> = current_metadata
             .packages
             .iter()
             .filter(|p| current_crates_set.contains(&p.name) && is_published_on_crates_io(&p.name))
-            .map(|p| p.name.clone())
             .collect();
+
+        let common_crates: HashSet<_> = all_crate_info.iter().map(|p| p.name.clone()).collect();
 
         let mut crates: Vec<_> = common_crates.iter().cloned().collect();
         crates.sort();
@@ -53,29 +55,59 @@ impl SemverChecks {
             cargo_cmd().args(["hakari", "disable"]).status().context("disabling hakari")?;
         }
 
-        let mut args = vec!["semver-checks", "check-release", "--all-features"];
-
-        for package in &common_crates {
-            args.push("--package");
-            args.push(package);
+        // Safety: this is safe because we are setting the environment variable for the current process.
+        unsafe {
+            std::env::set_var("RUSTC_BOOTSTRAP", "1");
+            std::env::set_var("RUSTDOCFLAGS", "-Z unstable-options --output-format json");
         }
 
-        let mut command = cargo_cmd();
-        command.env("CARGO_TERM_COLOR", "never");
-        command.args(&args);
+        // by default the rustdoc is output to this directory
+        let json_path = "./target/doc";
 
-        let (mut reader, writer) = os_pipe::pipe()?;
-        let writer_clone = writer.try_clone()?;
-        command.stdout(writer);
-        command.stderr(writer_clone);
-
-        let mut handle = command.spawn()?;
-
-        drop(command);
-
+        // prep the output
         let mut semver_output = String::new();
-        reader.read_to_string(&mut semver_output)?;
-        handle.wait()?;
+
+        for package in all_crate_info {
+            // make the current rustdoc json
+            let rustdoc_args = vec!["rustdoc", "--all-features", "-p", &package.name];
+
+            // note this creates the rustdoc json in /target/doc by the name of crate_name.json (all `-`s are replaced with `_`)
+            cargo_cmd().args(&rustdoc_args).spawn()?.wait()?;
+
+            let package_underscored = package.name.replace('-', "_");
+            // the location of the current-rustdoc json
+            let current_rustdoc_json = format!("{json_path}/{package_underscored}.json");
+
+            // get the current version of the crate
+            let version = package.version.to_string();
+
+            // build semver-checks args
+            let args = vec![
+                "semver-checks",
+                "check-release",
+                "--baseline-version",
+                &version,
+                "--current-rustdoc",
+                &current_rustdoc_json,
+                "--package",
+                &package.name,
+            ];
+
+            let (mut reader, writer) = io::pipe()?;
+
+            // spawn and merge stdout+stderr into our pipe
+            let mut cmd = cargo_cmd();
+            cmd.env("CARGO_TERM_COLOR", "never")
+                .args(&args)
+                .stdout(writer.try_clone()?)
+                .stderr(writer);
+
+            let mut child = cmd.spawn()?;
+            drop(cmd); // drop the command to avoid holding the pipe open
+
+            reader.read_to_string(&mut semver_output)?;
+            child.wait()?; // wait for exit
+        }
 
         if semver_output.trim().is_empty() {
             anyhow::bail!("No semver-checks output received. The command may have failed.");
@@ -100,7 +132,7 @@ impl SemverChecks {
             .context("compiling summary regex")?;
 
         let commit_hash = std::env::var("SHA")?;
-        let scuffle_commit_url = format!("https://github.com/ScuffleCloud/scuffle/blob/{commit_hash}");
+        let scuffle_commit_url = "https://github.com/ScuffleCloud/scuffle/blob/";
 
         let mut current_crate: Option<(String, String)> = None;
         let mut summary: Vec<String> = Vec::new();
@@ -181,10 +213,45 @@ impl SemverChecks {
                         match file_loc.strip_prefix(&format!("{}/", current_metadata.workspace_root)) {
                             Some(stripped) => {
                                 let file_loc = stripped.replace(":", "#L");
-                                description.push(format!("- {scuffle_commit_url}/{file_loc}"));
+                                description.push(format!("- {scuffle_commit_url}{commit_hash}/{file_loc}"));
                             }
                             None => {
-                                description.push(format!("- {desc_trimmed}"));
+                                // in this case, we may have to turn something like:
+                                // /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/postcompile-0.2.0/src/lib.rs:128
+                                // into:
+                                // https://github.com/ScuffleCloud/scuffle/blob/postcompile-v0.2.0/crates/postcompile/src/lib.rs
+                                let mut split = file_loc.split("/");
+                                let mut has_crates_io = false;
+                                let mut krate = String::new();
+                                let mut krate_versioned = String::new();
+                                let mut file_loc = String::new();
+
+                                // grab the part of the string that has the crate name and version
+                                while let Some(part) = split.next() {
+                                    if has_crates_io {
+                                        let split_crate = part.rsplit_once("-").unwrap();
+                                        // this is the crate name
+                                        krate = split_crate.0.strip_prefix("scuffle-").unwrap_or(split_crate.0).to_string();
+                                        // fix the url; note the v is necessary
+                                        krate_versioned = split_crate.0.to_string() + "-v" + split_crate.1;
+
+                                        // collect everything after it
+                                        file_loc = split.collect::<Vec<_>>().join("/").replace(":", "#L");
+                                        break;
+                                    }
+
+                                    if part.contains("index.crates.io") {
+                                        has_crates_io = true;
+                                    }
+                                }
+
+                                if has_crates_io {
+                                    description
+                                        .push(format!("- {scuffle_commit_url}{krate_versioned}/crates/{krate}/{file_loc}"));
+                                } else {
+                                    // at this point we have no idea what the string is so just append it.
+                                    description.push(format!("- {desc_trimmed}"));
+                                }
                             }
                         };
                     } else {
