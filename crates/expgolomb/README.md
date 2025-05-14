@@ -21,7 +21,8 @@ A set of helper functions to encode and decode exponential-golomb values.
 This crate extends upon the \[`BitReader`\] and \[`BitWriter`\] from the
 \[`scuffle-bytes-util`\]\[scuffle_bytes_util\] crate to provide functionality
 for reading and writing Exp-Golomb encoded numbers.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 

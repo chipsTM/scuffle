@@ -17,7 +17,8 @@
 
 <!-- cargo-sync-rdme rustdoc [[ -->
 A crate for reading and writing MP4 files.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 

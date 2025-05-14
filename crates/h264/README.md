@@ -19,7 +19,8 @@
 A pure Rust implementation of the H.264 (header only) builder and parser.
 
 This crate is designed to provide a simple and safe interface to build and parse H.264 headers.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 

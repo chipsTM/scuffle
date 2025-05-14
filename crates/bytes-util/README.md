@@ -17,7 +17,8 @@
 
 <!-- cargo-sync-rdme rustdoc [[ -->
 Adds some helpful utilities for working with bits and bytes.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 

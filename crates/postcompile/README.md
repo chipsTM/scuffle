@@ -24,7 +24,8 @@ back the expanded output, compiler errors, warnings, etc.
 
 This is particularly useful when making snapshot tests of proc-macros, look
 below for an example with the `insta` crate.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 

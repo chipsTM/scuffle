@@ -21,7 +21,8 @@ Rust implementation of OpenAPI Spec v3.1.x
 A lof the code was taken from [`utoipa`](https://crates.io/crates/utoipa).
 
 The main difference is the full JSON Schema 2020-12 Definitions.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 

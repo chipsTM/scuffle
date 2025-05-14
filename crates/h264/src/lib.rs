@@ -1,7 +1,7 @@
 //! A pure Rust implementation of the H.264 (header only) builder and parser.
 //!
 //! This crate is designed to provide a simple and safe interface to build and parse H.264 headers.
-#![cfg_attr(feature = "docs", doc = "Check out the [changelog][changelog].")]
+#![cfg_attr(feature = "docs", doc = "\n\nSee the [changelog][changelog] for a full release history.")]
 #![cfg_attr(feature = "docs", doc = "## Feature flags")]
 #![cfg_attr(feature = "docs", doc = document_features::document_features!())]
 //! ## Examples

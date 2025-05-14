@@ -6,7 +6,7 @@
 //!
 //! This is particularly useful when making snapshot tests of proc-macros, look
 //! below for an example with the `insta` crate.
-#![cfg_attr(feature = "docs", doc = "Check out the [changelog][changelog].")]
+#![cfg_attr(feature = "docs", doc = "\n\nSee the [changelog][changelog] for a full release history.")]
 #![cfg_attr(feature = "docs", doc = "## Feature flags")]
 #![cfg_attr(feature = "docs", doc = document_features::document_features!())]
 //! ## Usage

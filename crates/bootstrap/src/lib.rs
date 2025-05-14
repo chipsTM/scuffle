@@ -1,7 +1,7 @@
 //! A utility crate for creating binaries.
 //!
 //! Refer to [`Global`], [`Service`], and [`main`] for more information.
-#![cfg_attr(feature = "docs", doc = "Check out the [changelog][changelog].")]
+#![cfg_attr(feature = "docs", doc = "\n\nSee the [changelog][changelog] for a full release history.")]
 #![cfg_attr(feature = "docs", doc = "## Feature flags")]
 #![cfg_attr(feature = "docs", doc = document_features::document_features!())]
 //! ## Usage

@@ -1,6 +1,6 @@
 //! A crate designed to provide the ability to cancel futures using a context
 //! go-like approach, allowing for graceful shutdowns and cancellations.
-#![cfg_attr(feature = "docs", doc = "Check out the [changelog][changelog].")]
+#![cfg_attr(feature = "docs", doc = "\n\nSee the [changelog][changelog] for a full release history.")]
 #![cfg_attr(feature = "docs", doc = "## Feature flags")]
 #![cfg_attr(feature = "docs", doc = document_features::document_features!())]
 //! ## Why do we need this?

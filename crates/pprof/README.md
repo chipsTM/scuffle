@@ -19,7 +19,8 @@
 A crate designed to provide a more ergonomic interface to the `pprof` crate.
 
 Only supports Unix-like systems. This crate will be empty on Windows.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 

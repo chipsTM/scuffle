@@ -3,7 +3,7 @@
 //! It abstracts away [`hyper`](https://crates.io/crates/hyper) and [`h3`](https://crates.io/crates/h3) to provide a rather simple interface for creating and running a server that can handle all three protocols.
 //!
 //! See the [examples](./examples) directory for usage examples.
-#![cfg_attr(feature = "docs", doc = "Check out the [changelog][changelog].")]
+#![cfg_attr(feature = "docs", doc = "\n\nSee the [changelog][changelog] for a full release history.")]
 #![cfg_attr(feature = "docs", doc = "## Feature flags")]
 #![cfg_attr(feature = "docs", doc = document_features::document_features!())]
 //! ## Why do we need this?

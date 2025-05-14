@@ -1,7 +1,7 @@
 //! Tinc is a GRPc to REST transcoder which generates axum routes for services defined in proto3 files.
 //!
 //! To use this crate check out [tinc-build](https://docs.rs/tinc_build) refer to the [`annotations.proto`](Annotations)
-#![cfg_attr(feature = "docs", doc = "Check out the [changelog][changelog].")]
+#![cfg_attr(feature = "docs", doc = "\n\nSee the [changelog][changelog] for a full release history.")]
 #![cfg_attr(feature = "docs", doc = "## Feature flags")]
 #![cfg_attr(feature = "docs", doc = document_features::document_features!())]
 //! ## Examples

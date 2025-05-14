@@ -55,7 +55,7 @@ doc *args:
     # `--sort-modules-by-appearance` sorts modules by the order they were defined in (unstable)
     # `-D warnings` disallow all warnings
     # `-Zunstable-options` enables unstable options (for the `--enable-index-page` flag)
-    export RUSTDOCFLAGS="${RUSTDOCFLAGS:-} -D warnings --cfg docsrs --enable-index-page --generate-link-to-definition --sort-modules-by-appearance -Zunstable-options"
+    export RUSTDOCFLAGS="${RUSTDOCFLAGS:-} -Dwarnings --cfg docsrs --sort-modules-by-appearance --generate-link-to-definition --enable-index-page -Zunstable-options"
     cargo +{{RUST_TOOLCHAIN}} doc --no-deps --all-features {{args}}
 
 alias docs-serve := doc-serve

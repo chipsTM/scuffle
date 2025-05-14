@@ -18,7 +18,8 @@
 <!-- cargo-sync-rdme rustdoc [[ -->
 A crate designed to provide a more user friendly interface to
 `tokio::signal`.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 

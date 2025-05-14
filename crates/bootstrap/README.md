@@ -19,7 +19,8 @@
 A utility crate for creating binaries.
 
 Refer to [`Global`](https://docs.rs/scuffle-bootstrap/0.1.3/scuffle_bootstrap/global/trait.Global.html), [`Service`](https://docs.rs/scuffle-bootstrap/0.1.3/scuffle_bootstrap/service/trait.Service.html), and [`main`](https://docs.rs/scuffle-bootstrap/0.1.3/scuffle_bootstrap/macro.main.html) for more information.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 

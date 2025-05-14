@@ -19,7 +19,8 @@
 A pure Rust implementation of the HEVC/H.265 decoder.
 
 This crate is designed to provide a simple and safe interface to decode HEVC/H.265 SPS NALUs.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 

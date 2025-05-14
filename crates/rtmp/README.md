@@ -17,7 +17,8 @@
 
 <!-- cargo-sync-rdme rustdoc [[ -->
 A crate for handling RTMP server connections.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Specifications
 

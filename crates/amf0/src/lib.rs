@@ -1,7 +1,7 @@
 //! A pure-rust implementation of AMF0 encoder and decoder.
 //!
 //! This crate provides serde support for serialization and deserialization of AMF0 data.
-#![cfg_attr(feature = "docs", doc = "Check out the [changelog][changelog].")]
+#![cfg_attr(feature = "docs", doc = "\n\nSee the [changelog][changelog] for a full release history.")]
 #![cfg_attr(feature = "docs", doc = "## Feature flags")]
 #![cfg_attr(feature = "docs", doc = document_features::document_features!())]
 //! ## Specification

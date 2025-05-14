@@ -1,7 +1,7 @@
 //! A pure Rust implementation of the HEVC/H.265 decoder.
 //!
 //! This crate is designed to provide a simple and safe interface to decode HEVC/H.265 SPS NALUs.
-#![cfg_attr(feature = "docs", doc = "Check out the [changelog][changelog].")]
+#![cfg_attr(feature = "docs", doc = "\n\nSee the [changelog][changelog] for a full release history.")]
 #![cfg_attr(feature = "docs", doc = "## Feature flags")]
 #![cfg_attr(feature = "docs", doc = document_features::document_features!())]
 //! ## Examples

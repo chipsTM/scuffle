@@ -1,7 +1,7 @@
 //! A crate designed to provide a more ergonomic interface to the `pprof` crate.
 //!
 //! Only supports Unix-like systems. This crate will be empty on Windows.
-#![cfg_attr(feature = "docs", doc = "Check out the [changelog][changelog].")]
+#![cfg_attr(feature = "docs", doc = "\n\nSee the [changelog][changelog] for a full release history.")]
 #![cfg_attr(feature = "docs", doc = "## Feature flags")]
 #![cfg_attr(feature = "docs", doc = document_features::document_features!())]
 //! ## Example

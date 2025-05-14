@@ -17,7 +17,8 @@
 
 <!-- cargo-sync-rdme rustdoc [[ -->
 The crate provides a macro to create a new enum type with a single field.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 

@@ -3,7 +3,7 @@
 //!
 //! This crate can be used together with the [`scuffle-bootstrap-telemetry`](https://docs.rs/scuffle-bootstrap-telemetry) crate
 //! which provides a service that integrates with the [`scuffle-bootstrap`](https://docs.rs/scuffle-bootstrap) ecosystem.
-#![cfg_attr(feature = "docs", doc = "Check out the [changelog][changelog].")]
+#![cfg_attr(feature = "docs", doc = "\n\nSee the [changelog][changelog] for a full release history.")]
 #![cfg_attr(feature = "docs", doc = "## Feature flags")]
 #![cfg_attr(feature = "docs", doc = document_features::document_features!())]
 //! ## Example

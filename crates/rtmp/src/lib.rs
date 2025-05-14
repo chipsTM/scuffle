@@ -1,5 +1,5 @@
 //! A crate for handling RTMP server connections.
-#![cfg_attr(feature = "docs", doc = "Check out the [changelog][changelog].")]
+#![cfg_attr(feature = "docs", doc = "\n\nSee the [changelog][changelog] for a full release history.")]
 //! ## Specifications
 //!
 //! | Name | Version | Link | Comments |

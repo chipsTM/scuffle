@@ -21,7 +21,8 @@ A crate used to add telemetry to applications built with the
 
 Emit metrics using the [`scuffle-metrics`][scuffle_metrics]
 crate.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 

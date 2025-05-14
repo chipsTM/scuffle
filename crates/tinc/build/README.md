@@ -17,7 +17,8 @@
 
 <!-- cargo-sync-rdme rustdoc [[ -->
 The code generator for [`tinc`](https://crates.io/crates/tinc).
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 

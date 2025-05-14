@@ -18,7 +18,8 @@
 <!-- cargo-sync-rdme rustdoc [[ -->
 Currently this is a fully private api used by `tinc` and `tinc-build` to
 compile and execute [CEL](https://cel.dev/) expressions.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 

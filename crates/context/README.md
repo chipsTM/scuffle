@@ -18,7 +18,8 @@
 <!-- cargo-sync-rdme rustdoc [[ -->
 A crate designed to provide the ability to cancel futures using a context
 go-like approach, allowing for graceful shutdowns and cancellations.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 

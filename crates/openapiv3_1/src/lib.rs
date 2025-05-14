@@ -3,7 +3,7 @@
 //! A lof the code was taken from [`utoipa`](https://crates.io/crates/utoipa).
 //!
 //! The main difference is the full JSON Schema 2020-12 Definitions.
-#![cfg_attr(feature = "docs", doc = "Check out the [changelog][changelog].")]
+#![cfg_attr(feature = "docs", doc = "\n\nSee the [changelog][changelog] for a full release history.")]
 #![cfg_attr(feature = "docs", doc = "## Feature flags")]
 #![cfg_attr(feature = "docs", doc = document_features::document_features!())]
 //! ## Alternatives

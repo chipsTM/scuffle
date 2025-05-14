@@ -20,7 +20,8 @@ A crate designed to provide a simple interface to load and manage settings.
 
 This crate is a wrapper around the `config` crate and `clap` crate
 to provide a simple interface to load and manage settings.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 

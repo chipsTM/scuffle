@@ -21,7 +21,8 @@ creating metrics.
 
 This crate can be used together with the [`scuffle-bootstrap-telemetry`](https://docs.rs/scuffle-bootstrap-telemetry) crate
 which provides a service that integrates with the [`scuffle-bootstrap`](https://docs.rs/scuffle-bootstrap) ecosystem.
-Check out the [changelog](./CHANGELOG.md).
+
+See the [changelog](./CHANGELOG.md) for a full release history.
 
 ### Feature flags
 
