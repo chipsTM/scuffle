@@ -18,7 +18,7 @@
 <!-- cargo-sync-rdme rustdoc [[ -->
 A utility crate for creating binaries.
 
-Refer to [`Global`](https://docs.rs/scuffle-bootstrap/0.1.2/scuffle_bootstrap/global/trait.Global.html), [`Service`](https://docs.rs/scuffle-bootstrap/0.1.2/scuffle_bootstrap/service/trait.Service.html), and [`main`](https://docs.rs/scuffle-bootstrap/0.1.2/scuffle_bootstrap/macro.main.html) for more information.
+Refer to [`Global`](https://docs.rs/scuffle-bootstrap/0.1.3/scuffle_bootstrap/global/trait.Global.html), [`Service`](https://docs.rs/scuffle-bootstrap/0.1.3/scuffle_bootstrap/service/trait.Service.html), and [`main`](https://docs.rs/scuffle-bootstrap/0.1.3/scuffle_bootstrap/macro.main.html) for more information.
 Check out the [changelog](./CHANGELOG.md).
 
 ### Feature flags

@@ -32,7 +32,7 @@ Check out the [changelog](./CHANGELOG.md).
 * **`opentelemetry-traces`** *(enabled by default)* —  Enables opentelemetry trace exporting
 * **`opentelemetry-logs`** *(enabled by default)* —  Enables opentelemetry log exporting
 * **`docs`** —  Enables changelog and documentation of feature flags
-  See [`TelemetrySvc`](https://docs.rs/scuffle-bootstrap-telemetry/0.2.1/scuffle_bootstrap_telemetry/struct.TelemetrySvc.html) for more details.
+  See [`TelemetrySvc`](https://docs.rs/scuffle-bootstrap-telemetry/0.2.2/scuffle_bootstrap_telemetry/struct.TelemetrySvc.html) for more details.
 
 ### Example
 

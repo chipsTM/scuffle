@@ -17,11 +17,11 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 proc-macro = true
 
 [dependencies]
-syn = "2"
+darling = "0.20"
 proc-macro2 = "1"
 quote = "1"
-darling = "0.20"
 scuffle-workspace-hack.workspace = true
+syn = "2"
 
 [dev-dependencies]
 insta = "1.42"

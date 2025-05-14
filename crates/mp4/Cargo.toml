@@ -20,24 +20,29 @@ docs = ["dep:scuffle-changelog", "dep:document-features"]
 [dependencies]
 byteorder = "1.5"
 bytes = "1.5"
+document-features = { optional = true, version = "0.2" }
 fixed = "1.24"
 paste = "1.0"
-scuffle-h264 = "0.2.0"
-scuffle-h265 = "0.2.0"
-scuffle-av1 = "0.1.2"
-scuffle-aac = "0.1.2"
-scuffle-bytes-util = "0.1.2"
-scuffle-changelog = { version = "0.1", optional = true }
-document-features = { version = "0.2", optional = true }
+scuffle-aac = { path = "../aac", version = "0.1.2" }
+scuffle-av1 = { path = "../av1", version = "0.1.2" }
+scuffle-bytes-util = { path = "../bytes-util", version = "0.1.2" }
+scuffle-changelog = { optional = true, path = "../changelog", version = "0.1" }
+scuffle-h264 = { path = "../h264", version = "0.2.0" }
+scuffle-h265 = { path = "../h265", version = "0.2.0" }
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
-serde = { version = "1", features = ["derive"] }
+serde = { features = ["derive"], version = "1" }
 serde_json = "1"
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+rustdoc-args = [
+  "--cfg",
+  "docsrs",
+  "--sort-modules-by-appearance",
+  "--generate-link-to-definition",
+]
 
 [package.metadata.xtask.powerset]
 additive-features = ["docs"]

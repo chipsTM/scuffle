@@ -36,7 +36,7 @@ fn main() {
 }
 ````
 
-Look at [`Config`](https://docs.rs/tinc-build/0.1.0/tinc_build/struct.Config.html) to see different options to configure the generator.
+Look at [`Config`](https://docs.rs/tinc-build/0.1.1/tinc_build/struct.Config.html) to see different options to configure the generator.
 
 ### License
 

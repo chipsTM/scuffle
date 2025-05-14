@@ -18,10 +18,10 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 docs = ["dep:scuffle-changelog", "dep:document-features"]
 
 [dependencies]
+document-features = { optional = true, version = "0.2" }
 prost = "0.13.5"
 prost-types = "0.13.5"
-scuffle-changelog = { version = "0.1", optional = true }
-document-features = { version = "0.2", optional = true }
+scuffle-changelog = { optional = true, path = "../../changelog", version = "0.1" }
 scuffle-workspace-hack.workspace = true
 
 [build-dependencies]
@@ -29,7 +29,12 @@ prost-build = "0.13.5"
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+rustdoc-args = [
+  "--cfg",
+  "docsrs",
+  "--sort-modules-by-appearance",
+  "--generate-link-to-definition",
+]
 
 [package.metadata.xtask.powerset]
 additive-features = ["docs"]

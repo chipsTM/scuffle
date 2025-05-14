@@ -33,30 +33,45 @@ tracing = ["dep:tracing"]
 docs = ["dep:scuffle-changelog", "dep:document-features"]
 
 [dependencies]
-prometheus-client = { version = "0.23", optional = true }
-opentelemetry = { version = "0.29", default-features = false, features = ["metrics"] }
-opentelemetry_sdk = { version = "0.29", default-features = false, features = ["metrics"] }
-scuffle-metrics-derive = "0.1.1"
-tracing = { version = "0.1", optional = true }
+document-features = { optional = true, version = "0.2" }
+opentelemetry = { default-features = false, features = [
+  "metrics",
+], version = "0.29" }
+opentelemetry_sdk = { default-features = false, features = [
+  "metrics",
+], version = "0.29" }
 parking_lot = "0.12"
-scuffle-changelog = { version = "0.1", optional = true }
-document-features = { version = "0.2", optional = true }
+prometheus-client = { optional = true, version = "0.23" }
+scuffle-changelog = { optional = true, path = "../changelog", version = "0.1" }
+scuffle-metrics-derive = { path = "derive", version = "0.1.1" }
 scuffle-workspace-hack.workspace = true
+tracing = { optional = true, version = "0.1" }
 
 [dev-dependencies]
 insta = "1.42.0"
-postcompile = "0.2.0"
+postcompile = { path = "../postcompile", version = "0.2" }
 
 # For examples:
-tokio = { version = "1", features = ["full"] }
 opentelemetry-stdout = "0.29"
+tokio = { features = ["full"], version = "1" }
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+rustdoc-args = [
+  "--cfg",
+  "docsrs",
+  "--sort-modules-by-appearance",
+  "--generate-link-to-definition",
+]
 
 [package.metadata.xtask.powerset]
-additive-features = ["prometheus", "tracing", "internal-logs", "default", "docs"]
+additive-features = [
+  "prometheus",
+  "tracing",
+  "internal-logs",
+  "default",
+  "docs",
+]
 
 [package.metadata.cargo-sync-rdme.rustdoc.mappings]
 changelog = "./CHANGELOG.md"

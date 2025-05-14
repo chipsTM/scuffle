@@ -18,24 +18,26 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 docs = ["dep:scuffle-changelog", "dep:document-features"]
 
 [dependencies]
-serde = "1"
-serde_derive = "1"
+bitmask-enum = "2.2.5"
 byteorder = "1.5"
 bytes = "1.5"
-num-traits = "0.2"
 num-derive = "0.4"
+num-traits = "0.2"
+serde = "1"
+serde_derive = "1"
 thiserror = "2.0"
-bitmask-enum = "2.2.5"
 
-scuffle-h264 = "0.2.0"
-scuffle-h265 = "0.2.0"
-scuffle-aac = "0.1.2"
-scuffle-bytes-util = "0.1.2"
-scuffle-av1 = "0.1.2"
-scuffle-amf0 = { version = "0.2.0", features = ["serde"] }
-nutype-enum = "0.1.2"
-scuffle-changelog = { version = "0.1", optional = true }
-document-features = { version = "0.2", optional = true }
+document-features = { optional = true, version = "0.2" }
+nutype-enum = { path = "../nutype_enum", version = "0.1.2" }
+scuffle-aac = { path = "../aac", version = "0.1.2" }
+scuffle-amf0 = { features = ["serde"], path = "../amf0", version = "0.2.0" }
+scuffle-av1 = { path = "../av1", version = "0.1.2" }
+scuffle-bytes-util = { features = [
+  "serde",
+], path = "../bytes-util", version = "0.1.2" }
+scuffle-changelog = { optional = true, path = "../changelog", version = "0.1" }
+scuffle-h264 = { path = "../h264", version = "0.2.0" }
+scuffle-h265 = { path = "../h265", version = "0.2.0" }
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
@@ -43,7 +45,12 @@ insta = "1.42"
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+rustdoc-args = [
+  "--cfg",
+  "docsrs",
+  "--sort-modules-by-appearance",
+  "--generate-link-to-definition",
+]
 
 [package.metadata.xtask.powerset]
 additive-features = ["docs"]

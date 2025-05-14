@@ -11,7 +11,10 @@ license = "MIT OR Apache-2.0"
 keywords = ["rtmp", "server", "streaming"]
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)', 'cfg(valgrind)'] }
+unexpected_cfgs = { level = "warn", check-cfg = [
+  'cfg(coverage_nightly)',
+  'cfg(valgrind)',
+] }
 
 [features]
 ## Enables changelog and documentation of feature flags
@@ -22,43 +25,50 @@ name = "scuffle-rtmp-basic"
 path = "examples/basic.rs"
 
 [dependencies]
-tokio = { version = "1.36", features = ["io-util", "sync"] }
-serde = "1"
-serde_derive = "1"
 byteorder = "1.5"
 bytes = "1.5"
-tracing = "0.1"
+serde = "1"
+serde_derive = "1"
 thiserror = "2.0"
+tokio = { features = ["io-util", "sync"], version = "1.36" }
+tracing = "0.1"
 
-rand = "0.9"
 hmac = "0.12"
+rand = "0.9"
 sha2 = "0.10"
 
-num-traits = "0.2"
-num-derive = "0.4"
 bitmask-enum = "2.2.5"
+num-derive = "0.4"
+num-traits = "0.2"
 
-nutype-enum = "0.1.2"
-scuffle-amf0 = { version = "0.2.0", features = ["serde"] }
-scuffle-bytes-util = "0.1.1"
-scuffle-future-ext = "0.1.1"
-scuffle-context = "0.1.1"
-scuffle-changelog = { version = "0.1", optional = true }
-document-features = { version = "0.2", optional = true }
+document-features = { optional = true, version = "0.2" }
+nutype-enum = { path = "../nutype_enum", version = "0.1.2" }
+scuffle-amf0 = { features = ["serde"], path = "../amf0", version = "0.2.0" }
+scuffle-bytes-util = { features = [
+  "serde",
+], path = "../bytes-util", version = "0.1.2" }
+scuffle-changelog = { optional = true, path = "../changelog", version = "0.1" }
+scuffle-context = { path = "../context", version = "0.1.1" }
+scuffle-future-ext = { path = "../future-ext", version = "0.1.1" }
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
-tokio = { version = "1.44.1", features = ["full"] }
 serde_json = "1.0"
+tokio = { features = ["full"], version = "1.44.1" }
 
 # For examples:
+scuffle-flv = { path = "../flv", version = "0.2.0" }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
-scuffle-flv = "0.2.0"
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+rustdoc-args = [
+  "--cfg",
+  "docsrs",
+  "--sort-modules-by-appearance",
+  "--generate-link-to-definition",
+]
 
 [package.metadata.xtask.powerset]
 additive-features = ["docs"]

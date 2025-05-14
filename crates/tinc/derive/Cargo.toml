@@ -17,14 +17,19 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 proc-macro = true
 
 [dependencies]
-syn = { version = "2" }
-quote = { version = "1.0" }
 proc-macro2 = { version = "1.0" }
+quote = { version = "1.0" }
 scuffle-workspace-hack.workspace = true
+syn = { version = "2" }
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+rustdoc-args = [
+  "--cfg",
+  "docsrs",
+  "--sort-modules-by-appearance",
+  "--generate-link-to-definition",
+]
 
 [package.metadata.cargo-sync-rdme.badge]
 style = "flat-square"

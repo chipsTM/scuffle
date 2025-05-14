@@ -45,42 +45,51 @@ path = "examples/cli.rs"
 required-features = ["cli"]
 
 [dependencies]
-config = { version = "0.15", default-features = false }
-clap = { version = "4", optional = true }
-minijinja = { version = "2.5", optional = true, features = ["json", "custom_syntax", "urlencode"] }
+anyhow = { optional = true, version = "1.0" }
+clap = { optional = true, version = "4" }
+config = { default-features = false, version = "0.15" }
+document-features = { optional = true, version = "0.2" }
+minijinja = { features = [
+  "custom_syntax",
+  "json",
+  "urlencode",
+], optional = true, version = "2.5" }
+scuffle-bootstrap = { optional = true, path = "../bootstrap", version = "0.1.1" }
+scuffle-changelog = { optional = true, path = "../changelog", version = "0.1" }
+scuffle-workspace-hack.workspace = true
 serde = "1"
 serde_derive = "1"
 thiserror = "2"
-anyhow = { version = "1.0", optional = true }
-scuffle-bootstrap = { version = "0.1.1", optional = true }
-scuffle-changelog = { version = "0.1", optional = true }
-document-features = { version = "0.2", optional = true }
-scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 # For examples:
-smart-default = "0.7"
 serde_derive = "1"
+smart-default = "0.7"
 
 [package.metadata.xtask.powerset]
 additive-features = [
-    "cli",
-    "ron",
-    "toml",
-    "yaml",
-    "json",
-    "json5",
-    "ini",
-    "templates",
-    "all-formats",
-    "full",
-    "bootstrap",
-    "docs",
+  "cli",
+  "ron",
+  "toml",
+  "yaml",
+  "json",
+  "json5",
+  "ini",
+  "templates",
+  "all-formats",
+  "full",
+  "bootstrap",
+  "docs",
 ]
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs", "--sort-modules-by-appearance", "--generate-link-to-definition"]
+rustdoc-args = [
+  "--cfg",
+  "docsrs",
+  "--sort-modules-by-appearance",
+  "--generate-link-to-definition",
+]
 
 [package.metadata.cargo-sync-rdme.rustdoc.mappings]
 changelog = "./CHANGELOG.md"
