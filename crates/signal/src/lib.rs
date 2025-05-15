@@ -244,7 +244,7 @@ impl SignalKind {
         if cfg!(test) {
             return Ok(WindowsSignalValue::Mock(
                 *self,
-                Box::pin(tokio_stream::wrappers::BroadcastStream::new(test::SignalMocker::subscribe())),
+                Box::pin(tokio_stream::wrappers::BroadcastStream::new(tests::SignalMocker::subscribe())),
             ));
         }
 
