@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2](https://github.com/ScuffleCloud/scuffle/compare/scuffle-ffmpeg-v0.3.1...scuffle-ffmpeg-v0.3.2) - 2025-05-15
+
+[View diff on diff.rs](https://diff.rs/scuffle-ffmpeg/0.3.1/scuffle-ffmpeg/0.3.2/Cargo.toml)
+
+### 🛠️ Non-breaking changes
+
+- chore: fix docs.rs building ([#464](https://github.com/scufflecloud/scuffle/pull/464)) (@troykomodo)
+
 ## [0.3.1](https://github.com/ScuffleCloud/scuffle/compare/scuffle-ffmpeg-v0.3.0...scuffle-ffmpeg-v0.3.1) - 2025-05-14
 
 [View diff on diff.rs](https://diff.rs/scuffle-ffmpeg/0.3.0/scuffle-ffmpeg/0.3.1/Cargo.toml)
