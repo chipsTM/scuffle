@@ -12,3 +12,4 @@ reorder_keys = true
 reorder_inline_tables = true
 reorder_arrays = true
 indent_tables = true
+column_width = 100
