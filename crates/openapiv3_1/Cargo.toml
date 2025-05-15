@@ -26,7 +26,7 @@ bon = "3.6.3"
 document-features = { optional = true, version = "0.2" }
 indexmap = { features = ["serde"], version = "2" }
 ordered-float = { features = ["serde"], version = "5" }
-scuffle-changelog = { optional = true, path = "../changelog", version = "0.1" }
+scuffle-changelog = { optional = true, path = "../changelog", version = "0.1.0" }
 scuffle-workspace-hack.workspace = true
 serde = "1"
 serde_derive = "1"
