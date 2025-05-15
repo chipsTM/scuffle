@@ -86,10 +86,6 @@ impl WorkspaceDeps {
             let mut changes = false;
 
             for dependency in package.dependencies.iter() {
-                if dependency.kind != DependencyKind::Development {
-                    continue;
-                }
-
                 let Some(path) = dependency.path.as_deref() else {
                     continue;
                 };
@@ -98,9 +94,14 @@ impl WorkspaceDeps {
                     continue;
                 }
 
-                let dep = doc["dev-dependencies"][&dependency.name]
-                    .as_table_like_mut()
-                    .expect("expected table");
+                let table = match dependency.kind {
+                    DependencyKind::Normal => "dependencies",
+                    DependencyKind::Build => "build-dependencies",
+                    DependencyKind::Development => "dev-dependencies",
+                    _ => continue,
+                };
+
+                let dep = doc[table][&dependency.name].as_table_like_mut().expect("expected table");
 
                 dep.insert(
                     "path",

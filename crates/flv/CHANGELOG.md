@@ -15,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1](https://github.com/ScuffleCloud/scuffle/compare/scuffle-flv-v0.2.0...scuffle-flv-v0.2.1) - 2025-05-14
+
+[View diff on diff.rs](https://diff.rs/scuffle-flv/0.2.0/scuffle-flv/0.2.1/Cargo.toml)
+
+### 🛠️ Non-breaking changes
+
+- chore: cleanup readme and crate docs ([#458](https://github.com/scufflecloud/scuffle/pull/458)) (@troykomodo)
+- chore: Use serde_derive instead of serde's derive feature for improved compile times ([#440](https://github.com/scufflecloud/scuffle/pull/440)) (@philipch07)
+
 ## [0.2.0](https://github.com/ScuffleCloud/scuffle/compare/scuffle-flv-v0.1.1...scuffle-flv-v0.2.0) - 2025-04-27
 
 ### ⚠️ Breaking changes

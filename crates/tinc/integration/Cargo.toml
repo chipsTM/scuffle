@@ -8,21 +8,21 @@ license = "MIT OR Apache-2.0"
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 
 [dev-dependencies]
-tinc = "0.1.0"
-insta = { version = "1.30.0", features = ["json"] }
-serde_json = "1.0.115"
-serde = "1.0.215"
-prost = "0.13.5"
-prost-types = "0.13.5"
-scuffle-workspace-hack.workspace = true
-tokio = { version = "1.4.2", features = ["full"] }
+bytes = "1"
 http = "1"
 http-body-util = "0.1"
-bytes = "1"
-tower = "0.5"
-tonic = "0.13"
+insta = { features = ["json"], version = "1.30.0" }
+prost = "0.13.5"
+prost-types = "0.13.5"
 rand = "0.9"
+scuffle-workspace-hack.workspace = true
+serde = "1.0.215"
+serde_json = "1.0.115"
+tinc = { path = "..", version = "0.1" }
+tokio = { features = ["full"], version = "1.4.2" }
+tonic = "0.13"
+tower = "0.5"
 
 [build-dependencies]
-tinc-build = "0.1.0"
 prost-build = "0.13.5"
+tinc-build = { path = "../build", version = "0.1" }

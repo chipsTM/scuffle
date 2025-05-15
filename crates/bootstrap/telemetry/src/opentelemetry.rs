@@ -9,13 +9,10 @@ pub use ::opentelemetry::*;
 #[derive(Debug, Default, Clone)]
 pub struct OpenTelemetry {
     #[cfg(feature = "opentelemetry-metrics")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry-metrics")))]
     metrics: Option<opentelemetry_sdk::metrics::SdkMeterProvider>,
     #[cfg(feature = "opentelemetry-traces")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry-traces")))]
     traces: Option<opentelemetry_sdk::trace::SdkTracerProvider>,
     #[cfg(feature = "opentelemetry-logs")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry-logs")))]
     logs: Option<opentelemetry_sdk::logs::SdkLoggerProvider>,
 }
 
@@ -53,7 +50,6 @@ impl OpenTelemetry {
 
     /// Sets the metrics provider.
     #[cfg(feature = "opentelemetry-metrics")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry-metrics")))]
     pub fn with_metrics(self, metrics: impl Into<Option<opentelemetry_sdk::metrics::SdkMeterProvider>>) -> Self {
         Self {
             metrics: metrics.into(),
@@ -66,7 +62,6 @@ impl OpenTelemetry {
 
     /// Sets the traces provider.
     #[cfg(feature = "opentelemetry-traces")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry-traces")))]
     pub fn with_traces(self, traces: impl Into<Option<opentelemetry_sdk::trace::SdkTracerProvider>>) -> Self {
         Self {
             traces: traces.into(),
@@ -79,7 +74,6 @@ impl OpenTelemetry {
 
     /// Sets the logs provider.
     #[cfg(feature = "opentelemetry-logs")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "opentelemetry-logs")))]
     pub fn with_logs(self, logs: impl Into<Option<opentelemetry_sdk::logs::SdkLoggerProvider>>) -> Self {
         Self {
             logs: logs.into(),

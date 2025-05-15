@@ -15,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3](https://github.com/ScuffleCloud/scuffle/compare/scuffle-bytes-util-v0.1.2...scuffle-bytes-util-v0.1.3) - 2025-05-14
+
+[View diff on diff.rs](https://diff.rs/scuffle-bytes-util/0.1.2/scuffle-bytes-util/0.1.3/Cargo.toml)
+
+### 🛠️ Non-breaking changes
+
+- chore: cleanup readme and crate docs ([#458](https://github.com/scufflecloud/scuffle/pull/458)) (@troykomodo)
+- feat: Add `range_check` macro to scuffle-bytes-util ([#444](https://github.com/scufflecloud/scuffle/pull/444)) (@philipch07, @lennartkloock)
+
 ## [0.1.2](https://github.com/ScuffleCloud/scuffle/compare/scuffle-bytes-util-v0.1.1...scuffle-bytes-util-v0.1.2) - 2025-04-27
 
 ### 🛠️ Non-breaking changes

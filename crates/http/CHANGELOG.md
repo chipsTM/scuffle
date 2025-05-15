@@ -15,6 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0](https://github.com/ScuffleCloud/scuffle/compare/scuffle-http-v0.2.1...scuffle-http-v0.3.0) - 2025-05-14
+
+[View diff on diff.rs](https://diff.rs/scuffle-http/0.2.1/scuffle-http/0.3.0/Cargo.toml)
+
+### ⚠️ Breaking changes
+
+- chore: update to h3 0.0.8 ([#452](https://github.com/scufflecloud/scuffle/pull/452)) (@lennartkloock)
+- chore: update to h3-quinn 0.0.10 ([#452](https://github.com/scufflecloud/scuffle/pull/452)) (@lennartkloock)
+
+### 🛠️ Non-breaking changes
+
+- chore: cleanup readme and crate docs ([#458](https://github.com/scufflecloud/scuffle/pull/458)) (@troykomodo)
+
 ## [0.2.1](https://github.com/ScuffleCloud/scuffle/compare/scuffle-http-v0.2.0...scuffle-http-v0.2.1) - 2025-04-27
 
 ### ⚠️ Breaking changes

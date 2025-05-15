@@ -15,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3](https://github.com/ScuffleCloud/scuffle/compare/scuffle-settings-v0.1.2...scuffle-settings-v0.1.3) - 2025-05-14
+
+[View diff on diff.rs](https://diff.rs/scuffle-settings/0.1.2/scuffle-settings/0.1.3/Cargo.toml)
+
+### 🛠️ Non-breaking changes
+
+- chore: cleanup readme and crate docs ([#458](https://github.com/scufflecloud/scuffle/pull/458)) (@troykomodo)
+- chore: Use serde_derive instead of serde's derive feature for improved compile times ([#440](https://github.com/scufflecloud/scuffle/pull/440)) (@philipch07)
+
 ## [0.1.2](https://github.com/ScuffleCloud/scuffle/compare/scuffle-settings-v0.1.1...scuffle-settings-v0.1.2) - 2025-04-27
 
 ### 🛠️ Non-breaking changes

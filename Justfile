@@ -51,9 +51,11 @@ doc *args:
 
     # `--cfg docsrs` enables us to write feature hints in the form of `#[cfg_attr(docsrs, doc(cfg(feature = "some-feature")))]`
     # `--enable-index-page` makes the command generate an index page which lists all crates (unstable)
+    # `--generate-link-to-definition` generates source code links (unstable)
+    # `--sort-modules-by-appearance` sorts modules by the order they were defined in (unstable)
     # `-D warnings` disallow all warnings
     # `-Zunstable-options` enables unstable options (for the `--enable-index-page` flag)
-    export RUSTDOCFLAGS="-D warnings --cfg docsrs --enable-index-page -Zunstable-options"
+    export RUSTDOCFLAGS="${RUSTDOCFLAGS:-} -Dwarnings --cfg docsrs --sort-modules-by-appearance --generate-link-to-definition --enable-index-page -Zunstable-options"
     cargo +{{RUST_TOOLCHAIN}} doc --no-deps --all-features {{args}}
 
 alias docs-serve := doc-serve
@@ -74,3 +76,9 @@ create-release package:
 create-release-all:
     cargo +{{RUST_TOOLCHAIN}} xtask change-logs generate
     release-plz update
+
+readme:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    RUSTDOCFLAGS="-Dwarnings --cfg docsrs --sort-modules-by-appearance --enable-index-page -Zunstable-options"  cargo +nightly sync-rdme --all-features --workspace
