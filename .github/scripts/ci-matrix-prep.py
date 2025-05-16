@@ -100,6 +100,9 @@ class GrindMatrix:
 class FmtMatrix:
     pass
 
+@dataclass
+class LockfileMatrix:
+    pass
 
 @dataclass
 class HakariMatrix:
@@ -128,6 +131,7 @@ class Job:
         | ClippyMatrix
         | TestMatrix
         | FmtMatrix
+        | LockfileMatrix
         | HakariMatrix
         | ReleaseChecksMatrix
         | ReadmeMatrix
@@ -592,6 +596,28 @@ def create_fmt_jobs() -> list[Job]:
 
     return jobs
 
+def create_lock_jobs() -> list[Job]:
+    jobs: list[Job] = []
+
+    jobs.append(
+        Job(
+            runner=GITHUB_DEFAULT_RUNNER,
+            job_name="Lockfile Check",
+            job="lockfile",
+            ffmpeg=None,
+            inputs=LockfileMatrix(),
+            setup_protoc=False,
+            rust=RustSetup(
+                toolchain="nightly",
+                components="rustfmt",
+                shared_key=None,
+                cache_backend="github",
+            ),
+        )
+    )
+
+    return jobs
+
 
 def create_hakari_jobs() -> list[Job]:
     jobs: list[Job] = []
@@ -673,6 +699,7 @@ def create_jobs() -> list[Job]:
         + create_test_jobs()
         + create_grind_jobs()
         + create_fmt_jobs()
+        + create_lock_jobs()
         + create_hakari_jobs()
         + create_semver_checks_jobs()
         + create_docusaurus_jobs()

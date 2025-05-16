@@ -17,7 +17,6 @@ runs:
       continue-on-error: true
       env:
         RUSTFLAGS: "--cfg reqwest_unstable"
-        CARGO_TERM_COLOR: "never"
       run: |
         release-plz update --disable-dependant-updates --no-changelog --check-only --exit-status 2> /tmp/.release-plz.stderr 1> /tmp/.release-plz.stdout
 
@@ -31,7 +30,8 @@ runs:
           cat /tmp/.release-plz.stdout | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
         else
           printf '```\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
-          cat /tmp/.release-plz.stderr | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+          cat /tmp/.release-plz.stderr | sed -E "s/\x1B\[[0-9;]*[mK]//g" | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY > /dev/null
+          cat /tmp/.release-plz.stderr
           printf '\n```\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
         fi
 
@@ -42,7 +42,8 @@ runs:
         printf '## ✅ All package versions up-to-date!\n\n' | tee /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
         printf '<details><summary>Release-plz output</summary>\n\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
         printf '```\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
-        cat /tmp/.release-plz.stderr | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+        cat /tmp/.release-plz.stderr | sed -E "s/\x1B\[[0-9;]*[mK]//g" | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY > /dev/null
+        cat /tmp/.release-plz.stderr
         printf '\n```\n\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
         printf '</details>' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
 
