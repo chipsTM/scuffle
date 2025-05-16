@@ -12,8 +12,8 @@ runs:
       env:
         RUSTFLAGS: "--cfg reqwest_unstable"
       run: |
-        set -eo pipefail
         cargo xtask semver-checks --disable-hakari | tee /tmp/.semver-checks-body $GITHUB_STEP_SUMMARY
+      continue-on-error: true
 
     - name: Add/update PR comment
       # skip commenting the summary on forked PRs
@@ -23,3 +23,10 @@ runs:
         file-path: /tmp/.semver-checks-body
         pr-number: ${{ inputs.pr_number }}
         comment-tag: semver-checks
+
+    - name: Fail if semver check failed
+      if: ${{ steps.semver_checks.outcome == 'failure' }}
+      shell: bash
+      run: |
+        echo "A semver violation was found or there was an error. Check the PR comment for details."
+        exit 1

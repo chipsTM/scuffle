@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::io;
 use std::io::Read;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::Parser;
 use next_version::NextVersion;
 use regex::Regex;
@@ -31,15 +31,14 @@ impl SemverChecks {
         let current_metadata = metadata().context("getting current metadata")?;
         let current_crates_set = workspace_crates_in_folder(&current_metadata, "crates");
 
-        let all_crate_info: HashSet<_> = current_metadata
+        let published_crate_names: HashSet<_> = current_metadata
             .packages
             .iter()
-            .filter(|p| current_crates_set.contains(&p.name) && is_published_on_crates_io(&p.name))
+            .map(|p| p.name.clone())
+            .filter(|p| current_crates_set.contains(p) && is_published_on_crates_io(p))
             .collect();
 
-        let common_crates: HashSet<_> = all_crate_info.iter().map(|p| p.name.clone()).collect();
-
-        let mut crates: Vec<_> = common_crates.iter().cloned().collect();
+        let mut crates: Vec<_> = published_crate_names.iter().cloned().collect();
         crates.sort();
 
         println!("<details>");
@@ -55,58 +54,30 @@ impl SemverChecks {
             cargo_cmd().args(["hakari", "disable"]).status().context("disabling hakari")?;
         }
 
-        // by default the rustdoc is output to this directory
-        let json_path = "./target/doc";
-
         // prep the output
         let mut semver_output = String::new();
 
-        for package in all_crate_info {
-            // make the current rustdoc json
-            let rustdoc_args = vec!["rustdoc", "--all-features", "-p", &package.name];
+        let mut args = vec!["semver-checks", "check-release", "--all-features"];
 
-            // note this creates the rustdoc json in /target/doc by the name of crate_name.json (all `-`s are replaced with `_`)
-            cargo_cmd()
-                .env("RUSTC_BOOTSTRAP", "1")
-                .env("RUSTDOCFLAGS", "-Z unstable-options --output-format json")
-                .args(&rustdoc_args)
-                .spawn()?
-                .wait()?;
-
-            let package_underscored = package.name.replace('-', "_");
-            // the location of the current-rustdoc json
-            let current_rustdoc_json = format!("{json_path}/{package_underscored}.json");
-
-            // get the current version of the crate
-            let version = package.version.to_string();
-
-            // build semver-checks args
-            let args = vec![
-                "semver-checks",
-                "check-release",
-                "--baseline-version",
-                &version,
-                "--current-rustdoc",
-                &current_rustdoc_json,
-                "--package",
-                &package.name,
-            ];
-
-            let (mut reader, writer) = io::pipe()?;
-
-            // spawn and merge stdout+stderr into our pipe
-            let mut cmd = cargo_cmd();
-            cmd.env("CARGO_TERM_COLOR", "never")
-                .args(&args)
-                .stdout(writer.try_clone()?)
-                .stderr(writer);
-
-            let mut child = cmd.spawn()?;
-            drop(cmd); // drop the command to avoid holding the pipe open
-
-            reader.read_to_string(&mut semver_output)?;
-            child.wait()?; // wait for exit
+        for package in published_crate_names.iter() {
+            args.push("--package");
+            args.push(package);
         }
+
+        let (mut reader, writer) = io::pipe()?;
+
+        // spawn and merge stdout+stderr into our pipe
+        let mut cmd = cargo_cmd();
+        cmd.env("CARGO_TERM_COLOR", "never")
+            .args(&args)
+            .stdout(writer.try_clone()?)
+            .stderr(writer);
+
+        let mut semver_check_process = cmd.spawn()?;
+        drop(cmd); // drop the command to avoid holding the pipe open
+
+        reader.read_to_string(&mut semver_output)?;
+        semver_check_process.wait()?; // wait for exit
 
         if semver_output.trim().is_empty() {
             anyhow::bail!("No semver-checks output received. The command may have failed.");
@@ -278,6 +249,7 @@ impl SemverChecks {
             for line in summary {
                 println!("{line}");
             }
+            bail!(format!("{error_count} semver violations found!"));
         } else {
             println!("## ✅ No semver violations found! ✅");
         }
