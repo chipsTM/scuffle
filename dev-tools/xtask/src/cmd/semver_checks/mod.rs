@@ -271,7 +271,7 @@ impl SemverChecks {
             // if there are 5+ errors, shrink the details by default.
             if error_count >= 5 {
                 summary.insert(0, "<details>".to_string());
-                summary.insert(1, "<summary> 🦗 Open for error description 🦗 </summary>".to_string());
+                summary.insert(1, "<summary> 🦗 Open for error description 🦗 </summary>\n".to_string());
                 summary.push("</details>".to_string());
             }
 
