@@ -89,7 +89,7 @@ let options = scuffle_settings::Options {
 let settings: MyConfig = scuffle_settings::parse_settings(options)?;
 ````
 
-See [`Options`](https://docs.rs/scuffle-settings/0.1.3/scuffle_settings/options/struct.Options.html) for more information on how to customize parsing.
+See [`Options`](https://docs.rs/scuffle-settings/0.1.4/scuffle_settings/options/struct.Options.html) for more information on how to customize parsing.
 
 ### Templates
 

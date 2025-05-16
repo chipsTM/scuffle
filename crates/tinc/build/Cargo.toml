@@ -1,6 +1,6 @@
 [package]
 name = "tinc-build"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 description = "A build script that generates code for tinc protobuf annotations"
 repository = "https://github.com/scufflecloud/scuffle"
@@ -20,8 +20,8 @@ unexpected_cfgs = { level = "warn", check-cfg = [
 default = ["prost"]
 ## Enables prost codegen
 prost = ["dep:prost", "dep:prost-reflect", "dep:prost-build"]
-## Enables changelog and documentation of feature flags
-docs = ["dep:scuffle-changelog", "dep:document-features"]
+## Enables documentation of feature flags
+docs = ["dep:document-features"]
 
 [dependencies]
 anyhow = "1.0.79"
@@ -42,14 +42,13 @@ prost-reflect = { optional = true, version = "0.15.1" }
 quote = "1"
 regex = "1"
 runtime-format = "0.1.3"
-scuffle-changelog = { optional = true, path = "../../changelog", version = "0.1.0" }
 scuffle-workspace-hack.workspace = true
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
 syn = "2"
 thiserror = "2"
-tinc-cel = { path = "../cel", version = "0.0.2" }
+tinc-cel = { path = "../cel", version = "0.1.0" }
 tinc-pb-prost = { path = "../pb-prost", version = "0.1.1" }
 tonic-build = { default-features = false, version = "0.13.0" }
 
@@ -68,9 +67,6 @@ rustdoc-args = [
   "--sort-modules-by-appearance",
   "--generate-link-to-definition",
 ]
-
-[package.metadata.cargo-sync-rdme.rustdoc.mappings]
-changelog = "./CHANGELOG.md"
 
 [package.metadata.cargo-sync-rdme.badge]
 style = "flat-square"

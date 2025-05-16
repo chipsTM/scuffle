@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.0](https://github.com/ScuffleCloud/scuffle/compare/scuffle-metrics-v0.2.0...scuffle-metrics-v0.3.0) - 2025-05-14
+## [0.3.0](https://github.com/ScuffleCloud/scuffle/releases/tag/scuffle-metrics-v0.3.0) - 2025-05-14
 
 [View diff on diff.rs](https://diff.rs/scuffle-metrics/0.2.0/scuffle-metrics/0.3.0/Cargo.toml)
 
@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - chore: cleanup readme and crate docs ([#458](https://github.com/scufflecloud/scuffle/pull/458)) (@troykomodo)
 
-## [0.2.0](https://github.com/ScuffleCloud/scuffle/compare/scuffle-metrics-v0.1.1...scuffle-metrics-v0.2.0) - 2025-04-27
+## [0.2.0](https://github.com/ScuffleCloud/scuffle/releases/tag/scuffle-metrics-v0.2.0) - 2025-04-27
 
 ### ⚠️ Breaking changes
 
@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - docs: improved documentation ([#372](https://github.com/scufflecloud/scuffle/pull/372)) (@lennartkloock)
 
-## [0.1.1](https://github.com/ScuffleCloud/scuffle/compare/scuffle-metrics-v0.1.0...scuffle-metrics-v0.1.1) - 2025-02-21
+## [0.1.1](https://github.com/ScuffleCloud/scuffle/releases/tag/scuffle-metrics-v0.1.1) - 2025-02-21
 
 ### ⚠️ Breaking changes
 

@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.3](https://github.com/ScuffleCloud/scuffle/compare/scuffle-bytes-util-v0.1.2...scuffle-bytes-util-v0.1.3) - 2025-05-14
+## [0.1.3](https://github.com/ScuffleCloud/scuffle/releases/tag/scuffle-bytes-util-v0.1.3) - 2025-05-14
 
 [View diff on diff.rs](https://diff.rs/scuffle-bytes-util/0.1.2/scuffle-bytes-util/0.1.3/Cargo.toml)
 
@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore: cleanup readme and crate docs ([#458](https://github.com/scufflecloud/scuffle/pull/458)) (@troykomodo)
 - feat: Add `range_check` macro to scuffle-bytes-util ([#444](https://github.com/scufflecloud/scuffle/pull/444)) (@philipch07, @lennartkloock)
 
-## [0.1.2](https://github.com/ScuffleCloud/scuffle/compare/scuffle-bytes-util-v0.1.1...scuffle-bytes-util-v0.1.2) - 2025-04-27
+## [0.1.2](https://github.com/ScuffleCloud/scuffle/releases/tag/scuffle-bytes-util-v0.1.2) - 2025-04-27
 
 ### 🛠️ Non-breaking changes
 
@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat: add new zero-copy reader types ([#421](https://github.com/scufflecloud/scuffle/pull/421)) (@TroyKomodo, @lennartkloock)
 - feat: add nal emulation prevention io ([#425](https://github.com/scufflecloud/scuffle/pull/425)) (@lennartkloock)
 
-## [0.1.1](https://github.com/ScuffleCloud/scuffle/compare/scuffle-bytes-util-v0.1.0...scuffle-bytes-util-v0.1.1) - 2025-02-21
+## [0.1.1](https://github.com/ScuffleCloud/scuffle/releases/tag/scuffle-bytes-util-v0.1.1) - 2025-02-21
 
 ### 🛠️ Non-breaking changes
 

@@ -17,6 +17,7 @@ runs:
       continue-on-error: true
       env:
         RUSTFLAGS: "--cfg reqwest_unstable"
+        CARGO_TERM_COLOR: "never"
       run: |
         release-plz update --disable-dependant-updates --no-changelog --check-only --exit-status 2> /tmp/.release-plz.stderr 1> /tmp/.release-plz.stdout
 
@@ -24,22 +25,26 @@ runs:
       shell: bash
       if: ${{ steps.semver_checks.outcome == 'failure' }}
       run: |
-        echo "## ❌ Release Checks Failed"  | tee /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
-        echo "You need to update the versions on the following packages:" | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+        printf '## ❌ Release Checks Failed'  | tee /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+        printf 'You need to update the versions on the following packages:\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
         if [ -s /tmp/.release-plz.stdout ]; then
           cat /tmp/.release-plz.stdout | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
         else
+          printf '```\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
           cat /tmp/.release-plz.stderr | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+          printf '\n```\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
         fi
 
     - name: Success
       if: ${{ steps.semver_checks.outcome == 'success' }}
       shell: bash
       run: |
-        echo "## ✅ All package versions up-to-date!" | tee /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
-        echo "\n<details><summary>Output</summary>" | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+        printf '## ✅ All package versions up-to-date!\n\n' | tee /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+        printf '<details><summary>Release-plz output</summary>\n\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+        printf '```\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
         cat /tmp/.release-plz.stderr | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
-        echo "</details>" | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+        printf '\n```\n\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+        printf '</details>' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
 
     - name: Add/update PR comment
       # skip commenting the summary on forked PRs

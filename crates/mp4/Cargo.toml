@@ -1,6 +1,6 @@
 [package]
 name = "scuffle-mp4"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 description = "A pure Rust MP4 parser and writer."
 repository = "https://github.com/scufflecloud/scuffle"

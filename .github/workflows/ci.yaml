@@ -54,6 +54,7 @@ jobs:
     name: ${{ matrix.job_name || 'Jobs' }}
     needs: matrix_prep
     strategy:
+      fail-fast: ${{ github.event_name == 'push' }}
       matrix:
         include: ${{ fromJson(needs.matrix_prep.outputs.matrix) }}
     runs-on: ${{ matrix.runner }}

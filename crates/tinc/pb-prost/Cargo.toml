@@ -1,6 +1,6 @@
 [package]
 name = "tinc-pb-prost"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 description = "Protobuf generated schama for tinc"
 repository = "https://github.com/scufflecloud/scuffle"
@@ -14,14 +14,13 @@ keywords = ["grpc", "protobuf", "prost", "codegen"]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 
 [features]
-## Enables changelog and documentation of feature flags
-docs = ["dep:scuffle-changelog", "dep:document-features"]
+## Enables documentation of feature flags
+docs = ["dep:document-features"]
 
 [dependencies]
 document-features = { optional = true, version = "0.2" }
 prost = "0.13.5"
 prost-types = "0.13.5"
-scuffle-changelog = { optional = true, path = "../../changelog", version = "0.1.0" }
 scuffle-workspace-hack.workspace = true
 
 [build-dependencies]
@@ -38,9 +37,6 @@ rustdoc-args = [
 
 [package.metadata.xtask.powerset]
 additive-features = ["docs"]
-
-[package.metadata.cargo-sync-rdme.rustdoc.mappings]
-changelog = "./CHANGELOG.md"
 
 [package.metadata.cargo-sync-rdme.badge]
 style = "flat-square"

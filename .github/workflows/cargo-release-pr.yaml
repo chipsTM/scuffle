@@ -1,4 +1,4 @@
-name: Release-plz PR
+name: Cargo Release PR
 
 on:
   workflow_dispatch:
@@ -11,9 +11,9 @@ env:
   RUST_TOOLCHAIN: nightly
 
 jobs:
-  release-plz-pr:
+  cargo-release-pr:
     name: Cargo Release PR
-    runs-on: ubicloud-standard-8
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       pull-requests: write
@@ -25,9 +25,6 @@ jobs:
         uses: ./.github/actions/setup-rust
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-          shared-key: cargo-release-pr
-          tools: just,cargo-binstall
-          cache-backend: ubicloud
 
       - name: Install
         shell: bash
@@ -47,8 +44,7 @@ jobs:
       - name: Create release
         run: |
           set -eo pipefail
-          cargo xtask change-logs generate
-          release-plz update --disable-dependant-updates | tee -a /tmp/pr-body.txt $GITHUB_STEP_SUMMARY
+          cargo xtask release-pr | tee -a /tmp/pr-body.txt $GITHUB_STEP_SUMMARY
 
       # Check if any files changed
       - name: Check if anything changed

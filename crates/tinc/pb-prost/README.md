@@ -18,11 +18,9 @@
 <!-- cargo-sync-rdme rustdoc [[ -->
 Protobuf Compiled Definitions for Tinc
 
-See the [changelog](./CHANGELOG.md) for a full release history.
-
 ### Feature flags
 
-* **`docs`** —  Enables changelog and documentation of feature flags
+* **`docs`** —  Enables documentation of feature flags
 
 ### License
 
