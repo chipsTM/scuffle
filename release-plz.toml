@@ -1,6 +1,9 @@
 [workspace]
 allow_dirty = true
 changelog_update = true
+release_always = false
+pr_branch_prefix = "automation/cargo-release"
+max_analyze_commits = 0
 git_release_body = """
 [<img alt="crates.io" src="https://img.shields.io/badge/crates.io-v{{ version }}-orange?labelColor=5C5C5C" height="20">](https://crates.io/crates/{{ package }}/{{ version }}) [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-v{{ version }}-blue?labelColor=5C5C5C" height="20">](https://docs.rs/{{ package }}/{{ version }})
 
@@ -33,9 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 body = """
 
 ## [{{ version | trim_start_matches(pat="v") }}]{%- if release_link -%}({{ release_link }}){% endif %} - {{ timestamp | date(format="%Y-%m-%d") }}
-
-{% if previous.version -%}
+{% if previous.version %}
 [View diff on diff.rs](https://diff.rs/{{ package }}/{{ previous.version }}/{{ package }}/{{ version }}/Cargo.toml)
-{%- endif %}
-
+{% endif %}
 """

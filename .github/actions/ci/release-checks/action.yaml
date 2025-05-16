@@ -1,0 +1,58 @@
+name: Release-checks
+inputs:
+  pr_number:
+    description: "The PR number"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Install
+      shell: bash
+      run: |
+        cargo binstall release-plz --git https://github.com/ScuffleCloud/release-plz.git --force -y
+
+    - name: Run release-plz update check
+      id: semver_checks
+      shell: bash
+      continue-on-error: true
+      env:
+        RUSTFLAGS: "--cfg reqwest_unstable"
+      run: |
+        release-plz update --disable-dependant-updates --no-changelog --check-only --exit-status 2> /tmp/.release-plz.stderr 1> /tmp/.release-plz.stdout
+
+    - name: Pick output
+      shell: bash
+      if: ${{ steps.semver_checks.outcome == 'failure' }}
+      run: |
+        echo "## ❌ Release Checks Failed"  | tee /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+        echo "You need to update the versions on the following packages:" | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+        if [ -s /tmp/.release-plz.stdout ]; then
+          cat /tmp/.release-plz.stdout | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+        else
+          cat /tmp/.release-plz.stderr | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Success
+      if: ${{ steps.semver_checks.outcome == 'success' }}
+      shell: bash
+      run: |
+        echo "## ✅ All package versions up-to-date!" | tee /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+        echo "\n<details><summary>Output</summary>" | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+        cat /tmp/.release-plz.stderr | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+        echo "</details>" | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+
+    - name: Add/update PR comment
+      # skip commenting the summary on forked PRs
+      if: ${{ !github.event.pull_request.head.repo.fork }}
+      uses: thollander/actions-comment-pull-request@v3
+      with:
+        file-path: /tmp/.release-checks-body
+        pr-number: ${{ inputs.pr_number }}
+        comment-tag: semver-checks
+
+    - name: Fail
+      if: ${{ steps.semver_checks.outcome == 'failure' }}
+      shell: bash
+      run: |
+        echo "A package versions not up-to-date"
+        exit 1

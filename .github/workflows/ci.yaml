@@ -37,6 +37,11 @@ jobs:
         with:
           ref: ${{ env.SHA }}
 
+      - name: Switch to Branch
+        run: |
+          set -xeo pipefail
+          git switch -C ${{ github.ref_name }}
+
       - name: Run matrix prep
         id: compute
         env:
@@ -56,6 +61,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.SHA }}
+
+      - name: Switch to Branch
+        run: |
+          set -xeo pipefail
+          git switch -C ${{ github.ref_name }}
 
       - name: Setup FFmpeg
         if: ${{ matrix.ffmpeg != null }}
