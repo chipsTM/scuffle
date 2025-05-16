@@ -55,12 +55,6 @@ impl SemverChecks {
             cargo_cmd().args(["hakari", "disable"]).status().context("disabling hakari")?;
         }
 
-        // Safety: this is safe because we are setting the environment variable for the current process.
-        unsafe {
-            std::env::set_var("RUSTC_BOOTSTRAP", "1");
-            std::env::set_var("RUSTDOCFLAGS", "-Z unstable-options --output-format json");
-        }
-
         // by default the rustdoc is output to this directory
         let json_path = "./target/doc";
 
@@ -72,7 +66,12 @@ impl SemverChecks {
             let rustdoc_args = vec!["rustdoc", "--all-features", "-p", &package.name];
 
             // note this creates the rustdoc json in /target/doc by the name of crate_name.json (all `-`s are replaced with `_`)
-            cargo_cmd().args(&rustdoc_args).spawn()?.wait()?;
+            cargo_cmd()
+                .env("RUSTC_BOOTSTRAP", "1")
+                .env("RUSTDOCFLAGS", "-Z unstable-options --output-format json")
+                .args(&rustdoc_args)
+                .spawn()?
+                .wait()?;
 
             let package_underscored = package.name.replace('-', "_");
             // the location of the current-rustdoc json
