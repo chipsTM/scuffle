@@ -20,32 +20,21 @@ runs:
       run: |
         release-plz update --disable-dependant-updates --no-changelog --check-only --exit-status 2> /tmp/.release-plz.stderr 1> /tmp/.release-plz.stdout
 
-    - name: Pick output
+    - name: PR Body
       shell: bash
-      if: ${{ steps.semver_checks.outcome == 'failure' }}
+      env:
+        MESSAGE: "${{ steps.semver_checks.outcome == 'failure' && '❌ Release Checks Failed\n\nYou need to update the versions on the following packages:' || '✅ All package versions up-to-date!' }}"
       run: |
-        printf '## ❌ Release Checks Failed'  | tee /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
-        printf 'You need to update the versions on the following packages:\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
-        if [ -s /tmp/.release-plz.stdout ]; then
-          cat /tmp/.release-plz.stdout | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
-        else
-          printf '```\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
-          cat /tmp/.release-plz.stderr | sed -E "s/\x1B\[[0-9;]*[mK]//g" | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY > /dev/null
-          cat /tmp/.release-plz.stderr
-          printf '\n```\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
-        fi
+        {
+          printf '## %s\n\n' "$MESSAGE"
+          cat /tmp/.release-plz.stdout
+          printf '\n\n<details><summary>Release-plz output</summary>\n\n```\n'
+          sed -E "s/\x1B\[[0-9;]*[mK]//g" /tmp/.release-plz.stderr
+          printf '```\n\n</details>'
+        } | tee /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
 
-    - name: Success
-      if: ${{ steps.semver_checks.outcome == 'success' }}
-      shell: bash
-      run: |
-        printf '## ✅ All package versions up-to-date!\n\n' | tee /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
-        printf '<details><summary>Release-plz output</summary>\n\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
-        printf '```\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
-        cat /tmp/.release-plz.stderr | sed -E "s/\x1B\[[0-9;]*[mK]//g" | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY > /dev/null
+        # Print stderr to the log for debugging
         cat /tmp/.release-plz.stderr
-        printf '\n```\n\n' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
-        printf '</details>' | tee -a /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
 
     - name: Add/update PR comment
       # skip commenting the summary on forked PRs
