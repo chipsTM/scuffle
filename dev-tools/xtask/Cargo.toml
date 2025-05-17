@@ -14,11 +14,9 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 anyhow = "1.0"
 cargo_metadata = "0.19.1"
+chrono = "0.4"
 clap = { features = ["derive", "env"], version = "4.5.23" }
-next_version = "0.2.24"
-os_pipe = "1.2.1"
-regex = "1.11.1"
-semver = "1.0.26"
+reqwest = { features = ["blocking", "json"], version = "0.12" }
 serde = "1"
 serde_derive = "1"
 serde_json = "1.0"

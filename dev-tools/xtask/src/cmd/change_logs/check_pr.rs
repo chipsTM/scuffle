@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use anyhow::Context;
@@ -40,21 +40,25 @@ impl CheckPr {
             .packages
             .iter()
             .filter(|p| workspace_package_ids.contains(&p.id) && !IGNORED_PACKAGES.contains(&p.name.as_str()))
-            .map(|p| p.name.as_str())
-            .collect::<HashSet<_>>();
+            .map(|p| (p.name.as_str(), p))
+            .collect::<HashMap<_, _>>();
 
         let mut has_logs = false;
 
         for (package, item) in fragment.packages() {
-            anyhow::ensure!(
-                workspace_package_names.contains(package),
-                "package `{}` is not in the workspace",
-                package
-            );
+            let Some(package) = workspace_package_names.get(package) else {
+                anyhow::bail!("package `{}` is not in the workspace", package);
+            };
 
             let logs = package_to_logs(self.pr_number, item.clone()).context("parse")?;
 
-            anyhow::ensure!(!logs.is_empty(), "no change logs found for package `{}`", package);
+            anyhow::ensure!(!logs.is_empty(), "no change logs found for package `{}`", package.name);
+
+            anyhow::ensure!(
+                std::fs::exists(package.manifest_path.parent().unwrap().join("CHANGELOG.md")).context("exists")?,
+                "missing CHANGELOG.md for `{}`",
+                package.name
+            );
 
             has_logs = true;
         }

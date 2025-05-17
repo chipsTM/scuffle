@@ -12,7 +12,7 @@ fmt *args:
     cargo +{{RUST_TOOLCHAIN}} fmt --all {{args}}
 
 lint *args:
-    cargo +{{RUST_TOOLCHAIN}} clippy --fix --allow-dirty --allow-staged --all-features --all-targets {{args}}
+    cargo +{{RUST_TOOLCHAIN}} clippy --fix --allow-dirty --allow-staged --all-features --all-targets {{args}} -- -Aclippy::collapsible_if
 
 alias coverage := test
 test *args:
@@ -69,13 +69,8 @@ workspace-hack:
     cargo +{{RUST_TOOLCHAIN}} hakari manage-deps
     cargo +{{RUST_TOOLCHAIN}} hakari generate
 
-create-release package:
-    cargo +{{RUST_TOOLCHAIN}} xtask change-logs generate --package {{package}}
-    release-plz update --package {{package}}
-
-create-release-all:
-    cargo +{{RUST_TOOLCHAIN}} xtask change-logs generate
-    release-plz update
+check-versions:
+    release-plz update --disable-dependant-updates --no-changelog --check-only --exit-status
 
 readme:
     #!/usr/bin/env bash

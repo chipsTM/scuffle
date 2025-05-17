@@ -19,12 +19,10 @@
 Currently this is a fully private api used by `tinc` and `tinc-build` to
 compile and execute [CEL](https://cel.dev/) expressions.
 
-See the [changelog](./CHANGELOG.md) for a full release history.
-
 ### Feature flags
 
 * **`runtime`** —  Enables runtime enum type indexing
-* **`docs`** —  Enables changelog and documentation of feature flags
+* **`docs`** —  Enables documentation of feature flags
 
 ### License
 

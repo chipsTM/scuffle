@@ -100,6 +100,9 @@ class GrindMatrix:
 class FmtMatrix:
     pass
 
+@dataclass
+class LockfileMatrix:
+    pass
 
 @dataclass
 class HakariMatrix:
@@ -110,7 +113,7 @@ class ReadmeMatrix:
     pass
 
 @dataclass
-class SemverChecksMatrix:
+class ReleaseChecksMatrix:
     pr_number: Optional[int]
 
 
@@ -128,8 +131,9 @@ class Job:
         | ClippyMatrix
         | TestMatrix
         | FmtMatrix
+        | LockfileMatrix
         | HakariMatrix
-        | SemverChecksMatrix
+        | ReleaseChecksMatrix
         | ReadmeMatrix
     )
     job: str
@@ -592,6 +596,28 @@ def create_fmt_jobs() -> list[Job]:
 
     return jobs
 
+def create_lock_jobs() -> list[Job]:
+    jobs: list[Job] = []
+
+    jobs.append(
+        Job(
+            runner=GITHUB_DEFAULT_RUNNER,
+            job_name="Lockfile Check",
+            job="lockfile",
+            ffmpeg=None,
+            inputs=LockfileMatrix(),
+            setup_protoc=False,
+            rust=RustSetup(
+                toolchain="nightly",
+                components="rustfmt",
+                shared_key=None,
+                cache_backend="github",
+            ),
+        )
+    )
+
+    return jobs
+
 
 def create_hakari_jobs() -> list[Job]:
     jobs: list[Job] = []
@@ -620,24 +646,21 @@ def create_hakari_jobs() -> list[Job]:
 def create_semver_checks_jobs() -> list[Job]:
     jobs: list[Job] = []
 
-    if is_brawl("merge"):
-        return []
-
     jobs.append(
         Job(
             runner=LINUX_X86_64,
-            job_name="Semver-checks",
-            job="semver-checks",
+            job_name="Release-checks",
+            job="release-checks",
             ffmpeg=FfmpegSetup(),
             setup_protoc=True,
-            inputs=SemverChecksMatrix(
+            inputs=ReleaseChecksMatrix(
                 pr_number=pr_number()
             ),
             rust=RustSetup(
                 toolchain="stable",
                 components="rust-docs",
-                tools="cargo-semver-checks,cargo-hakari",
-                shared_key="cargo-semver-checks",
+                tools="cargo-semver-checks,cargo-hakari,cargo-binstall",
+                shared_key="cargo-release-checks",
                 cache_backend="ubicloud",
             )
         )
@@ -676,6 +699,7 @@ def create_jobs() -> list[Job]:
         + create_test_jobs()
         + create_grind_jobs()
         + create_fmt_jobs()
+        + create_lock_jobs()
         + create_hakari_jobs()
         + create_semver_checks_jobs()
         + create_docusaurus_jobs()

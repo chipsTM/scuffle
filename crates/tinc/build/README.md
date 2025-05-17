@@ -18,12 +18,10 @@
 <!-- cargo-sync-rdme rustdoc [[ -->
 The code generator for [`tinc`](https://crates.io/crates/tinc).
 
-See the [changelog](./CHANGELOG.md) for a full release history.
-
 ### Feature flags
 
 * **`prost`** *(enabled by default)* —  Enables prost codegen
-* **`docs`** —  Enables changelog and documentation of feature flags
+* **`docs`** —  Enables documentation of feature flags
 
 ### Usage
 
@@ -37,7 +35,7 @@ fn main() {
 }
 ````
 
-Look at [`Config`](https://docs.rs/tinc-build/0.1.1/tinc_build/struct.Config.html) to see different options to configure the generator.
+Look at [`Config`](https://docs.rs/tinc-build/0.1.2/tinc_build/struct.Config.html) to see different options to configure the generator.
 
 ### License
 

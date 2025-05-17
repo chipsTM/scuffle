@@ -2,10 +2,10 @@ name: Cargo Release PR
 
 on:
   workflow_dispatch:
-    inputs:
-      crate:
-        required: true
-        type: string
+  schedule:
+    - cron: '0 12 * * 1'  # Monday at 12:00 UTC
+    - cron: '0 12 * * 3'  # Wednesday at 12:00 UTC
+    - cron: '0 12 * * 6'  # Saturday at 12:00 UTC
 
 env:
   RUST_TOOLCHAIN: nightly
@@ -13,7 +13,7 @@ env:
 jobs:
   cargo-release-pr:
     name: Cargo Release PR
-    runs-on: ubicloud-standard-8
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       pull-requests: write
@@ -25,17 +25,26 @@ jobs:
         uses: ./.github/actions/setup-rust
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-          shared-key: cargo-release-pr
-          tools: just,release-plz,cargo-hakari
-          cache-backend: ubicloud
+
+      - name: Install
+        shell: bash
+        run: |
+          cargo binstall release-plz --git https://github.com/ScuffleCloud/release-plz.git --force -y
+
+      - name: Pr Title
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+          echo "Automated release workflow" | tee /tmp/pr-body.txt $GITHUB_STEP_SUMMARY
+
+      - name: Pr Title
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+          echo "Release workflow triggered by @${{ github.actor }}" | tee /tmp/pr-body.txt $GITHUB_STEP_SUMMARY
 
       - name: Create release
-        id: create
         run: |
           set -eo pipefail
-          echo "Release workflow triggered by @${{ github.actor }}" > /tmp/pr-body.txt
-          just create-release ${{ inputs.crate }} | tee -a /tmp/pr-body.txt
-          cat /tmp/pr-body.txt > $GITHUB_STEP_SUMMARY
+          cargo xtask release-pr | tee -a /tmp/pr-body.txt $GITHUB_STEP_SUMMARY
 
       # Check if any files changed
       - name: Check if anything changed
@@ -48,14 +57,12 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         if: ${{ steps.changed.outputs.result == 1 }}
         with:
-          title: Automated release of ${{ inputs.crate }}
+          title: Release Crates
           body-path: /tmp/pr-body.txt
-          branch: automation/cargo-release/${{ inputs.crate }}
+          branch: automation/cargo-release
           labels: release,automated,change-log-not-required
           commit-message: |
-            Automated release of ${{ inputs.crate }}
-
-            Release triggered by @${{ github.actor }}
+            release crates
           author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           sign-commits: true
           reviewers: ${{ github.actor }}

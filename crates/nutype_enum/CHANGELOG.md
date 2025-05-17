@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.4](https://github.com/ScuffleCloud/scuffle/compare/nutype-enum-v0.1.3...nutype-enum-v0.1.4) - 2025-05-14
+## [0.1.4](https://github.com/ScuffleCloud/scuffle/releases/tag/nutype-enum-v0.1.4) - 2025-05-14
 
 [View diff on diff.rs](https://diff.rs/nutype-enum/0.1.3/nutype-enum/0.1.4/Cargo.toml)
 
@@ -23,19 +23,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - chore: cleanup readme and crate docs ([#458](https://github.com/scufflecloud/scuffle/pull/458)) (@troykomodo)
 
-## [0.1.3](https://github.com/ScuffleCloud/scuffle/compare/nutype-enum-v0.1.2...nutype-enum-v0.1.3) - 2025-04-27
+## [0.1.3](https://github.com/ScuffleCloud/scuffle/releases/tag/nutype-enum-v0.1.3) - 2025-04-27
 
 ### 🛠️ Non-breaking changes
 
 - docs: improved documentation ([#372](https://github.com/scufflecloud/scuffle/pull/372)) (@lennartkloock)
 
-## [0.1.2](https://github.com/ScuffleCloud/scuffle/compare/nutype-enum-v0.1.1...nutype-enum-v0.1.2) - 2025-02-21
+## [0.1.2](https://github.com/ScuffleCloud/scuffle/releases/tag/nutype-enum-v0.1.2) - 2025-02-21
 
 ### 🛠️ Non-breaking changes
 
 - chore: update to rust edition 2024 ([#373](https://github.com/scufflecloud/scuffle/pull/373)) (@TroyKomodo)
 
-## [0.1.1](https://github.com/ScuffleCloud/scuffle/compare/nutype-enum-v0.1.0...nutype-enum-v0.1.1) - 2025-02-17
+## [0.1.1](https://github.com/ScuffleCloud/scuffle/releases/tag/nutype-enum-v0.1.1) - 2025-02-17
 
 ### 🛠️ Non-breaking changes
 

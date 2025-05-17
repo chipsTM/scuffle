@@ -1,7 +1,7 @@
 use anyhow::Context;
 
-mod check_pr;
-mod generate;
+pub mod check_pr;
+pub mod generate;
 mod util;
 
 #[derive(Debug, Clone, clap::Subcommand)]
