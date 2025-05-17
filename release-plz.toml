@@ -1,6 +1,6 @@
 [workspace]
 allow_dirty = true
-changelog_update = false
+changelog_update = true
 release_always = false
 pr_branch_prefix = "automation/cargo-release"
 max_analyze_commits = 0
