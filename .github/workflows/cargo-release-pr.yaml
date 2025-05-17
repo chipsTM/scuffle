@@ -32,20 +32,20 @@ jobs:
         run: |
           cargo binstall release-plz --git https://github.com/ScuffleCloud/release-plz.git --force -y
 
-      - name: Pr Title
-        if: ${{ github.event_name == 'schedule' }}
-        run: |
-          echo "Automated release workflow" | tee /tmp/pr-body.txt $GITHUB_STEP_SUMMARY
-
-      - name: Pr Title
-        if: ${{ github.event_name == 'schedule' }}
-        run: |
-          echo "Release workflow triggered by @${{ github.actor }}" | tee /tmp/pr-body.txt $GITHUB_STEP_SUMMARY
-
       - name: Create release
         run: |
           set -eo pipefail
           cargo xtask release-pr | tee -a /tmp/pr-body.txt $GITHUB_STEP_SUMMARY
+
+      - name: Pr Title (Schedule)
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+          printf "\n\n---\n\nAutomated release workflow" | tee /tmp/pr-body.txt $GITHUB_STEP_SUMMARY
+
+      - name: Pr Title (  Dispatch)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          printf "\n\n---\n\nRelease workflow triggered by @${{ github.actor }}" | tee /tmp/pr-body.txt $GITHUB_STEP_SUMMARY
 
       # Check if any files changed
       - name: Check if anything changed

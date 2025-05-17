@@ -6,6 +6,11 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Fetch History
+      shell: bash
+      run: |
+        git fetch --unshallow
+
     - name: Install
       shell: bash
       run: |

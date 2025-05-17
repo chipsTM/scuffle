@@ -69,6 +69,9 @@ workspace-hack:
     cargo +{{RUST_TOOLCHAIN}} hakari manage-deps
     cargo +{{RUST_TOOLCHAIN}} hakari generate
 
+alias version-check := check-versions
+alias check-version := check-versions
+alias versions-check := check-versions
 check-versions:
     release-plz update --disable-dependant-updates --no-changelog --check-only --exit-status
 

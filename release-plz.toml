@@ -1,6 +1,6 @@
 [workspace]
 allow_dirty = true
-changelog_update = false
+changelog_update = true
 release_always = false
 pr_branch_prefix = "automation/cargo-release"
 max_analyze_commits = 0
@@ -17,18 +17,26 @@ version_group = "tinc"
 [[package]]
 name = "tinc-build"
 version_group = "tinc"
+git_release_enable = false
+git_tag_enable = false
 
 [[package]]
 name = "tinc-derive"
 version_group = "tinc"
+git_release_enable = false
+git_tag_enable = false
 
 [[package]]
 name = "tinc-cel"
 version_group = "tinc"
+git_release_enable = false
+git_tag_enable = false
 
 [[package]]
 name = "tinc-pb-prost"
 version_group = "tinc"
+git_release_enable = false
+git_tag_enable = false
 
 [[package]]
 name = "scuffle-metrics"
@@ -37,6 +45,8 @@ version_group = "metrics"
 [[package]]
 name = "scuffle-metrics-derive"
 version_group = "metrics"
+git_release_enable = false
+git_tag_enable = false
 
 [[package]]
 name = "scuffle-bootstrap"
@@ -45,3 +55,5 @@ version_group = "bootstrap"
 [[package]]
 name = "scuffle-bootstrap-derive"
 version_group = "bootstrap"
+git_release_enable = false
+git_tag_enable = false
