@@ -12,7 +12,7 @@ fmt *args:
     cargo +{{RUST_TOOLCHAIN}} fmt --all {{args}}
 
 lint *args:
-    cargo +{{RUST_TOOLCHAIN}} clippy --fix --allow-dirty --allow-staged --all-features --all-targets {{args}}
+    cargo +{{RUST_TOOLCHAIN}} clippy --fix --allow-dirty --allow-staged --all-features --all-targets {{args}} -- -Aclippy::collapsible_if
 
 alias coverage := test
 test *args:
