@@ -24,6 +24,7 @@ jobs:
       - name: Setup Rust
         uses: ./.github/actions/setup-rust
         with:
+          tools: cargo-binstall
           toolchain: ${{ env.RUST_TOOLCHAIN }}
 
       - name: Install

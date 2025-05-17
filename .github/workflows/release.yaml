@@ -30,7 +30,7 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           shared_key: release
-          tools: just,cargo-hakari,release-plz
+          tools: just,cargo-hakari,cargo-binstall
           cache_backend: ubicloud
 
       - name: Setup Protoc
@@ -41,6 +41,11 @@ jobs:
       - name: Remove cargo registries
         run: |
           rm -rf ~/.cargo/registry
+
+      - name: Install
+        shell: bash
+        run: |
+          cargo binstall release-plz --git https://github.com/ScuffleCloud/release-plz.git --force -y
 
       - name: Fix workspace deps
         run: cargo +${{ env.RUST_TOOLCHAIN }} xtask workspace-deps
