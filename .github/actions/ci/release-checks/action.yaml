@@ -38,7 +38,7 @@ runs:
 
     - name: Add/update PR comment
       # skip commenting the summary on forked PRs
-      if: ${{ !github.event.pull_request.head.repo.fork }}
+      if: ${{ !github.event.pull_request.head.repo.fork && inputs.pr_number != null }}
       uses: thollander/actions-comment-pull-request@v3
       with:
         file-path: /tmp/.release-checks-body
