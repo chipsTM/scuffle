@@ -12,7 +12,7 @@ use crate::cmd::release::update::{Fragment, PackageChangeLog};
 use crate::cmd::release::utils::{
     GitReleaseArtifact, LicenseKind, PackageError, PackageErrorMissing, PackageFile, VersionBump, dep_kind_to_name,
 };
-use crate::utils::{self, cargo_cmd, concurrently, git_workdir_clean, relative_to};
+use crate::utils::{self, Command, DropRunner, cargo_cmd, concurrently, git_workdir_clean, relative_to};
 
 #[derive(Debug, Clone, clap::Parser)]
 pub struct Check {
@@ -37,6 +37,9 @@ pub struct Check {
     /// Output markdown to stdout (used for CI to generate PR comments / Summaries)
     #[arg(long, conflicts_with = "fix")]
     stdout_markdown: bool,
+    /// Report version changes as an error.
+    #[arg(long)]
+    version_change_error: bool,
     /// Attempts to fix some of the issues.
     #[arg(long, requires = "pr_number")]
     fix: bool,
@@ -75,7 +78,7 @@ impl Check {
             anyhow::bail!("--fix needs --pr-number to be provided");
         }
 
-        let mut new_releases_markdown = Vec::new();
+        let mut package_changes = Vec::new();
         let mut errors_markdown = Vec::new();
 
         let mut fragment = if let Some(pr_number) = self.pr_number {
@@ -107,16 +110,98 @@ impl Check {
             None
         };
 
+        let base_package_versions = if !self.fix {
+            let git_rev_parse = Command::new("git")
+                .arg("rev-parse")
+                .arg(&self.base_branch)
+                .output()
+                .context("git rev-parse")?;
+
+            if !git_rev_parse.status.success() {
+                anyhow::bail!("git rev-parse failed: {}", String::from_utf8_lossy(&git_rev_parse.stderr));
+            }
+
+            let base_branch_commit = String::from_utf8_lossy(&git_rev_parse.stdout);
+            let base_branch_commit = base_branch_commit.trim();
+
+            let worktree_path = metadata
+                .workspace_root
+                .join("target")
+                .join("release-checks")
+                .join("base-worktree");
+
+            let git_worktree_add = Command::new("git")
+                .arg("worktree")
+                .arg("add")
+                .arg(&worktree_path)
+                .arg(base_branch_commit)
+                .output()
+                .context("git worktree add")?;
+
+            if !git_worktree_add.status.success() {
+                anyhow::bail!(
+                    "git worktree add failed: {}",
+                    String::from_utf8_lossy(&git_worktree_add.stderr)
+                );
+            }
+
+            let _work_tree_cleanup = DropRunner::new(|| {
+                match Command::new("git")
+                    .arg("worktree")
+                    .arg("remove")
+                    .arg("-f")
+                    .arg(&worktree_path)
+                    .output()
+                {
+                    Ok(output) if output.status.success() => {}
+                    Ok(output) => {
+                        tracing::error!(path = %worktree_path, "failed to cleanup worktree: {}", String::from_utf8_lossy(&output.stderr));
+                    }
+                    Err(err) => {
+                        tracing::error!(path = %worktree_path, "failed to cleanup worktree: {err}");
+                    }
+                }
+            });
+
+            let metadata = utils::metadata_for_manifest(Some(&worktree_path.join("Cargo.toml"))).context("base metadata")?;
+
+            let base_package_versions = metadata
+                .workspace_packages()
+                .into_iter()
+                .map(|p| (p.name.as_str().to_owned(), p.version.clone()))
+                .collect::<BTreeMap<_, _>>();
+
+            for (package, version) in &base_package_versions {
+                if let Some(package) = check_run.get_package(package) {
+                    if self.version_change_error && &package.version != version {
+                        package.report_issue(PackageError::VersionChanged);
+                    }
+                } else {
+                    tracing::info!("{package} was removed");
+                    package_changes.push(format!("* `{package}`: **removed**"))
+                }
+            }
+
+            Some(base_package_versions)
+        } else {
+            None
+        };
+
         for package in check_run.groups().flatten() {
             let _span = tracing::info_span!("check", package = %package.name).entered();
-            if self.fix {
+            if let Some(base_package_versions) = &base_package_versions {
+                package
+                    .report(
+                        base_package_versions.get(package.name.as_str()),
+                        &mut package_changes,
+                        &mut errors_markdown,
+                        fragment.as_mut(),
+                    )
+                    .with_context(|| format!("report {}", package.name.clone()))?;
+            } else {
                 package
                     .fix(&check_run, &metadata.workspace_root, fragment.as_mut().unwrap())
                     .with_context(|| format!("fix {}", package.name.clone()))?;
-            } else {
-                package
-                    .report(&mut new_releases_markdown, &mut errors_markdown, fragment.as_mut())
-                    .with_context(|| format!("report {}", package.name.clone()))?;
             }
         }
 
@@ -136,8 +221,8 @@ impl Check {
                 "{}",
                 fmtools::fmt(|f| {
                     f.write_str("# ⭐ Package Changes\n\n")?;
-                    if !new_releases_markdown.is_empty() {
-                        for line in &new_releases_markdown {
+                    if !package_changes.is_empty() {
+                        for line in &package_changes {
                             f.write_str(line)?;
                             f.write_char('\n')?;
                         }
@@ -588,6 +673,7 @@ impl Package {
                 }
                 PackageError::GitRelease { .. } => {}
                 PackageError::GitReleaseArtifactFileMissing { .. } => {}
+                PackageError::VersionChanged => {}
             }
         }
 
@@ -670,18 +756,28 @@ impl Package {
 
     fn report(
         &self,
-        new_releases_markdown: &mut Vec<String>,
+        base_package_version: Option<&semver::Version>,
+        package_changes: &mut Vec<String>,
         errors_markdown: &mut Vec<String>,
         fragment: Option<&mut Fragment>,
     ) -> anyhow::Result<()> {
         let semver_output = self.semver_output();
-        if let Some(version_bump) = self.version_bump() {
-            let changes_text = match version_bump {
-                VersionBump::Major => "has breaking changes",
-                VersionBump::Minor => "has changes",
+
+        if self.version_bump().is_some() || base_package_version.is_none_or(|v| v != &self.version) {
+            let mut changes_text = match self.version_bump() {
+                Some(VersionBump::Major) => "has breaking changes".to_owned(),
+                Some(VersionBump::Minor) => "has changes".to_owned(),
+                None => "no changes".to_owned(),
             };
+
+            match base_package_version {
+                None => changes_text += &format!(" (**new**: `{}`)", self.version),
+                Some(v) if v != &self.version => changes_text += &format!(" (**version**: `{v}` -> `{}`)", self.version),
+                Some(_) => {}
+            }
+
             tracing::info!("{changes_text}");
-            new_releases_markdown.push(
+            package_changes.push(
                 fmtools::fmt(|f| {
                     write!(f, "* `{}`: {changes_text}", self.name)?;
                     if let Some((true, logs)) = &semver_output {

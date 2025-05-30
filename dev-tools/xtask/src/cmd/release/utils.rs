@@ -252,6 +252,7 @@ pub enum PackageError {
     GitReleaseArtifactFileMissing {
         path: String,
     },
+    VersionChanged,
 }
 
 impl PackageError {
@@ -418,6 +419,7 @@ impl std::fmt::Display for PackageError {
             Self::GitReleaseArtifactFileMissing { path } => {
                 write!(f, "missing file artifact used by git release: {path}")
             }
+            Self::VersionChanged => write!(f, "package version has changed"),
         }
     }
 }

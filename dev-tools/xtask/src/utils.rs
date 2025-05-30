@@ -7,9 +7,15 @@ use anyhow::Context;
 use cargo_metadata::camino::{Utf8Path, Utf8PathBuf};
 
 pub fn metadata() -> anyhow::Result<cargo_metadata::Metadata> {
-    let output = Command::from_command(cargo_metadata::MetadataCommand::new().cargo_command())
-        .output()
-        .context("exec")?;
+    metadata_for_manifest(None)
+}
+
+pub fn metadata_for_manifest(manifest: Option<&Utf8Path>) -> anyhow::Result<cargo_metadata::Metadata> {
+    let mut cmd = cargo_metadata::MetadataCommand::new();
+    if let Some(manifest) = manifest {
+        cmd.manifest_path(manifest);
+    }
+    let output = Command::from_command(cmd.cargo_command()).output().context("exec")?;
     if !output.status.success() {
         anyhow::bail!("cargo metadata: {}", String::from_utf8(output.stderr)?)
     }
@@ -232,4 +238,22 @@ pub fn relative_to(path: &Utf8Path, dir: &Utf8Path) -> Utf8PathBuf {
     }
 
     result
+}
+
+pub struct DropRunner<F: FnOnce() -> ()> {
+    func: Option<F>,
+}
+
+impl<F: FnOnce() -> ()> DropRunner<F> {
+    pub fn new(func: F) -> Self {
+        Self { func: Some(func) }
+    }
+}
+
+impl<F: FnOnce() -> ()> Drop for DropRunner<F> {
+    fn drop(&mut self) {
+        if let Some(func) = self.func.take() {
+            func()
+        }
+    }
 }
