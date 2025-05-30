@@ -68,7 +68,7 @@ impl Check {
         check_run.process(
             self.concurrency,
             &metadata.workspace_root,
-            if self.all { Some(&self.base_branch) } else { None },
+            if self.all { None } else { Some(&self.base_branch) },
         )?;
 
         if self.fix && self.pr_number.is_none() {
