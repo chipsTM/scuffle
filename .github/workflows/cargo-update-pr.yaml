@@ -50,7 +50,7 @@ jobs:
           title: Automated update of Cargo.lock
           body-path: /tmp/pr-body.txt
           branch: automation/cargo-update
-          labels: dependencies,automated,change-log-not-required
+          labels: dependencies,automated
           commit-message: |
             Automated update of Cargo.lock
 
