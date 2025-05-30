@@ -32,9 +32,9 @@ runs:
       run: |
         {
           cat /tmp/.release-check.stdout
-          printf '\n\n<details><summary>cargo xtask release check</summary>\n\n```\n'
+          printf '\n\n<details><summary>cargo xtask release check</summary>\n\n`````\n'
           sed -E "s/\x1B\[[0-9;]*[mK]//g" /tmp/.release-check.stderr
-          printf '```\n\n</details>'
+          printf '`````\n\n</details>'
         } | tee /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
 
     - name: Add/update PR comment

@@ -252,6 +252,10 @@ pub enum PackageError {
     GitReleaseArtifactFileMissing {
         path: String,
     },
+    VersionChanged {
+        from: semver::Version,
+        to: semver::Version,
+    },
 }
 
 impl PackageError {
@@ -284,6 +288,10 @@ impl PackageError {
             name: dep.name.clone(),
             target: dep.target.clone(),
         }
+    }
+
+    pub fn version_changed(from: semver::Version, to: semver::Version) -> Self {
+        Self::VersionChanged { from, to }
     }
 }
 
@@ -418,6 +426,7 @@ impl std::fmt::Display for PackageError {
             Self::GitReleaseArtifactFileMissing { path } => {
                 write!(f, "missing file artifact used by git release: {path}")
             }
+            Self::VersionChanged { from, to } => write!(f, "package version has changed `{from}` -> `{to}`"),
         }
     }
 }
