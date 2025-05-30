@@ -55,9 +55,9 @@ jobs:
         run: |
           {
             cat /tmp/.release-update.stdout
-            printf '\n\n<details><summary>cargo xtask release update</summary>\n\n```\n'
+            printf '\n\n<details><summary>cargo xtask release update</summary>\n\n`````\n'
             sed -E "s/\x1B\[[0-9;]*[mK]//g" /tmp/.release-update.stderr
-            printf '```\n\n</details>'
+            printf '`````\n\n</details>'
           } | tee /tmp/.release-update-body $GITHUB_STEP_SUMMARY
 
       # Check if any files changed

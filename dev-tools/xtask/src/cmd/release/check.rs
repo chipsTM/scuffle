@@ -174,7 +174,7 @@ impl Check {
             for (package, version) in &base_package_versions {
                 if let Some(package) = check_run.get_package(package) {
                     if self.version_change_error && &package.version != version {
-                        package.report_issue(PackageError::VersionChanged);
+                        package.report_issue(PackageError::version_changed(version.clone(), package.version.clone()));
                     }
                 } else {
                     tracing::info!("{package} was removed");
@@ -675,7 +675,7 @@ impl Package {
                 }
                 PackageError::GitRelease { .. } => {}
                 PackageError::GitReleaseArtifactFileMissing { .. } => {}
-                PackageError::VersionChanged => {}
+                PackageError::VersionChanged { .. } => {}
             }
         }
 
@@ -789,9 +789,9 @@ impl Package {
                     write!(f, "* `{}`: {log}", self.name)?;
                     if let Some((true, logs)) = &semver_output {
                         let mut f = indent_write::fmt::IndentWriter::new("  ", f);
-                        f.write_str("\n\n<details><summary>cargo-semver-checks</summary>\n\n")?;
-                        write!(f, "```\n{logs}\n```\n\n")?;
-                        f.write_str("</details>\n")?;
+                        f.write_str("\n\n<details><summary>cargo-semver-checks</summary>\n\n````\n")?;
+                        f.write_str(&logs)?;
+                        f.write_str("\n````\n\n</details>\n")?;
                     }
                     Ok(())
                 })
@@ -815,7 +815,7 @@ impl Package {
                 errors_markdown.push(format!("* {error}"))
             }
             if let Some(min_versions_output) = min_versions_output {
-                errors_markdown.push(format!("* min package versions issue\n\n<details><summary>Output</summary>\n\n```\n{min_versions_output}\n```\n\n</details>\n"))
+                errors_markdown.push(format!("* min package versions issue\n\n<details><summary>Output</summary>\n\n````\n{min_versions_output}\n````\n\n</details>\n"))
             }
             errors_markdown.push("".into());
         }
