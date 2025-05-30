@@ -45,7 +45,7 @@ tracing = { optional = true, version = "0.1" }
 
 [dev-dependencies]
 insta = "1.42.0"
-postcompile = { path = "../postcompile", version = "0.3.0" }
+postcompile = { path = "../postcompile" }
 
 # For examples:
 opentelemetry-stdout = "0.29"
