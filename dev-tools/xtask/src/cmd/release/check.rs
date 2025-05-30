@@ -790,7 +790,7 @@ impl Package {
                     if let Some((true, logs)) = &semver_output {
                         let mut f = indent_write::fmt::IndentWriter::new("  ", f);
                         f.write_str("\n\n<details><summary>cargo-semver-checks</summary>\n\n````\n")?;
-                        f.write_str(&logs)?;
+                        f.write_str(logs)?;
                         f.write_str("\n````\n\n</details>\n")?;
                     }
                     Ok(())
