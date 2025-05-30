@@ -536,8 +536,15 @@ impl Package {
                         let path = self.manifest_path.with_file_name(file.to_string());
                         let file_path = workspace_root.join(file.to_string());
                         let relative_path = relative_to(&file_path, path.parent().unwrap());
-                        tracing::info!("creating {path}");
-                        std::os::unix::fs::symlink(relative_path, path).context("license symlink")?;
+                        #[cfg(unix)]
+                        {
+                            tracing::info!("creating {path}");
+                            std::os::unix::fs::symlink(relative_path, path).context("license symlink")?;
+                        }
+                        #[cfg(not(unix))]
+                        {
+                            tracing::warn!("cannot symlink {path} to {relative_path}");
+                        }
                     }
                     changelogs.insert(ChangelogEntryType::CargoToml);
                 }
@@ -568,8 +575,15 @@ impl Package {
                     let path = self.manifest_path.with_file_name(file.to_string());
                     let file_path = workspace_root.join(file.to_string());
                     let relative_path = relative_to(&file_path, path.parent().unwrap());
-                    tracing::info!("creating {}", relative_to(&path, workspace_root));
-                    std::os::unix::fs::symlink(relative_path, path).context("license symlink")?;
+                    #[cfg(unix)]
+                    {
+                        tracing::info!("creating {path}");
+                        std::os::unix::fs::symlink(relative_path, path).context("license symlink")?;
+                    }
+                    #[cfg(not(unix))]
+                    {
+                        tracing::warn!("cannot symlink {path} to {relative_path}");
+                    }
                     changelogs.insert(ChangelogEntryType::CargoToml);
                 }
                 PackageError::GitRelease { .. } => {}
