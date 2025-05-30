@@ -425,11 +425,7 @@ impl Package {
             let cargo_toml_edit = cargo_toml_edit.to_string();
             let _guard = if cargo_toml_str != cargo_toml_edit {
                 let guard = SINGLE_THREAD.write().unwrap();
-                let undo = WriteUndo::new(
-                    &self.manifest_path,
-                    cargo_toml_edit.as_bytes(),
-                    cargo_toml_str.into_bytes(),
-                )?;
+                let undo = WriteUndo::new(&self.manifest_path, cargo_toml_edit.as_bytes(), cargo_toml_str.into_bytes())?;
                 Some((guard, undo))
             } else {
                 None
