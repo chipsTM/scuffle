@@ -43,12 +43,12 @@ scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 insta = "1.42"
-postcompile = { path = "../postcompile", version = "0.3.0" }
-scuffle-future-ext = { path = "../future-ext", version = "0.1.3" }
-scuffle-signal = { features = ["bootstrap"], path = "../signal", version = "0.3.1" }
+postcompile = { path = "../postcompile" }
+scuffle-future-ext = { path = "../future-ext" }
+scuffle-signal = { features = ["bootstrap"], path = "../signal" }
 
 # For examples:
-scuffle-settings = { features = ["bootstrap"], path = "../settings", version = "0.1.3" }
+scuffle-settings = { features = ["bootstrap"], path = "../settings" }
 serde = "1"
 serde_derive = "1"
 smart-default = "0.7"

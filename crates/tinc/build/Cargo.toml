@@ -48,13 +48,13 @@ serde_derive = "1"
 serde_json = "1"
 syn = "2"
 thiserror = "2"
-tinc-cel = { path = "../cel", version = "0.1.0" }
-tinc-pb-prost = { path = "../pb-prost", version = "0.1.1" }
+tinc-cel = { path = "../cel", version = "=0.1.2" }
+tinc-pb-prost = { path = "../pb-prost", version = "=0.1.2" }
 tonic-build = { default-features = false, version = "0.13.0" }
 
 [dev-dependencies]
 insta = "1"
-postcompile = { path = "../../postcompile", version = "0.3.0" }
+postcompile = { path = "../../postcompile" }
 
 [package.metadata.xtask.powerset]
 additive-features = ["prost", "docs"]
@@ -77,3 +77,6 @@ docs-rs = true
 crates-io = true
 github-actions = { workflows = "ci.yaml" }
 codecov = true
+
+[package.metadata.xtask.release]
+group = "tinc"
