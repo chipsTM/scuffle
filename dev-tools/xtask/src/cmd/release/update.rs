@@ -246,7 +246,7 @@ impl Update {
                     };
 
                     let depends_on = dep.req == pkg.unreleased_req();
-                    if !depends_on && dep.req.matches(&pkg.next_version().unwrap()) {
+                    if !depends_on && pkg.next_version().is_none_or(|vers| dep.req.matches(&vers)) {
                         continue;
                     }
 
@@ -257,7 +257,7 @@ impl Update {
                     };
 
                     let item = root[kind][&dep.name].as_table_like_mut().unwrap();
-                    let pkg_version = pkg.next_version().unwrap();
+                    let pkg_version = pkg.next_version().unwrap_or_else(|| pkg.version.clone());
 
                     let version = if pkg.group() == package.group() {
                         semver::VersionReq {

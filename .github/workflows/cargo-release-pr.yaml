@@ -43,7 +43,7 @@ jobs:
       - name: Create release
         run: |
           set -eo pipefail
-          cargo xtask release pr 2> >(tee /tmp/.release-pr.stderr >&2) 1> >(tee /tmp/.release-pr.stdout)
+          cargo xtask release update 2> >(tee /tmp/.release-pr.stderr >&2) 1> >(tee /tmp/.release-pr.stdout)
 
       - name: PR Body
         shell: bash
