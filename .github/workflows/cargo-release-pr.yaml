@@ -18,6 +18,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Fetch History
+        shell: bash
+        run: |
+          git fetch --unshallow
+
       - name: Setup FFmpeg
         uses: ./.github/actions/setup-ffmpeg
 
@@ -30,7 +35,7 @@ jobs:
         uses: ./.github/actions/setup-rust
         with:
           shared_key: release-pr
-          tools: cargo-semver-checks
+          tools: cargo-semver-checks,cargo-binstall
           cache_backend: ubicloud
 
       - name: Install cargo-sync-rdme
@@ -43,17 +48,17 @@ jobs:
       - name: Create release
         run: |
           set -eo pipefail
-          cargo xtask release update 2> >(tee /tmp/.release-pr.stderr >&2) 1> >(tee /tmp/.release-pr.stdout)
+          cargo xtask release update 2> >(tee /tmp/.release-update.stderr >&2) 1> >(tee /tmp/.release-update.stdout)
 
       - name: PR Body
         shell: bash
         run: |
           {
-            cat /tmp/.release-check.stdout
-            printf '\n\n<details><summary>cargo xtask release pr</summary>\n\n```\n'
-            sed -E "s/\x1B\[[0-9;]*[mK]//g" /tmp/.release-check.stderr
+            cat /tmp/.release-update.stdout
+            printf '\n\n<details><summary>cargo xtask release update</summary>\n\n```\n'
+            sed -E "s/\x1B\[[0-9;]*[mK]//g" /tmp/.release-update.stderr
             printf '```\n\n</details>'
-          } | tee /tmp/.release-checks-body $GITHUB_STEP_SUMMARY
+          } | tee /tmp/.release-update-body $GITHUB_STEP_SUMMARY
 
       # Check if any files changed
       - name: Check if anything changed
@@ -78,7 +83,7 @@ jobs:
         if: ${{ steps.changed.outputs.result == 1 }}
         with:
           title: Release Crates
-          body-path: /tmp/.release-checks-body
+          body-path: /tmp/.release-update-body
           branch: automation/cargo-release
           labels: release,automated
           commit-message: |
