@@ -78,7 +78,7 @@ impl Check {
             anyhow::bail!("--fix needs --pr-number to be provided");
         }
 
-        let mut package_changes = Vec::new();
+        let mut package_changes_markdown = Vec::new();
         let mut errors_markdown = Vec::new();
 
         let mut fragment = if let Some(pr_number) = self.pr_number {
@@ -99,7 +99,7 @@ impl Check {
             }
 
             if !unknown_packages.is_empty() {
-                errors_markdown.push("## Changelog Entry\n".into());
+                errors_markdown.push("### Changelog Entry\n".into());
                 for package in unknown_packages {
                     errors_markdown.push(format!("* unknown package entry `{package}`"))
                 }
@@ -178,7 +178,7 @@ impl Check {
                     }
                 } else {
                     tracing::info!("{package} was removed");
-                    package_changes.push(format!("* `{package}`: **removed**"))
+                    package_changes_markdown.push(format!("* `{package}`: **removed**"))
                 }
             }
 
@@ -193,7 +193,7 @@ impl Check {
                 package
                     .report(
                         base_package_versions.get(package.name.as_str()),
-                        &mut package_changes,
+                        &mut package_changes_markdown,
                         &mut errors_markdown,
                         fragment.as_mut(),
                     )
@@ -220,19 +220,23 @@ impl Check {
             print!(
                 "{}",
                 fmtools::fmt(|f| {
-                    f.write_str("# ⭐ Package Changes\n\n")?;
-                    if !package_changes.is_empty() {
-                        for line in &package_changes {
+                    if errors_markdown.is_empty() {
+                        f.write_str("# ✅ Release Checks Passed\n\n")?;
+                    } else {
+                        f.write_str("# ❌ Release Checks Failed\n\n")?;
+                    }
+
+                    if !package_changes_markdown.is_empty() {
+                        f.write_str("## ⭐ Package Changes\n\n")?;
+                        for line in &package_changes_markdown {
                             f.write_str(line)?;
                             f.write_char('\n')?;
                         }
                         f.write_char('\n')?;
-                    } else {
-                        f.write_str("no changes\n\n")?;
                     }
 
                     if !errors_markdown.is_empty() {
-                        f.write_str("# 💥 Errors \n\n")?;
+                        f.write_str("## 💥 Errors \n\n")?;
                         for line in &errors_markdown {
                             f.write_str(line)?;
                             f.write_char('\n')?;
@@ -384,48 +388,50 @@ impl Package {
         static SINGLE_THREAD: std::sync::RwLock<()> = std::sync::RwLock::new(());
 
         if self.should_semver_checks() {
-            if let Some(version) = self.last_published_version() {
-                static ONCE: std::sync::Once = std::sync::Once::new();
-                ONCE.call_once(|| {
-                    std::thread::spawn(move || {
-                        tracing::info!("running cargo-semver-checks");
+            match self.last_published_version() {
+                Some(version) if version.vers == self.version => {
+                    static ONCE: std::sync::Once = std::sync::Once::new();
+                    ONCE.call_once(|| {
+                        std::thread::spawn(move || {
+                            tracing::info!("running cargo-semver-checks");
+                        });
                     });
-                });
 
-                tracing::debug!(
-                    "running semver-checks against baseline-version: {}, current-version: {}",
-                    version.vers,
-                    self.version
-                );
+                    tracing::debug!("running semver-checks");
 
-                let _guard = SINGLE_THREAD.read().unwrap();
+                    let _guard = SINGLE_THREAD.read().unwrap();
 
-                let semver_checks = cargo_cmd()
-                    .arg("semver-checks")
-                    .arg("-p")
-                    .arg(self.name.as_ref())
-                    .arg("--baseline-version")
-                    .arg(version.vers.to_string())
-                    .stderr(Stdio::piped())
-                    .stdout(Stdio::piped())
-                    .output()
-                    .context("semver-checks")?;
+                    let semver_checks = cargo_cmd()
+                        .arg("semver-checks")
+                        .arg("-p")
+                        .arg(self.name.as_ref())
+                        .arg("--baseline-version")
+                        .arg(version.vers.to_string())
+                        .stderr(Stdio::piped())
+                        .stdout(Stdio::piped())
+                        .output()
+                        .context("semver-checks")?;
 
-                let stdout = String::from_utf8_lossy(&semver_checks.stdout);
-                let stdout = stdout.trim().replace(workspace_root.as_str(), ".");
-                if !semver_checks.status.success() {
-                    let stderr = String::from_utf8_lossy(&semver_checks.stderr);
-                    let stderr = stderr.trim().replace(workspace_root.as_str(), ".");
-                    if stdout.is_empty() {
-                        anyhow::bail!("semver-checks failed\n{stderr}");
+                    let stdout = String::from_utf8_lossy(&semver_checks.stdout);
+                    let stdout = stdout.trim().replace(workspace_root.as_str(), ".");
+                    if !semver_checks.status.success() {
+                        let stderr = String::from_utf8_lossy(&semver_checks.stderr);
+                        let stderr = stderr.trim().replace(workspace_root.as_str(), ".");
+                        if stdout.is_empty() {
+                            anyhow::bail!("semver-checks failed\n{stderr}");
+                        } else {
+                            self.set_semver_output(stderr.contains("requires new major version"), stdout.to_owned());
+                        }
                     } else {
-                        self.set_semver_output(stderr.contains("requires new major version"), stdout.to_owned());
+                        self.set_semver_output(false, stdout.to_owned());
                     }
-                } else {
-                    self.set_semver_output(false, stdout.to_owned());
                 }
-            } else {
-                tracing::info!("skipping semver-checks due to no published version was found on crates.io");
+                _ => {
+                    tracing::info!(
+                        "skipping semver-checks because local version ({}) is not published.",
+                        self.version
+                    );
+                }
             }
         }
 
@@ -552,11 +558,7 @@ impl Package {
             }
         }
 
-        if let Some(next_version) = self.next_version() {
-            tracing::debug!(after = ?start.elapsed(), "validation finished, package needs a version bump ({next_version})");
-        } else {
-            tracing::debug!(after = ?start.elapsed(), "validation finished");
-        }
+        tracing::debug!(after = ?start.elapsed(), "validation finished");
 
         Ok(())
     }
@@ -763,23 +765,28 @@ impl Package {
     ) -> anyhow::Result<()> {
         let semver_output = self.semver_output();
 
-        if self.version_bump().is_some() || base_package_version.is_none_or(|v| v != &self.version) {
-            let mut changes_text = match self.version_bump() {
-                Some(VersionBump::Major) => "has breaking changes".to_owned(),
-                Some(VersionBump::Minor) => "has changes".to_owned(),
-                None => "no changes".to_owned(),
-            };
+        let version_text = match base_package_version {
+            Some(v) if v != &self.version => Some(format!("**version change** `{v}` -> `{}`", self.version)),
+            Some(_) => None,
+            None => Some("**new crate**".to_string()),
+        };
+        let changes_text = self.version_bump().map(|bump| match bump {
+            VersionBump::Major => "has breaking changes",
+            VersionBump::Minor => "has changes",
+        });
 
-            match base_package_version {
-                None => changes_text += &format!(" (**new**: `{}`)", self.version),
-                Some(v) if v != &self.version => changes_text += &format!(" (**version**: `{v}` -> `{}`)", self.version),
-                Some(_) => {}
-            }
+        let log = match (changes_text, version_text) {
+            (Some(c), Some(v)) => Some(format!("{c} ({v})")),
+            (Some(c), None) => Some(c.to_string()),
+            (None, Some(v)) => Some(v),
+            (None, None) => None,
+        };
 
-            tracing::info!("{changes_text}");
+        if let Some(log) = log {
+            tracing::info!("{log}");
             package_changes.push(
                 fmtools::fmt(|f| {
-                    write!(f, "* `{}`: {changes_text}", self.name)?;
+                    write!(f, "* `{}`: {log}", self.name)?;
                     if let Some((true, logs)) = &semver_output {
                         let mut f = indent_write::fmt::IndentWriter::new("  ", f);
                         f.write_str("\n\n<details><summary>cargo-semver-checks</summary>\n\n")?;
@@ -803,7 +810,7 @@ impl Package {
         let min_versions_output = self.min_versions_output();
 
         if !errors.is_empty() || min_versions_output.is_some() {
-            errors_markdown.push(format!("## {}\n", self.name));
+            errors_markdown.push(format!("### {}\n", self.name));
             for error in errors.iter() {
                 errors_markdown.push(format!("* {error}"))
             }

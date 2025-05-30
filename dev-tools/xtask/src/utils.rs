@@ -240,17 +240,17 @@ pub fn relative_to(path: &Utf8Path, dir: &Utf8Path) -> Utf8PathBuf {
     result
 }
 
-pub struct DropRunner<F: FnOnce() -> ()> {
+pub struct DropRunner<F: FnOnce()> {
     func: Option<F>,
 }
 
-impl<F: FnOnce() -> ()> DropRunner<F> {
+impl<F: FnOnce()> DropRunner<F> {
     pub fn new(func: F) -> Self {
         Self { func: Some(func) }
     }
 }
 
-impl<F: FnOnce() -> ()> Drop for DropRunner<F> {
+impl<F: FnOnce()> Drop for DropRunner<F> {
     fn drop(&mut self) {
         if let Some(func) = self.func.take() {
             func()
