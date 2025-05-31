@@ -675,11 +675,10 @@ def create_fmt_jobs() -> list[Job]:
             inputs=FmtMatrix(),
             setup_protoc=False,
             rust=RustSetup(
-                toolchain="stable",
+                toolchain="nightly",
                 components="rustfmt",
                 shared_key=None,
                 cache_backend="github",
-                nightly_bypass=True,
             ),
         )
     )
