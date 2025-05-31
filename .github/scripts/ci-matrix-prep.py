@@ -12,6 +12,7 @@ GITHUB_DEFAULT_RUNNER = "ubuntu-24.04"
 LINUX_X86_64 = "ubicloud-standard-8-ubuntu-2404"
 LINUX_ARM64 = "ubicloud-standard-8-arm-ubuntu-2404"
 WINDOWS_X86_64 = "windows-2025"
+WINDOWS_ARM = "windows-11-arm"
 MACOS_X86_64 = "macos-13"
 MACOS_ARM64 = "macos-15"
 
@@ -217,6 +218,28 @@ def create_docsrs_jobs() -> list[Job]:
 
         jobs.append(
             Job(
+                runner=WINDOWS_ARM,
+                job_name="Docs.rs (Windows arm64)",
+                job="docsrs",
+                ffmpeg=FfmpegSetup(),
+                setup_protoc=True,
+                inputs=DocsRsMatrix(
+                    artifact_name=None,
+                    deploy_docs=False,
+                    pr_number=pr_number(),
+                ),
+                rust=RustSetup(
+                    toolchain="nightly",
+                    components="rust-docs",
+                    shared_key="docs-windows-arm64",
+                    tools="",
+                    cache_backend="github",
+                ),
+            )
+        )
+
+        jobs.append(
+            Job(
                 runner=MACOS_X86_64,
                 job_name="Docs.rs (macOS x86_64)",
                 job="docsrs",
@@ -353,6 +376,26 @@ def create_clippy_jobs() -> list[Job]:
 
         jobs.append(
             Job(
+                runner=WINDOWS_ARM,
+                job_name="Clippy (Windows arm64)",
+                job="clippy",
+                ffmpeg=FfmpegSetup(),
+                setup_protoc=True,
+                inputs=ClippyMatrix(
+                    powerset=True,
+                ),
+                rust=RustSetup(
+                    toolchain="nightly",
+                    components="clippy",
+                    shared_key="clippy-windows-arm64",
+                    tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
+                    cache_backend="github",
+                ),
+            )
+        )
+
+        jobs.append(
+            Job(
                 runner=MACOS_X86_64,
                 job_name="Clippy (macOS x86_64)",
                 job="clippy",
@@ -467,6 +510,28 @@ def create_test_jobs() -> list[Job]:
                     toolchain="nightly",
                     components="llvm-tools-preview",
                     shared_key="test-windows-x86_64",
+                    tools="cargo-nextest,cargo-llvm-cov",
+                    cache_backend="github",
+                ),
+                secrets=secrets,
+            )
+        )
+
+        jobs.append(
+            Job(
+                runner=WINDOWS_ARM,
+                job_name="Test (Windows arm64)",
+                job="test",
+                ffmpeg=FfmpegSetup(),
+                setup_protoc=True,
+                inputs=TestMatrix(
+                    pr_number=pr_number(),
+                    commit_sha=commit_sha,
+                ),
+                rust=RustSetup(
+                    toolchain="nightly",
+                    components="llvm-tools-preview",
+                    shared_key="test-windows-arm64",
                     tools="cargo-nextest,cargo-llvm-cov",
                     cache_backend="github",
                 ),
