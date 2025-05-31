@@ -60,3 +60,8 @@ runs:
       if: ${{ inputs.nightly_bypass == 'true' }}
       run: |
         echo "RUSTC_BOOTSTRAP=1" >> $GITHUB_ENV
+
+    - name: Setup env
+      shell: bash
+      run: |
+        echo "RUST_TOOLCHAIN=${{ inputs.toolchain }}" >> $GITHUB_ENV
