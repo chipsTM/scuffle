@@ -62,7 +62,6 @@ class RustSetup:
     components: str = ""
     tools: str = ""
     nightly_bypass: bool = False
-    cache_backend: str = "ubicloud"
 
 
 @dataclass
@@ -171,7 +170,6 @@ def create_docsrs_jobs() -> list[Job]:
                 shared_key="docs-linux-x86_64",
                 tools="",
                 nightly_bypass=True,
-                cache_backend="ubicloud",
             ),
             secrets=(
                 ["CF_DOCS_API_KEY", "CF_DOCS_ACCOUNT_ID"] if deploy_docs else None
@@ -198,7 +196,6 @@ def create_docsrs_jobs() -> list[Job]:
                     shared_key="docs-linux-arm64",
                     tools="",
                     nightly_bypass=True,
-                    cache_backend="ubicloud",
                 ),
             )
         )
@@ -221,7 +218,6 @@ def create_docsrs_jobs() -> list[Job]:
                     shared_key="docs-windows-x86_64",
                     tools="",
                     nightly_bypass=True,
-                    cache_backend="github",
                 ),
             )
         )
@@ -244,7 +240,6 @@ def create_docsrs_jobs() -> list[Job]:
                     shared_key="docs-windows-arm64",
                     tools="",
                     nightly_bypass=True,
-                    cache_backend="github",
                 ),
             )
         )
@@ -267,7 +262,6 @@ def create_docsrs_jobs() -> list[Job]:
                     shared_key="docs-macos-x86_64",
                     tools="",
                     nightly_bypass=True,
-                    cache_backend="github",
                 ),
             )
         )
@@ -290,7 +284,6 @@ def create_docsrs_jobs() -> list[Job]:
                     shared_key="docs-macos-arm64",
                     tools="",
                     nightly_bypass=True,
-                    cache_backend="github",
                 ),
             )
         )
@@ -342,7 +335,6 @@ def create_clippy_jobs() -> list[Job]:
                 components="clippy",
                 shared_key="clippy-linux-x86_64",
                 tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
-                cache_backend="ubicloud",
             ),
         )
     )
@@ -363,7 +355,6 @@ def create_clippy_jobs() -> list[Job]:
                     components="clippy",
                     shared_key="clippy-linux-arm64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
-                    cache_backend="ubicloud",
                 ),
             )
         )
@@ -383,7 +374,6 @@ def create_clippy_jobs() -> list[Job]:
                     components="clippy",
                     shared_key="clippy-windows-x86_64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
-                    cache_backend="github",
                 ),
             )
         )
@@ -403,7 +393,6 @@ def create_clippy_jobs() -> list[Job]:
                     components="clippy",
                     shared_key="clippy-windows-arm64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
-                    cache_backend="github",
                 ),
             )
         )
@@ -423,7 +412,6 @@ def create_clippy_jobs() -> list[Job]:
                     components="clippy",
                     shared_key="clippy-macos-x86_64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
-                    cache_backend="github",
                 ),
             )
         )
@@ -443,7 +431,6 @@ def create_clippy_jobs() -> list[Job]:
                     components="clippy",
                     shared_key="clippy-macos-arm64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
-                    cache_backend="github",
                 ),
             )
         )
@@ -480,7 +467,6 @@ def create_test_jobs() -> list[Job]:
                 components="llvm-tools-preview",
                 shared_key="test-linux-x86_64",
                 tools="cargo-nextest,cargo-llvm-cov,cargo-hakari",
-                cache_backend="ubicloud",
                 nightly_bypass=True,
             ),
             secrets=secrets,
@@ -504,7 +490,6 @@ def create_test_jobs() -> list[Job]:
                     components="llvm-tools-preview",
                     shared_key="test-linux-arm64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari",
-                    cache_backend="ubicloud",
                     nightly_bypass=True,
                 ),
                 secrets=secrets,
@@ -527,7 +512,6 @@ def create_test_jobs() -> list[Job]:
                     components="llvm-tools-preview",
                     shared_key="test-windows-x86_64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari",
-                    cache_backend="github",
                     nightly_bypass=True,
                 ),
                 secrets=secrets,
@@ -552,7 +536,6 @@ def create_test_jobs() -> list[Job]:
                     components="llvm-tools-preview",
                     shared_key="test-windows-arm64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari",
-                    cache_backend="github",
                     nightly_bypass=True,
                 ),
                 secrets=secrets,
@@ -575,7 +558,6 @@ def create_test_jobs() -> list[Job]:
                     components="llvm-tools-preview",
                     shared_key="test-macos-x86_64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari",
-                    cache_backend="github",
                     nightly_bypass=True,
                 ),
                 secrets=secrets,
@@ -598,7 +580,6 @@ def create_test_jobs() -> list[Job]:
                     components="llvm-tools-preview",
                     shared_key="test-macos-arm64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari",
-                    cache_backend="github",
                     nightly_bypass=True,
                 ),
                 secrets=secrets,
@@ -630,7 +611,6 @@ def create_grind_jobs() -> list[Job]:
                     toolchain="stable",
                     shared_key="grind-linux-x86_64",
                     tools="cargo-nextest,cargo-hakari",
-                    cache_backend="ubicloud",
                     nightly_bypass=True,
                 ),
             )
@@ -654,7 +634,6 @@ def create_grind_jobs() -> list[Job]:
                     toolchain="stable",
                     shared_key="grind-linux-arm64",
                     tools="cargo-nextest,cargo-hakari",
-                    cache_backend="ubicloud",
                     nightly_bypass=True,
                 ),
             )
@@ -678,7 +657,6 @@ def create_fmt_jobs() -> list[Job]:
                 toolchain="nightly",
                 components="rustfmt",
                 shared_key=None,
-                cache_backend="github",
             ),
         )
     )
@@ -701,7 +679,6 @@ def create_lock_jobs() -> list[Job]:
                 toolchain="stable",
                 components="rustfmt",
                 shared_key=None,
-                cache_backend="github",
             ),
         )
     )
@@ -725,7 +702,6 @@ def create_hakari_jobs() -> list[Job]:
                 components="rustfmt",
                 tools="cargo-hakari",
                 shared_key=None,
-                cache_backend="github",
             ),
         )
     )
@@ -749,7 +725,6 @@ def create_semver_checks_jobs() -> list[Job]:
                 components="rust-docs",
                 tools="cargo-semver-checks,cargo-hakari,cargo-binstall",
                 shared_key="cargo-release-checks",
-                cache_backend="ubicloud",
             ),
         )
     )
@@ -773,7 +748,6 @@ def create_readme_jobs() -> list[Job]:
                 components="rust-docs",
                 tools="cargo-binstall",
                 shared_key="cargo-sync-rdme",
-                cache_backend="ubicloud",
                 nightly_bypass=True,
             ),
         )
