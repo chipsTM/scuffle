@@ -53,7 +53,7 @@ runs:
       uses: KyleMayes/install-llvm-action@v2
       with:
         version: "20"
-        directory: ${{ runner.temp }}/llvm
+        directory: ${{ github.workspace }}/.runner/llvm
 
     - name: Set up nightly bypass
       shell: bash

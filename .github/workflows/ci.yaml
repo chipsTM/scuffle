@@ -62,11 +62,12 @@ jobs:
       - uses: samypr100/setup-dev-drive@v3
         if: ${{ runner.os == 'Windows' }}
         with:
+          drive-size: 14GB
           mount-path: ${{ github.workspace }}
           trusted-dev-drive: true
           env-mapping: |
-            CARGO_HOME,{{ DEV_DRIVE }}/.cargo
-            RUSTUP_HOME,{{ DEV_DRIVE }}/.rustup
+            CARGO_HOME,{{ DEV_DRIVE }}/.runner/.cargo
+            RUSTUP_HOME,{{ DEV_DRIVE }}/.runner/.rustup
 
       - uses: actions/checkout@v4
         with:

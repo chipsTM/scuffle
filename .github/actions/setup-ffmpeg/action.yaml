@@ -59,7 +59,7 @@ runs:
             ;;
           Windows)
             unzip ffmpeg.${FF_EXT}
-            FFMPEG_ROOT="C:/ffmpeg"
+            FFMPEG_ROOT="${{ github.workspace }}/.runner/ffmpeg"
             ;;
           *)
             echo "Unsupported operating system: ${{ runner.os }}" && exit 1
