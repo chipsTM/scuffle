@@ -402,6 +402,7 @@ impl Package {
                     let _guard = SINGLE_THREAD.read().unwrap();
 
                     let semver_checks = cargo_cmd()
+                        .env("CARGO_TERM_COLOR", "never")
                         .arg("semver-checks")
                         .arg("-p")
                         .arg(self.name.as_ref())
@@ -526,6 +527,7 @@ impl Package {
 
             let mut cmd = cargo_cmd();
             cmd.env("RUSTC_BOOTSTRAP", "1")
+                .env("CARGO_TERM_COLOR", "never")
                 .stderr(write.try_clone()?)
                 .stdout(write)
                 .arg("-Zunstable-options")
@@ -788,8 +790,9 @@ impl Package {
                 fmtools::fmt(|f| {
                     write!(f, "* `{}`: {log}", self.name)?;
                     if let Some((true, logs)) = &semver_output {
+                        f.write_str("\n\n")?;
                         let mut f = indent_write::fmt::IndentWriter::new("  ", f);
-                        f.write_str("\n\n<details><summary>cargo-semver-checks</summary>\n\n````\n")?;
+                        f.write_str("<details><summary>cargo-semver-checks</summary>\n\n````\n")?;
                         f.write_str(logs)?;
                         f.write_str("\n````\n\n</details>\n")?;
                     }
@@ -815,7 +818,17 @@ impl Package {
                 errors_markdown.push(format!("* {error}"))
             }
             if let Some(min_versions_output) = min_versions_output {
-                errors_markdown.push(format!("* min package versions issue\n\n<details><summary>Output</summary>\n\n````\n{min_versions_output}\n````\n\n</details>\n"))
+                errors_markdown.push(
+                    fmtools::fmt(|f| {
+                        f.write_str("* min package versions issue\n\n")?;
+                        let mut f = indent_write::fmt::IndentWriter::new("  ", f);
+                        f.write_str("<details><summary>cargo publish</summary>\n\n````\n")?;
+                        f.write_str(&min_versions_output)?;
+                        f.write_str("\n````\n\n</details>\n")?;
+                        Ok(())
+                    })
+                    .to_string(),
+                )
             }
             errors_markdown.push("".into());
         }
