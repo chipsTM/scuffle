@@ -59,9 +59,21 @@ jobs:
         include: ${{ fromJson(needs.matrix_prep.outputs.matrix) }}
     runs-on: ${{ matrix.runner }}
     steps:
+      - uses: samypr100/setup-dev-drive@v3
+        if: ${{ runner.os == 'Windows' }}
+        with:
+          mount-path: ${{ github.workspace }}
+          trusted-dev-drive: true
+          env-mapping: |
+            CARGO_HOME,{{ DEV_DRIVE }}/.cargo
+            RUSTUP_HOME,{{ DEV_DRIVE }}/.rustup
+
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.SHA }}
+          # by default clean is true, we want this to be false
+          # when using a dev-drive.
+          clean: ${{ runner.os != 'Windows' }}
 
       - name: Switch to Branch
         run: |
