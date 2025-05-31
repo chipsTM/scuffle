@@ -18,3 +18,4 @@ local.just
 docs/build
 docs/.docusaurus
 docs/.cache-loader
+.runner/
