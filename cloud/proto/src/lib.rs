@@ -1,1 +1,1 @@
-
+tinc::include_proto!();

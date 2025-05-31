@@ -3729,10 +3729,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "scufflecloud-proto"
-version = "0.0.0"
+name = "scufflecloud-auth-server"
+version = "0.1.0"
 dependencies = [
  "scuffle-workspace-hack",
+ "scufflecloud-proto",
+]
+
+[[package]]
+name = "scufflecloud-proto"
+version = "0.1.0"
+dependencies = [
+ "glob",
+ "scuffle-workspace-hack",
+ "tinc",
+ "tinc-build",
 ]
 
 [[package]]

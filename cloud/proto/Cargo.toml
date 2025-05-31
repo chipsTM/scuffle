@@ -2,7 +2,13 @@
 name = "scufflecloud-proto"
 edition = "2024"
 license = "AGPL-3.0"
+version = "0.1.0"
 publish = false
 
 [dependencies]
 scuffle-workspace-hack.workspace = true
+tinc = { path = "../../crates/tinc" }
+
+[build-dependencies]
+glob = "0.3"
+tinc-build = { path = "../../crates/tinc/build" }

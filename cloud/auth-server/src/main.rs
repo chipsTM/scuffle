@@ -1,1 +1,3 @@
-fn main() {}
+fn main() {
+    // pb::scufflecloud::auth::v1
+}

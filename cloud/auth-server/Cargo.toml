@@ -2,7 +2,9 @@
 name = "scufflecloud-auth-server"
 edition = "2024"
 license = "AGPL-3.0"
+version = "0.1.0"
 publish = false
 
 [dependencies]
+pb = { package = "scufflecloud-proto", path = "../proto" }
 scuffle-workspace-hack.workspace = true
