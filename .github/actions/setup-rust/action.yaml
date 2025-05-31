@@ -35,7 +35,7 @@ runs:
 
     - name: Setup problem matcher
       shell: bash
-      run: echo "::add-matcher::${{ github.action_path }}/rust.json"
+      run: echo "::add-matcher::${{ github.action_path }}/matcher.json"
 
     - uses: taiki-e/install-action@v2
       if: ${{ inputs.tools }}
