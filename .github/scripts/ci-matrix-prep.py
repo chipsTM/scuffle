@@ -76,6 +76,7 @@ class DocsRsMatrix:
     pr_number: Optional[int]
     deploy_docs: bool
 
+
 @dataclass
 class DocusaurusMatrix:
     pr_number: Optional[int]
@@ -91,6 +92,7 @@ class ClippyMatrix:
 class TestMatrix:
     pr_number: Optional[int]
     commit_sha: str
+    no_coverage: bool = False
 
 
 @dataclass
@@ -102,17 +104,21 @@ class GrindMatrix:
 class FmtMatrix:
     pass
 
+
 @dataclass
 class LockfileMatrix:
     pass
+
 
 @dataclass
 class HakariMatrix:
     pass
 
+
 @dataclass
 class ReadmeMatrix:
     pass
+
 
 @dataclass
 class ReleaseChecksMatrix:
@@ -290,6 +296,7 @@ def create_docsrs_jobs() -> list[Job]:
         )
 
     return jobs
+
 
 def create_docusaurus_jobs() -> list[Job]:
     jobs: list[Job] = []
@@ -472,7 +479,7 @@ def create_test_jobs() -> list[Job]:
                 toolchain="stable",
                 components="llvm-tools-preview",
                 shared_key="test-linux-x86_64",
-                tools="cargo-nextest,cargo-llvm-cov",
+                tools="cargo-nextest,cargo-llvm-cov,cargo-hakari",
                 cache_backend="ubicloud",
                 nightly_bypass=True,
             ),
@@ -496,7 +503,7 @@ def create_test_jobs() -> list[Job]:
                     toolchain="stable",
                     components="llvm-tools-preview",
                     shared_key="test-linux-arm64",
-                    tools="cargo-nextest,cargo-llvm-cov",
+                    tools="cargo-nextest,cargo-llvm-cov,cargo-hakari",
                     cache_backend="ubicloud",
                     nightly_bypass=True,
                 ),
@@ -519,7 +526,7 @@ def create_test_jobs() -> list[Job]:
                     toolchain="stable",
                     components="llvm-tools-preview",
                     shared_key="test-windows-x86_64",
-                    tools="cargo-nextest,cargo-llvm-cov",
+                    tools="cargo-nextest,cargo-llvm-cov,cargo-hakari",
                     cache_backend="github",
                     nightly_bypass=True,
                 ),
@@ -537,12 +544,14 @@ def create_test_jobs() -> list[Job]:
                 inputs=TestMatrix(
                     pr_number=pr_number(),
                     commit_sha=commit_sha,
+                    # currently coverage doesnt work on windows arm
+                    no_coverage=True,
                 ),
                 rust=RustSetup(
                     toolchain="stable",
                     components="llvm-tools-preview",
                     shared_key="test-windows-arm64",
-                    tools="cargo-nextest,cargo-llvm-cov",
+                    tools="cargo-nextest,cargo-llvm-cov,cargo-hakari",
                     cache_backend="github",
                     nightly_bypass=True,
                 ),
@@ -565,7 +574,7 @@ def create_test_jobs() -> list[Job]:
                     toolchain="stable",
                     components="llvm-tools-preview",
                     shared_key="test-macos-x86_64",
-                    tools="cargo-nextest,cargo-llvm-cov",
+                    tools="cargo-nextest,cargo-llvm-cov,cargo-hakari",
                     cache_backend="github",
                     nightly_bypass=True,
                 ),
@@ -588,7 +597,7 @@ def create_test_jobs() -> list[Job]:
                     toolchain="stable",
                     components="llvm-tools-preview",
                     shared_key="test-macos-arm64",
-                    tools="cargo-nextest,cargo-llvm-cov",
+                    tools="cargo-nextest,cargo-llvm-cov,cargo-hakari",
                     cache_backend="github",
                     nightly_bypass=True,
                 ),
@@ -620,7 +629,7 @@ def create_grind_jobs() -> list[Job]:
                 rust=RustSetup(
                     toolchain="stable",
                     shared_key="grind-linux-x86_64",
-                    tools="cargo-nextest",
+                    tools="cargo-nextest,cargo-hakari",
                     cache_backend="ubicloud",
                     nightly_bypass=True,
                 ),
@@ -644,7 +653,7 @@ def create_grind_jobs() -> list[Job]:
                 rust=RustSetup(
                     toolchain="stable",
                     shared_key="grind-linux-arm64",
-                    tools="cargo-nextest",
+                    tools="cargo-nextest,cargo-hakari",
                     cache_backend="ubicloud",
                     nightly_bypass=True,
                 ),
@@ -676,6 +685,7 @@ def create_fmt_jobs() -> list[Job]:
     )
 
     return jobs
+
 
 def create_lock_jobs() -> list[Job]:
     jobs: list[Job] = []
@@ -734,20 +744,19 @@ def create_semver_checks_jobs() -> list[Job]:
             job="release-checks",
             ffmpeg=FfmpegSetup(),
             setup_protoc=True,
-            inputs=ReleaseChecksMatrix(
-                pr_number=pr_number()
-            ),
+            inputs=ReleaseChecksMatrix(pr_number=pr_number()),
             rust=RustSetup(
                 toolchain="stable",
                 components="rust-docs",
                 tools="cargo-semver-checks,cargo-hakari,cargo-binstall",
                 shared_key="cargo-release-checks",
                 cache_backend="ubicloud",
-            )
+            ),
         )
     )
 
     return jobs
+
 
 def create_readme_jobs() -> list[Job]:
     jobs: list[Job] = []
@@ -767,7 +776,7 @@ def create_readme_jobs() -> list[Job]:
                 shared_key="cargo-sync-rdme",
                 cache_backend="ubicloud",
                 nightly_bypass=True,
-            )
+            ),
         )
     )
 
