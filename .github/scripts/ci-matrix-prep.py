@@ -41,6 +41,8 @@ def is_fork_pr() -> bool:
         != "scufflecloud/scuffle".casefold()
     )
 
+def is_dispatch_or_cron() -> bool:
+    return GITHUB_CONTEXT["event_name"] in ["workflow_dispatch", "schedule"]
 
 def pr_number() -> Optional[int]:
     if is_pr():
@@ -150,7 +152,7 @@ class Job:
 def create_docsrs_jobs() -> list[Job]:
     jobs: list[Job] = []
 
-    deploy_docs = not is_brawl("merge") and not is_fork_pr()
+    deploy_docs = not is_brawl("merge") and not is_fork_pr() and not is_dispatch_or_cron()
 
     jobs.append(
         Job(
@@ -177,7 +179,7 @@ def create_docsrs_jobs() -> list[Job]:
         )
     )
 
-    if is_brawl():
+    if is_brawl() or is_dispatch_or_cron():
         jobs.append(
             Job(
                 runner=LINUX_ARM64,
@@ -294,7 +296,7 @@ def create_docsrs_jobs() -> list[Job]:
 def create_docusaurus_jobs() -> list[Job]:
     jobs: list[Job] = []
 
-    deploy_docs = not is_brawl("merge") and not is_fork_pr()
+    deploy_docs = not is_brawl("merge") and not is_fork_pr() and not is_dispatch_or_cron()
 
     jobs.append(
         Job(
@@ -339,7 +341,7 @@ def create_clippy_jobs() -> list[Job]:
         )
     )
 
-    if is_brawl():
+    if is_brawl() or is_dispatch_or_cron():
         jobs.append(
             Job(
                 runner=LINUX_ARM64,
@@ -473,7 +475,7 @@ def create_test_jobs() -> list[Job]:
         )
     )
 
-    if is_brawl():
+    if is_brawl() or is_dispatch_or_cron():
         jobs.append(
             Job(
                 runner=LINUX_ARM64,
@@ -591,7 +593,7 @@ def create_test_jobs() -> list[Job]:
 def create_grind_jobs() -> list[Job]:
     jobs: list[Job] = []
 
-    if is_brawl():
+    if is_brawl() or is_dispatch_or_cron():
         jobs.append(
             Job(
                 runner=LINUX_X86_64,
