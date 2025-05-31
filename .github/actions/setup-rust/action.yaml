@@ -14,10 +14,6 @@ inputs:
   tools:
     description: "The tools to install"
     required: false
-  cache_backend:
-    description: "The backend to use for the cache"
-    required: false
-    default: github
   nightly_bypass:
     description: "Enable the RUSTC_BOOTSTRAP=1 flag"
     required: false
@@ -32,16 +28,14 @@ runs:
         components: ${{ inputs.components }}
 
     - uses: Swatinem/rust-cache@v2
-      if: ${{ inputs.shared_key && inputs.cache_backend == 'github' }}
       with:
         prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
+        cache-on-failure: true
         shared-key: ${{ inputs.shared_key }}
 
-    - uses: ubicloud/rust-cache@v2
-      if: ${{ inputs.shared_key && inputs.cache_backend == 'ubicloud' }}
-      with:
-        prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
-        shared-key: ${{ inputs.shared_key }}
+    - name: Setup problem matcher
+      shell: bash
+      run: echo "::add-matcher::${{ github.action_path }}/rust.json"
 
     - uses: taiki-e/install-action@v2
       if: ${{ inputs.tools }}
