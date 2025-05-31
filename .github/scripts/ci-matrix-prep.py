@@ -9,8 +9,8 @@ from dataclasses import dataclass, asdict
 GITHUB_CONTEXT: dict = json.loads(sys.stdin.read())
 
 GITHUB_DEFAULT_RUNNER = "ubuntu-24.04"
-LINUX_X86_64 = "ubicloud-standard-8"
-LINUX_ARM64 = "ubicloud-standard-8-arm"
+LINUX_X86_64 = "ubicloud-standard-8-ubuntu-2404"
+LINUX_ARM64 = "ubicloud-standard-8-arm-ubuntu-2404"
 WINDOWS_X86_64 = "windows-2025"
 MACOS_X86_64 = "macos-13"
 MACOS_ARM64 = "macos-15"
