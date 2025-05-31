@@ -61,6 +61,7 @@ class RustSetup:
     shared_key: Optional[str]
     components: str = ""
     tools: str = ""
+    nightly_bypass: bool = False
     cache_backend: str = "ubicloud"
 
 
@@ -159,10 +160,11 @@ def create_docsrs_jobs() -> list[Job]:
                 pr_number=pr_number(),
             ),
             rust=RustSetup(
-                toolchain="nightly",
+                toolchain="stable",
                 components="rust-docs",
                 shared_key="docs-linux-x86_64",
                 tools="",
+                nightly_bypass=True,
                 cache_backend="ubicloud",
             ),
             secrets=(
@@ -185,10 +187,11 @@ def create_docsrs_jobs() -> list[Job]:
                     pr_number=pr_number(),
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     components="rust-docs",
                     shared_key="docs-linux-arm64",
                     tools="",
+                    nightly_bypass=True,
                     cache_backend="ubicloud",
                 ),
             )
@@ -207,10 +210,11 @@ def create_docsrs_jobs() -> list[Job]:
                     pr_number=pr_number(),
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     components="rust-docs",
                     shared_key="docs-windows-x86_64",
                     tools="",
+                    nightly_bypass=True,
                     cache_backend="github",
                 ),
             )
@@ -229,10 +233,11 @@ def create_docsrs_jobs() -> list[Job]:
                     pr_number=pr_number(),
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     components="rust-docs",
                     shared_key="docs-windows-arm64",
                     tools="",
+                    nightly_bypass=True,
                     cache_backend="github",
                 ),
             )
@@ -251,10 +256,11 @@ def create_docsrs_jobs() -> list[Job]:
                     pr_number=pr_number(),
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     components="rust-docs",
                     shared_key="docs-macos-x86_64",
                     tools="",
+                    nightly_bypass=True,
                     cache_backend="github",
                 ),
             )
@@ -273,10 +279,11 @@ def create_docsrs_jobs() -> list[Job]:
                     pr_number=pr_number(),
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     components="rust-docs",
                     shared_key="docs-macos-arm64",
                     tools="",
+                    nightly_bypass=True,
                     cache_backend="github",
                 ),
             )
@@ -324,7 +331,7 @@ def create_clippy_jobs() -> list[Job]:
                 powerset=is_brawl(),
             ),
             rust=RustSetup(
-                toolchain="nightly",
+                toolchain="stable",
                 components="clippy",
                 shared_key="clippy-linux-x86_64",
                 tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
@@ -345,7 +352,7 @@ def create_clippy_jobs() -> list[Job]:
                     powerset=True,
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     components="clippy",
                     shared_key="clippy-linux-arm64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
@@ -365,7 +372,7 @@ def create_clippy_jobs() -> list[Job]:
                     powerset=True,
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     components="clippy",
                     shared_key="clippy-windows-x86_64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
@@ -385,7 +392,7 @@ def create_clippy_jobs() -> list[Job]:
                     powerset=True,
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     components="clippy",
                     shared_key="clippy-windows-arm64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
@@ -405,7 +412,7 @@ def create_clippy_jobs() -> list[Job]:
                     powerset=True,
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     components="clippy",
                     shared_key="clippy-macos-x86_64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
@@ -425,7 +432,7 @@ def create_clippy_jobs() -> list[Job]:
                     powerset=True,
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     components="clippy",
                     shared_key="clippy-macos-arm64",
                     tools="cargo-nextest,cargo-llvm-cov,cargo-hakari,just",
@@ -462,11 +469,12 @@ def create_test_jobs() -> list[Job]:
                 commit_sha=commit_sha,
             ),
             rust=RustSetup(
-                toolchain="nightly",
+                toolchain="stable",
                 components="llvm-tools-preview",
                 shared_key="test-linux-x86_64",
                 tools="cargo-nextest,cargo-llvm-cov",
                 cache_backend="ubicloud",
+                nightly_bypass=True,
             ),
             secrets=secrets,
         )
@@ -485,11 +493,12 @@ def create_test_jobs() -> list[Job]:
                     commit_sha=commit_sha,
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     components="llvm-tools-preview",
                     shared_key="test-linux-arm64",
                     tools="cargo-nextest,cargo-llvm-cov",
                     cache_backend="ubicloud",
+                    nightly_bypass=True,
                 ),
                 secrets=secrets,
             )
@@ -507,11 +516,12 @@ def create_test_jobs() -> list[Job]:
                     commit_sha=commit_sha,
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     components="llvm-tools-preview",
                     shared_key="test-windows-x86_64",
                     tools="cargo-nextest,cargo-llvm-cov",
                     cache_backend="github",
+                    nightly_bypass=True,
                 ),
                 secrets=secrets,
             )
@@ -529,11 +539,12 @@ def create_test_jobs() -> list[Job]:
                     commit_sha=commit_sha,
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     components="llvm-tools-preview",
                     shared_key="test-windows-arm64",
                     tools="cargo-nextest,cargo-llvm-cov",
                     cache_backend="github",
+                    nightly_bypass=True,
                 ),
                 secrets=secrets,
             )
@@ -551,11 +562,12 @@ def create_test_jobs() -> list[Job]:
                     commit_sha=commit_sha,
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     components="llvm-tools-preview",
                     shared_key="test-macos-x86_64",
                     tools="cargo-nextest,cargo-llvm-cov",
                     cache_backend="github",
+                    nightly_bypass=True,
                 ),
                 secrets=secrets,
             )
@@ -573,11 +585,12 @@ def create_test_jobs() -> list[Job]:
                     commit_sha=commit_sha,
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     components="llvm-tools-preview",
                     shared_key="test-macos-arm64",
                     tools="cargo-nextest,cargo-llvm-cov",
                     cache_backend="github",
+                    nightly_bypass=True,
                 ),
                 secrets=secrets,
             )
@@ -605,10 +618,11 @@ def create_grind_jobs() -> list[Job]:
                     ),
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     shared_key="grind-linux-x86_64",
                     tools="cargo-nextest",
                     cache_backend="ubicloud",
+                    nightly_bypass=True,
                 ),
             )
         )
@@ -628,10 +642,11 @@ def create_grind_jobs() -> list[Job]:
                     ),
                 ),
                 rust=RustSetup(
-                    toolchain="nightly",
+                    toolchain="stable",
                     shared_key="grind-linux-arm64",
                     tools="cargo-nextest",
                     cache_backend="ubicloud",
+                    nightly_bypass=True,
                 ),
             )
         )
@@ -651,10 +666,11 @@ def create_fmt_jobs() -> list[Job]:
             inputs=FmtMatrix(),
             setup_protoc=False,
             rust=RustSetup(
-                toolchain="nightly",
+                toolchain="stable",
                 components="rustfmt",
                 shared_key=None,
                 cache_backend="github",
+                nightly_bypass=True,
             ),
         )
     )
@@ -673,7 +689,7 @@ def create_lock_jobs() -> list[Job]:
             inputs=LockfileMatrix(),
             setup_protoc=False,
             rust=RustSetup(
-                toolchain="nightly",
+                toolchain="stable",
                 components="rustfmt",
                 shared_key=None,
                 cache_backend="github",
@@ -696,7 +712,7 @@ def create_hakari_jobs() -> list[Job]:
             inputs=HakariMatrix(),
             setup_protoc=False,
             rust=RustSetup(
-                toolchain="nightly",
+                toolchain="stable",
                 components="rustfmt",
                 tools="cargo-hakari",
                 shared_key=None,
@@ -745,11 +761,12 @@ def create_readme_jobs() -> list[Job]:
             setup_protoc=True,
             inputs=ReadmeMatrix(),
             rust=RustSetup(
-                toolchain="nightly",
+                toolchain="stable",
                 components="rust-docs",
                 tools="cargo-binstall",
                 shared_key="cargo-sync-rdme",
                 cache_backend="ubicloud",
+                nightly_bypass=True,
             )
         )
     )
