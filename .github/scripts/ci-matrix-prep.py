@@ -533,9 +533,8 @@ def create_test_jobs() -> list[Job]:
                 ),
                 rust=RustSetup(
                     toolchain="stable",
-                    components="llvm-tools-preview",
                     shared_key="test-windows-arm64",
-                    tools="cargo-nextest,cargo-llvm-cov,cargo-hakari",
+                    tools="cargo-nextest,cargo-hakari",
                     nightly_bypass=True,
                 ),
                 secrets=secrets,

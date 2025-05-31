@@ -16,6 +16,10 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Disable hakari
+      shell: bash
+      run: cargo hakari disable
+
     # Note; we don't run the powerset here because it's very slow on CI
     # Perhaps we should consider it at some point.
     #
