@@ -50,4 +50,3 @@ runs:
       with:
         version: "20"
         directory: ${{ runner.temp }}/llvm
-        env: true
