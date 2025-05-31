@@ -14,7 +14,7 @@ runs:
     - name: Run Clippy
       if: ${{ inputs.powerset == 'false' }}
       shell: bash
-      run: cargo clippy -Z unstable-options --all-features --all-targets --no-deps -- -Dwarnings -Aclippy::collapsible_if
+      run: cargo clippy --all-features --all-targets --no-deps -- -Dwarnings -Aclippy::collapsible_if
 
     - name: Run Clippy on Powerset
       if: ${{ inputs.powerset == 'true' }}
