@@ -8,10 +8,11 @@ use cargo_metadata::{DependencyKind, semver};
 use serde::Deserialize as _;
 use serde::de::IntoDeserializer;
 use serde_derive::{Deserialize, Serialize};
-use toml_edit::DocumentMut;
+use toml_edit::{DocumentMut, Table};
 
 use super::check::CheckRun;
 use super::utils::VersionBump;
+use crate::cmd::release::utils::vers_to_comp;
 use crate::utils::git_workdir_clean;
 
 #[derive(Debug, Clone, clap::Parser)]
@@ -63,28 +64,64 @@ impl Update {
                 anyhow::Ok(fragments)
             })?;
 
+        let dep_graph = check_run
+            .all_packages()
+            .map(|package| {
+                (
+                    package.name.as_str(),
+                    package
+                        .dependencies
+                        .iter()
+                        .filter(|dep| {
+                            dep.path.is_some() && matches!(dep.kind, DependencyKind::Build | DependencyKind::Normal)
+                        })
+                        .map(|dep| (dep.name.as_str(), dep))
+                        .collect::<BTreeMap<_, _>>(),
+                )
+            })
+            .collect::<HashMap<_, _>>();
+
+        let inverted_dep_graph = dep_graph
+            .iter()
+            .fold(HashMap::<_, Vec<_>>::new(), |mut inverted, (package, deps)| {
+                deps.iter().for_each(|(name, dep)| {
+                    inverted.entry(*name).or_default().push((*package, *dep));
+                });
+                inverted
+            });
+
+        let flattened_dep_public_graph = dep_graph
+            .iter()
+            .map(|(package, deps)| {
+                let mut seen = HashSet::new();
+                let pkg = check_run.get_package(package).unwrap();
+                (
+                    *package,
+                    deps.iter().fold(HashMap::<_, Vec<_>>::new(), |mut deps, (name, dep)| {
+                        let mut stack = vec![(pkg, check_run.get_package(name).unwrap(), *dep)];
+
+                        while let Some((pkg, dep_pkg, dep)) = stack.pop() {
+                            if pkg.is_dep_public(&dep.name) {
+                                deps.entry(dep_pkg.name.as_str()).or_default().push(dep);
+                                if seen.insert(&dep_pkg.name) {
+                                    stack.extend(
+                                        dep_graph
+                                            .get(dep_pkg.name.as_str())
+                                            .into_iter()
+                                            .flatten()
+                                            .map(|(name, dep)| (pkg, check_run.get_package(name).unwrap(), *dep)),
+                                    );
+                                }
+                            }
+                        }
+
+                        deps
+                    }),
+                )
+            })
+            .collect::<HashMap<_, _>>();
+
         if !self.changelogs_only {
-            for package in check_run.packages() {
-                for dep in &package.dependencies {
-                    if dep.path.is_none() || !matches!(dep.kind, DependencyKind::Build | DependencyKind::Normal) {
-                        continue;
-                    }
-
-                    let Some(pkg) = check_run.get_package(&dep.name) else {
-                        continue;
-                    };
-
-                    let depends_on = dep.req == pkg.unreleased_req();
-                    if depends_on && !check_run.is_accepted_group(pkg.group()) {
-                        anyhow::bail!(
-                            "could not update: `{}` because it depends on `{}` which is not part of the packages to be updated.",
-                            package.name,
-                            pkg.name
-                        );
-                    }
-                }
-            }
-
             check_run.process(self.concurrency, &metadata.workspace_root, None)?;
 
             for fragment in change_fragments.values() {
@@ -101,27 +138,33 @@ impl Update {
                 }
             }
 
-            let dependants = check_run
-                .all_packages()
-                .fold(HashMap::<_, Vec<_>>::new(), |mut deps, package| {
-                    package.dependencies.iter().for_each(|dep| {
-                        if dep.path.is_some() && check_run.get_package(&dep.name).is_some() {
-                            deps.entry(dep.name.as_str()).or_default().push((package, dep));
-                        }
-                    });
-                    deps
-                });
-
             let mut found = false;
             for iter in 0..10 {
                 let mut has_changes = false;
-                for group in check_run.groups() {
+                for group in check_run.all_groups() {
                     let max_bump_version = group
                         .iter()
                         .map(|p| {
-                            p.version_bump()
-                                .map(|v| v.next_semver(p.version.clone()))
-                                .unwrap_or_else(|| p.version.clone())
+                            match (p.last_published_version(), p.version_bump()) {
+                                // There has never been a published version
+                                // or there is no bump
+                                (None, _) | (_, None) => p.version.clone(),
+                                // The last published version is the current version
+                                (Some(last_published), Some(bump)) if last_published.vers == p.version => {
+                                    bump.next_semver(p.version.clone())
+                                }
+                                // Last published version is a different version
+                                (Some(last_published), Some(bump)) => {
+                                    // determine if the last published version is a minor or major version away.
+                                    if bump == VersionBump::Major
+                                        && !vers_to_comp(last_published.vers.clone()).matches(&p.version)
+                                    {
+                                        bump.next_semver(last_published.vers)
+                                    } else {
+                                        p.version.clone()
+                                    }
+                                }
+                            }
                         })
                         .max()
                         .unwrap();
@@ -129,47 +172,21 @@ impl Update {
                     group
                         .iter()
                         .filter(|package| package.version != max_bump_version)
-                        .flat_map(|package| {
-                            package.set_next_version(max_bump_version.clone());
-                            dependants
+                        .for_each(|package| {
+                            inverted_dep_graph
                                 .get(package.name.as_ref())
                                 .into_iter()
                                 .flatten()
-                                .filter(|(_, dep)| {
-                                    !dep.req.matches(&max_bump_version) || dep.req == package.unreleased_req()
-                                })
-                                .map(move |(pkg, dep)| (package, pkg, dep))
-                        })
-                        .for_each(|(package, dep_pkg, dep)| {
-                            match dep.kind {
-                                // build deps always just get a simple version bump
-                                // since these deps can never be public
-                                DependencyKind::Build => {
-                                    dep_pkg.report_change();
-                                }
-                                // normal deps are way trickier because the change may be breaking
-                                DependencyKind::Normal => {
-                                    // This would have been the previous version req, that matched...
-                                    let typical_semver_req = semver::VersionReq {
-                                        comparators: vec![semver::Comparator {
-                                            op: semver::Op::Caret,
-                                            major: package.version.major,
-                                            minor: Some(package.version.minor),
-                                            patch: Some(package.version.patch),
-                                            pre: package.version.pre.clone(),
-                                        }],
-                                    };
-                                    if dep_pkg.public_deps().contains(&dep.name)
-                                        && !typical_semver_req.matches(&max_bump_version)
-                                        && dep_pkg.group() != package.group()
-                                    {
-                                        dep_pkg.report_breaking_change();
-                                    } else {
-                                        dep_pkg.report_change();
+                                .for_each(|(pkg, dep)| {
+                                    if !dep.req.matches(&max_bump_version) || dep.req == package.unreleased_req() {
+                                        let pkg = check_run.get_package(pkg).unwrap();
+                                        if pkg.is_dep_public(&dep.name) {
+                                            pkg.report_breaking_change();
+                                        } else {
+                                            pkg.report_change();
+                                        }
                                     }
-                                }
-                                _ => {}
-                            }
+                                });
                         });
 
                     group.iter().for_each(|p| {
@@ -191,45 +208,141 @@ impl Update {
             if !found {
                 anyhow::bail!("could not satisfy version constraints after 10 attempts");
             }
+
+            for package in check_run.groups().flatten() {
+                let deps = dep_graph.get(package.name.as_str()).unwrap();
+                for dep in deps.values() {
+                    let dep_pkg = check_run.get_package(&dep.name).unwrap();
+
+                    let depends_on = dep.req == dep_pkg.unreleased_req()
+                        || dep_pkg.last_published_version().is_none_or(|v| !dep.req.matches(&v.vers))
+                        // we want to find out if any deps have a major semver change
+                        // and a peer dependency is dependent on an older version as a public dep.
+                        || flattened_dep_public_graph.get(dep.name.as_str()).unwrap().iter().any(|(inner_dep_name, reqs)| {
+                            let inner_dep_pkg = check_run.get_package(inner_dep_name).unwrap();
+                            deps.contains_key(inner_dep_name) // if we are also dependant
+                                && package.is_dep_public(inner_dep_name) // its also a public dep
+                                && check_run.is_accepted_group(inner_dep_pkg.group()) // if the dep is part of the release group
+                                && inner_dep_pkg.next_version().is_some_and(|vers| reqs.iter().any(|dep_req| !dep_req.req.matches(&vers)))
+                        });
+
+                    if depends_on && !check_run.is_accepted_group(dep_pkg.group()) {
+                        anyhow::bail!(
+                            "could not update: `{}` because it depends on `{}` which is not part of the packages to be updated.",
+                            package.name,
+                            dep_pkg.name
+                        );
+                    }
+                }
+            }
         }
 
         let mut pr_body = String::from("## 🤖 New release\n\n");
         let mut release_count = 0;
+        let workspace_manifest_path = metadata.workspace_root.join("Cargo.toml");
 
-        for package in check_run.packages() {
+        let mut workspace_manifest = if !self.changelogs_only {
+            let workspace_manifest = std::fs::read_to_string(&workspace_manifest_path).context("workspace manifest read")?;
+            Some((
+                workspace_manifest
+                    .parse::<toml_edit::DocumentMut>()
+                    .context("workspace manifest parse")?,
+                workspace_manifest,
+            ))
+        } else {
+            None
+        };
+
+        let mut workspace_metadata_packages = if let Some((workspace_manifest, _)) = &mut workspace_manifest {
+            let mut item = workspace_manifest.as_item_mut().as_table_like_mut().expect("table");
+            for key in ["workspace", "metadata", "xtask", "release", "packages"] {
+                item = item
+                    .entry(key)
+                    .or_insert(toml_edit::Item::Table({
+                        let mut table = Table::new();
+                        table.set_implicit(true);
+                        table
+                    }))
+                    .as_table_like_mut()
+                    .expect("table");
+            }
+
+            Some(item)
+        } else {
+            None
+        };
+
+        for package in check_run.all_packages() {
             let _span = tracing::info_span!("update", package = %package.name).entered();
-            let version = package.next_version();
+            let version = package.next_version().or_else(|| {
+                if package.should_publish() && package.last_published_version().is_none() && !self.changelogs_only {
+                    Some(package.version.clone())
+                } else {
+                    None
+                }
+            });
             if !self.changelogs_only && version.is_none() {
                 continue;
             }
 
             release_count += 1;
 
-            if let Some(change_log_path_md) = package.changelog_path() {
-                let change_logs = generate_change_logs(&package.name, &mut change_fragments).context("generate")?;
-                if !change_logs.is_empty() {
-                    update_change_log(
-                        &change_logs,
-                        &change_log_path_md,
-                        &package.name,
-                        version.as_ref(),
-                        package.last_published_version().map(|v| v.vers).as_ref(),
-                        self.dry_run,
-                    )
-                    .context("update")?;
-                    if !self.dry_run {
-                        save_change_fragments(&mut change_fragments).context("save")?;
-                    }
-                    tracing::info!(package = %package.name, "updated change logs");
+            let is_accepted_group = check_run.is_accepted_group(package.group());
+
+            let mut changelogs = if is_accepted_group {
+                if let Some(change_log_path_md) = package.changelog_path() {
+                    Some((
+                        change_log_path_md,
+                        generate_change_logs(&package.name, &mut change_fragments).context("generate")?,
+                    ))
+                } else {
+                    None
                 }
-            }
+            } else {
+                None
+            };
 
             if !self.changelogs_only {
-                let version = version.unwrap();
-                pr_body.push_str(&format!("* `{}` -> {version}\n", package.name));
+                let version = version.as_ref().unwrap();
+                if is_accepted_group {
+                    pr_body.push_str(
+                        &fmtools::fmt(|mut f| {
+                            let mut f = indent_write::fmt::IndentWriter::new("  ", &mut f);
+                            write!(f, "* `{}`: ", package.name)?;
+                            let last_published = package.last_published_version();
+                            f.write_str(match &last_published {
+                                None => " 📦 **New Crate**",
+                                Some(v) if vers_to_comp(v.vers.clone()).matches(version) => " ✨ **Minor**",
+                                Some(_) => " 🚀 **Major**",
+                            })?;
+
+                            let mut f = indent_write::fmt::IndentWriter::new("  ", f);
+                            match &last_published {
+                                Some(base) => write!(f, "\n* Version: **`{}`** ➡️ **`{version}`**", base.vers)?,
+                                None => write!(f, "\n* Version: **`{version}`**")?,
+                            }
+
+                            if package.group() != package.name.as_str() {
+                                write!(f, " (group: **`{}`**)", package.group())?;
+                            }
+                            f.write_str("\n")?;
+                            Ok(())
+                        })
+                        .to_string(),
+                    );
+
+                    if let Some(workspace_metadata_packages) = &mut workspace_metadata_packages {
+                        workspace_metadata_packages.insert(package.name.as_str(), version.to_string().into());
+                    }
+                }
                 let cargo_toml_raw = std::fs::read_to_string(&package.manifest_path).context("read cargo toml")?;
                 let mut cargo_toml_edit = cargo_toml_raw.parse::<toml_edit::DocumentMut>().context("parse toml")?;
-                cargo_toml_edit["package"]["version"] = version.to_string().into();
+                if is_accepted_group {
+                    cargo_toml_edit["package"]["version"] = version.to_string().into();
+                }
+
+                tracing::debug!("checking deps");
+
                 for dep in &package.dependencies {
                     if dep.path.is_none() {
                         continue;
@@ -245,8 +358,13 @@ impl Update {
                         continue;
                     };
 
+                    if !check_run.is_accepted_group(pkg.group()) {
+                        continue;
+                    }
+
                     let depends_on = dep.req == pkg.unreleased_req();
                     if !depends_on && pkg.next_version().is_none_or(|vers| dep.req.matches(&vers)) {
+                        tracing::debug!("skipping version update on {}", dep.name);
                         continue;
                     }
 
@@ -270,37 +388,17 @@ impl Update {
                             }],
                         }
                         .to_string()
-                    } else if depends_on {
-                        pkg_version.to_string()
                     } else {
-                        let dep_versions = pkg.published_versions();
-                        let min_version = dep_versions
-                            .iter()
-                            .find(|v| dep.req.matches(&v.vers))
-                            .map(|v| &v.vers)
-                            .unwrap();
-
-                        let next_major = VersionBump::Major.next_semver(pkg_version);
-
-                        semver::VersionReq {
-                            comparators: vec![
-                                semver::Comparator {
-                                    op: semver::Op::GreaterEq,
-                                    major: min_version.major,
-                                    minor: Some(min_version.minor),
-                                    patch: Some(min_version.patch),
-                                    pre: min_version.pre.clone(),
-                                },
-                                semver::Comparator {
-                                    op: semver::Op::Less,
-                                    major: next_major.major,
-                                    minor: Some(next_major.minor),
-                                    patch: Some(next_major.patch),
-                                    pre: next_major.pre,
-                                },
-                            ],
+                        if !depends_on {
+                            if let Some((_, changelogs)) = changelogs.as_mut() {
+                                let mut log =
+                                    PackageChangeLog::new("chore", format!("bump {} to `{pkg_version}`", dep.name));
+                                log.breaking = package.is_dep_public(&dep.name);
+                                changelogs.push(log)
+                            }
                         }
-                        .to_string()
+
+                        pkg_version.to_string()
                     };
 
                     item.insert("version", version.into());
@@ -309,10 +407,38 @@ impl Update {
                 let cargo_toml = cargo_toml_edit.to_string();
                 if cargo_toml != cargo_toml_raw {
                     if !self.dry_run {
+                        tracing::debug!("updating {}", package.manifest_path);
                         std::fs::write(&package.manifest_path, cargo_toml).context("write cargo toml")?;
                     } else {
                         tracing::warn!("not modifying {} because dry-run", package.manifest_path);
                     }
+                }
+            }
+
+            if let Some((change_log_path_md, changelogs)) = changelogs {
+                update_change_log(
+                    &changelogs,
+                    &change_log_path_md,
+                    &package.name,
+                    version.as_ref(),
+                    package.last_published_version().map(|v| v.vers).as_ref(),
+                    self.dry_run,
+                )
+                .context("update")?;
+                if !self.dry_run {
+                    save_change_fragments(&mut change_fragments).context("save")?;
+                }
+                tracing::info!(package = %package.name, "updated change logs");
+            }
+        }
+
+        if let Some((workspace_manifest, workspace_manifest_str)) = workspace_manifest {
+            let workspace_manifest = workspace_manifest.to_string();
+            if workspace_manifest != workspace_manifest_str {
+                if self.dry_run {
+                    tracing::warn!("skipping write of {workspace_manifest_path}")
+                } else {
+                    std::fs::write(&workspace_manifest_path, workspace_manifest).context("write workspace metadata")?;
                 }
             }
         }
