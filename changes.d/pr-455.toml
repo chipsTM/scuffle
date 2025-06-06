@@ -1,6 +1,6 @@
 [[tinc]]
 category = "feat"
-description = "generate root module for including all protos"
+description = "allow generating root module which will include all protos"
 authors = ["@troykomodo"]
 
 [[tinc]]
