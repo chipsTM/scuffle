@@ -1,5 +1,5 @@
 [package]
-name = "scufflecloud-auth-server"
+name = "scufflecloud-core"
 edition = "2024"
 license = "AGPL-3.0"
 version = "0.1.0"

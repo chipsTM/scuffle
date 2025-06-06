@@ -38,7 +38,7 @@ members = [
   "crates/openapiv3_1",
   "crates/changelog",
   "cloud/proto",
-  "cloud/auth-server",
+  "cloud/core",
 ]
 
 resolver = "3"

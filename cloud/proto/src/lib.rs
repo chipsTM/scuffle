@@ -1,1 +1,1 @@
-tinc::include_proto!();
+tinc::include_proto!("scufflecloud.auth.v1");

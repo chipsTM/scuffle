@@ -3729,7 +3729,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "scufflecloud-auth-server"
+name = "scufflecloud-core"
 version = "0.1.0"
 dependencies = [
  "scuffle-workspace-hack",
