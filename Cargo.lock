@@ -3729,6 +3729,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "scufflecloud-core"
+version = "0.1.0"
+dependencies = [
+ "scuffle-workspace-hack",
+ "scufflecloud-proto",
+]
+
+[[package]]
+name = "scufflecloud-proto"
+version = "0.1.0"
+dependencies = [
+ "glob",
+ "scuffle-workspace-hack",
+ "tinc",
+ "tinc-build",
+]
+
+[[package]]
 name = "security-framework"
 version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

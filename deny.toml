@@ -14,6 +14,7 @@ allow = [
   "MPL-2.0",
 ]
 
+private.ignore = true
 unused-allowed-license = "warn"
 confidence-threshold = 0.95
 
