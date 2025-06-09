@@ -15,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4](https://github.com/ScuffleCloud/scuffle/releases/tag/tinc-v0.1.4) - 2025-06-09
+
+[View diff on diff.rs](https://diff.rs/tinc/0.1.3/tinc/0.1.4/Cargo.toml)
+
+### 🛠️ Non-breaking changes
+
+- feat: allow generating root module which will include all protos ([#455](https://github.com/scufflecloud/scuffle/pull/455)) (@troykomodo)
+- fix: fix codegen for non-message service inputs ([#455](https://github.com/scufflecloud/scuffle/pull/455)) (@troykomodo)
+
 ## [0.1.3](https://github.com/ScuffleCloud/scuffle/releases/tag/tinc-v0.1.3) - 2025-05-30
 
 [View diff on diff.rs](https://diff.rs/tinc/0.1.2/tinc/0.1.3/Cargo.toml)
