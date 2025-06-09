@@ -388,7 +388,7 @@ impl Package {
         if self.has_changed_since_publish().context("lookup commit")? {
             tracing::debug!("found git diff since last publish");
             self.report_change();
-        } else if  base_branch.is_some() {
+        } else if base_branch.is_some() {
             tracing::debug!("no released package change, but a branch diff");
             self.report_change();
         }

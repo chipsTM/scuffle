@@ -178,7 +178,7 @@ impl Update {
                                 .into_iter()
                                 .flatten()
                                 .for_each(|(pkg, dep)| {
-                                    if !dep.req.matches(&max_bump_version) || dep.req == package.unreleased_req()  {
+                                    if !dep.req.matches(&max_bump_version) || dep.req == package.unreleased_req() {
                                         let pkg = check_run.get_package(pkg).unwrap();
                                         if pkg.is_dep_public(&dep.name) && pkg.group() != package.group() {
                                             pkg.report_breaking_change();
