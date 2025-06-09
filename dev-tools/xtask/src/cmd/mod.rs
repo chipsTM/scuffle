@@ -4,7 +4,7 @@ mod dev_tools;
 mod power_set;
 mod release;
 
-const IGNORED_PACKAGES: &[&str] = &["scuffle-workspace-hack", "xtask"];
+const IGNORED_PACKAGES: &[&str] = &["scuffle-workspace-hack"];
 
 #[derive(Debug, Clone, clap::Subcommand)]
 pub enum Commands {

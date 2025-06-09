@@ -13,6 +13,7 @@ use crate::cmd::release::utils::{
     GitReleaseArtifact, LicenseKind, PackageError, PackageErrorMissing, PackageFile, VersionBump, WorkspaceReleaseMetadata,
     dep_kind_to_name,
 };
+use crate::cmd::IGNORED_PACKAGES;
 use crate::utils::{self, Command, DropRunner, cargo_cmd, concurrently, git_workdir_clean, relative_to};
 
 #[derive(Debug, Clone, clap::Parser)]
@@ -166,6 +167,7 @@ impl Check {
             let base_package_versions = metadata
                 .workspace_packages()
                 .into_iter()
+                .filter(|p| !IGNORED_PACKAGES.contains(&p.name.as_ref()))
                 .map(|p| (p.name.as_str().to_owned(), p.version.clone()))
                 .collect::<BTreeMap<_, _>>();
 
@@ -909,7 +911,7 @@ impl CheckRun {
         let packages = metadata
             .packages
             .iter()
-            .filter(|p| members.contains(&p.id))
+            .filter(|p| members.contains(&p.id) && !IGNORED_PACKAGES.contains(&p.name.as_ref()))
             .map(|p| Ok((p.name.as_ref().to_owned(), Package::new(&workspace_metadata, p.clone())?)))
             .collect::<anyhow::Result<BTreeMap<_, _>>>()?;
 
