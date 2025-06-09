@@ -1,0 +1,9 @@
+[[scuffle-changelog]]
+category = "chore"
+description = "fix new lint https://github.com/rust-lang/rust/pull/138677"
+authors = ["@lennartkloock"]
+
+[[scuffle-ffmpeg]]
+category = "chore"
+description = "fix new lint https://github.com/rust-lang/rust/pull/138677"
+authors = ["@lennartkloock"]
