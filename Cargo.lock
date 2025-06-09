@@ -3684,6 +3684,7 @@ dependencies = [
  "tracing-core",
  "tracing-log",
  "tracing-subscriber",
+ "unicode-xid",
  "windows-sys 0.52.0",
  "windows-sys 0.59.0",
 ]

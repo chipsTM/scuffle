@@ -1,4 +1,5 @@
-use std::{future::Future, hint::black_box};
+use std::future::Future;
+use std::hint::black_box;
 use std::marker::PhantomData;
 use std::sync::Arc;
 

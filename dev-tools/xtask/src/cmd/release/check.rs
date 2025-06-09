@@ -8,12 +8,12 @@ use cargo_metadata::camino::{Utf8Path, Utf8PathBuf};
 use cargo_metadata::{DependencyKind, semver};
 
 use super::utils::Package;
+use crate::cmd::IGNORED_PACKAGES;
 use crate::cmd::release::update::{Fragment, PackageChangeLog};
 use crate::cmd::release::utils::{
     GitReleaseArtifact, LicenseKind, PackageError, PackageErrorMissing, PackageFile, VersionBump, WorkspaceReleaseMetadata,
     dep_kind_to_name,
 };
-use crate::cmd::IGNORED_PACKAGES;
 use crate::utils::{self, Command, DropRunner, cargo_cmd, concurrently, git_workdir_clean, relative_to};
 
 #[derive(Debug, Clone, clap::Parser)]

@@ -477,8 +477,8 @@ mod tests {
             unreachable!()
         };
         assert_eq!(gauge.data_points().count(), 1);
-        assert_eq!(gauge.data_points().nth(0).unwrap().value(), 20);
-        assert_eq!(gauge.data_points().nth(0).unwrap().attributes().count(), 0);
+        assert_eq!(gauge.data_points().next().unwrap().value(), 20);
+        assert_eq!(gauge.data_points().next().unwrap().attributes().count(), 0);
     }
 
     #[test]
@@ -662,8 +662,8 @@ mod tests {
             unreachable!()
         };
         assert_eq!(sum.data_points().count(), 1);
-        assert_eq!(sum.data_points().nth(0).unwrap().value(), 2);
-        assert_eq!(sum.data_points().nth(0).unwrap().attributes().count(), 0);
+        assert_eq!(sum.data_points().next().unwrap().value(), 2);
+        assert_eq!(sum.data_points().next().unwrap().attributes().count(), 0);
     }
 
     #[test]
@@ -687,8 +687,8 @@ mod tests {
             unreachable!()
         };
         assert_eq!(gauge.data_points().count(), 1);
-        assert_eq!(gauge.data_points().nth(0).unwrap().value(), 0);
-        assert_eq!(gauge.data_points().nth(0).unwrap().attributes().count(), 0);
+        assert_eq!(gauge.data_points().next().unwrap().value(), 0);
+        assert_eq!(gauge.data_points().next().unwrap().attributes().count(), 0);
     }
 
     #[test]
@@ -746,8 +746,8 @@ mod tests {
         };
 
         assert_eq!(histogram_data.data_points().count(), 1);
-        assert_eq!(histogram_data.data_points().nth(0).unwrap().sum(), 1.5);
-        assert_eq!(histogram_data.data_points().nth(0).unwrap().attributes().count(), 0);
+        assert_eq!(histogram_data.data_points().next().unwrap().sum(), 1.5);
+        assert_eq!(histogram_data.data_points().next().unwrap().attributes().count(), 0);
     }
 
     #[test]
