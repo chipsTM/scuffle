@@ -28,10 +28,10 @@ thiserror = { optional = true, version = "2" }
 tokio = { default-features = false, features = ["rt"], optional = true, version = "1" }
 tracing = "0.1"
 
-opentelemetry = { optional = true, version = "0.29" }
-opentelemetry-appender-tracing = { optional = true, version = "0.29" }
-opentelemetry_sdk = { optional = true, version = "0.29" }
-tracing-opentelemetry = { optional = true, version = "0.30" }
+opentelemetry = { optional = true, version = "0.30" }
+opentelemetry-appender-tracing = { optional = true, version = "0.30" }
+opentelemetry_sdk = { optional = true, version = "0.30" }
+tracing-opentelemetry = { optional = true, version = "0.31" }
 
 document-features = { optional = true, version = "0.2" }
 scuffle-bootstrap = { path = "..", version = "0.1.3" }

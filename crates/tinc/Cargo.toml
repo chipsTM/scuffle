@@ -43,7 +43,7 @@ serde_repr = "0.1"
 chrono = { features = ["serde"], version = "0.4.36" }
 linear-map = "1.2.0"
 linkme = "0.3"
-mediatype = "0.19.20"
+mediatype = "0.20"
 num-traits = "0.2.19"
 regex = "1"
 serde_qs = "0.15.0"

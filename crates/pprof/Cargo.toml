@@ -27,7 +27,7 @@ scuffle-changelog = { optional = true, path = "../changelog", version = "0.1.0" 
 scuffle-workspace-hack.workspace = true
 
 [target.'cfg(unix)'.dependencies]
-pprof = { version = "0.14", features = ["prost-codec"] }
+pprof = { version = "0.15", features = ["prost-codec"] }
 flate2 = "1.0"
 thiserror = "2"
 
