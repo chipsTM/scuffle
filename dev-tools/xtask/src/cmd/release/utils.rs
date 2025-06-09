@@ -898,6 +898,7 @@ impl Package {
         if breaking {
             self.report_breaking_change();
         }
+        tracing::debug!(breaking = breaking, "cargo-semver-checks-output: {output}");
         self.data.lock().unwrap().semver_output = Some((breaking, output));
     }
 

@@ -178,9 +178,9 @@ impl Update {
                                 .into_iter()
                                 .flatten()
                                 .for_each(|(pkg, dep)| {
-                                    if !dep.req.matches(&max_bump_version) || dep.req == package.unreleased_req() {
+                                    if !dep.req.matches(&max_bump_version) || dep.req == package.unreleased_req()  {
                                         let pkg = check_run.get_package(pkg).unwrap();
-                                        if pkg.is_dep_public(&dep.name) {
+                                        if pkg.is_dep_public(&dep.name) && pkg.group() != package.group() {
                                             pkg.report_breaking_change();
                                         } else {
                                             pkg.report_change();
@@ -281,9 +281,6 @@ impl Update {
                     None
                 }
             });
-            if !self.changelogs_only && version.is_none() {
-                continue;
-            }
 
             release_count += 1;
 
@@ -303,42 +300,43 @@ impl Update {
             };
 
             if !self.changelogs_only {
-                let version = version.as_ref().unwrap();
-                if is_accepted_group {
-                    pr_body.push_str(
-                        &fmtools::fmt(|mut f| {
-                            let mut f = indent_write::fmt::IndentWriter::new("  ", &mut f);
-                            write!(f, "* `{}`: ", package.name)?;
-                            let last_published = package.last_published_version();
-                            f.write_str(match &last_published {
-                                None => " 📦 **New Crate**",
-                                Some(v) if vers_to_comp(v.vers.clone()).matches(version) => " ✨ **Minor**",
-                                Some(_) => " 🚀 **Major**",
-                            })?;
-
-                            let mut f = indent_write::fmt::IndentWriter::new("  ", f);
-                            match &last_published {
-                                Some(base) => write!(f, "\n* Version: **`{}`** ➡️ **`{version}`**", base.vers)?,
-                                None => write!(f, "\n* Version: **`{version}`**")?,
-                            }
-
-                            if package.group() != package.name.as_str() {
-                                write!(f, " (group: **`{}`**)", package.group())?;
-                            }
-                            f.write_str("\n")?;
-                            Ok(())
-                        })
-                        .to_string(),
-                    );
-
-                    if let Some(workspace_metadata_packages) = &mut workspace_metadata_packages {
-                        workspace_metadata_packages.insert(package.name.as_str(), version.to_string().into());
-                    }
-                }
                 let cargo_toml_raw = std::fs::read_to_string(&package.manifest_path).context("read cargo toml")?;
                 let mut cargo_toml_edit = cargo_toml_raw.parse::<toml_edit::DocumentMut>().context("parse toml")?;
-                if is_accepted_group {
-                    cargo_toml_edit["package"]["version"] = version.to_string().into();
+
+                if let Some(version) = version.as_ref() {
+                    if is_accepted_group {
+                        pr_body.push_str(
+                            &fmtools::fmt(|mut f| {
+                                let mut f = indent_write::fmt::IndentWriter::new("  ", &mut f);
+                                write!(f, "* `{}`: ", package.name)?;
+                                let last_published = package.last_published_version();
+                                f.write_str(match &last_published {
+                                    None => " 📦 **New Crate**",
+                                    Some(v) if vers_to_comp(v.vers.clone()).matches(version) => " ✨ **Minor**",
+                                    Some(_) => " 🚀 **Major**",
+                                })?;
+
+                                let mut f = indent_write::fmt::IndentWriter::new("  ", f);
+                                match &last_published {
+                                    Some(base) => write!(f, "\n* Version: **`{}`** ➡️ **`{version}`**", base.vers)?,
+                                    None => write!(f, "\n* Version: **`{version}`**")?,
+                                }
+
+                                if package.group() != package.name.as_str() {
+                                    write!(f, " (group: **`{}`**)", package.group())?;
+                                }
+                                f.write_str("\n")?;
+                                Ok(())
+                            })
+                            .to_string(),
+                        );
+
+                        if let Some(workspace_metadata_packages) = &mut workspace_metadata_packages {
+                            workspace_metadata_packages.insert(package.name.as_str(), version.to_string().into());
+                        }
+
+                        cargo_toml_edit["package"]["version"] = version.to_string().into();
+                    }
                 }
 
                 tracing::debug!("checking deps");
