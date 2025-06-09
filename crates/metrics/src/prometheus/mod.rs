@@ -173,6 +173,13 @@ fn encode_aggregated_metrics(
             MetricData::ExponentialHistogram(_) => {
                 // TODO: support native histograms when https://github.com/prometheus/client_rust/issues/150
                 // is merged.
+                #[cfg(feature = "tracing")]
+                tracing::warn!(
+                    name = "prometheus_collector_unknown_metric_type",
+                    target = env!("CARGO_PKG_NAME"),
+                    metric_name = metric.name(),
+                    "exponential histograms are not supported"
+                );
                 return Ok(());
             }
             MetricData::Gauge(gauge) => {
