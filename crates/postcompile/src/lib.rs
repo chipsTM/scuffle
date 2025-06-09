@@ -256,7 +256,7 @@ fn generate_cargo_toml(config: &Config, crate_name: &str) -> std::io::Result<(St
                 _ => match metadata
                     .packages
                     .iter()
-                    .find(|p| p.name == config.package_name)
+                    .find(|p| p.name.as_ref() == config.package_name)
                     .map(|p| p.edition)
                 {
                     Some(cargo_metadata::Edition::E2015) => {
