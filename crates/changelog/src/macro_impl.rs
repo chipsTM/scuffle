@@ -14,7 +14,7 @@ struct ChangeLogEntry<'a> {
 static HEADING_REGEX: std::sync::LazyLock<regex::Regex> =
     std::sync::LazyLock::new(|| regex::Regex::new(r"^## \[([^]]+)\](?:\(([^)]+)\))?(?: - (\d{4}-\d{2}-\d{2}))?$").unwrap());
 
-fn parse_changelog(changelog: &str) -> Result<Vec<ChangeLogEntry>, String> {
+fn parse_changelog(changelog: &str) -> Result<Vec<ChangeLogEntry<'_>>, String> {
     let mut entries = Vec::new();
     let mut lines_iter = changelog.lines().peekable();
     while let Some(line) = lines_iter.next() {
