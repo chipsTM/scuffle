@@ -1,6 +1,6 @@
 [package]
 name = "scuffle-changelog"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "A helper macro to embed changelogs in crate docs."
 repository = "https://github.com/scufflecloud/scuffle"

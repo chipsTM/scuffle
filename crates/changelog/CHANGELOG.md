@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/ScuffleCloud/scuffle/releases/tag/scuffle-changelog-v0.1.1) - 2025-06-11
+
+[View diff on diff.rs](https://diff.rs/scuffle-changelog/0.1.0/scuffle-changelog/0.1.1/Cargo.toml)
+
+### 🛠️ Non-breaking changes
+
+- chore: fix new lint `mismatched-lifetime-syntaxes` ([#492](https://github.com/scufflecloud/scuffle/pull/492)) (@lennartkloock)
+
 ## [0.1.0](https://github.com/ScuffleCloud/scuffle/releases/tag/scuffle-changelog-v0.1.0) - 2025-05-14
 
 ### 🛠️ Non-breaking changes

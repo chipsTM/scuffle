@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6](https://github.com/ScuffleCloud/scuffle/releases/tag/scuffle-bootstrap-v0.1.6) - 2025-06-11
+
+[View diff on diff.rs](https://diff.rs/scuffle-bootstrap/0.1.5/scuffle-bootstrap/0.1.6/Cargo.toml)
+
+### 🛠️ Non-breaking changes
+
+- chore: refactor the telemetry sub-crate out into parent directory ([#491](https://github.com/scufflecloud/scuffle/pull/491)) (@troykomodo)
+
 ## [0.1.5](https://github.com/ScuffleCloud/scuffle/releases/tag/scuffle-bootstrap-v0.1.5) - 2025-05-30
 
 [View diff on diff.rs](https://diff.rs/scuffle-bootstrap/0.1.4/scuffle-bootstrap/0.1.5/Cargo.toml)
