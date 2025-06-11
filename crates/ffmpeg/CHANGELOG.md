@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5](https://github.com/ScuffleCloud/scuffle/releases/tag/scuffle-ffmpeg-v0.3.5) - 2025-06-11
+
+[View diff on diff.rs](https://diff.rs/scuffle-ffmpeg/0.3.4/scuffle-ffmpeg/0.3.5/Cargo.toml)
+
+### 🛠️ Non-breaking changes
+
+- chore: fix new lint `mismatched-lifetime-syntaxes` ([#492](https://github.com/scufflecloud/scuffle/pull/492)) (@lennartkloock)
+
 ## [0.3.4](https://github.com/ScuffleCloud/scuffle/releases/tag/scuffle-ffmpeg-v0.3.4) - 2025-05-30
 
 [View diff on diff.rs](https://diff.rs/scuffle-ffmpeg/0.3.3/scuffle-ffmpeg/0.3.4/Cargo.toml)

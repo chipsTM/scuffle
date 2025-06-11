@@ -2455,7 +2455,7 @@ dependencies = [
 
 [[package]]
 name = "postcompile"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "cargo-manifest",
  "cargo_metadata",
@@ -3194,7 +3194,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-batching"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "criterion",
  "document-features",
@@ -3208,7 +3208,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-bootstrap"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "anyhow",
  "document-features",
@@ -3233,7 +3233,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-bootstrap-derive"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "darling",
  "insta",
@@ -3246,7 +3246,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-bootstrap-telemetry"
-version = "0.2.4"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "bytes",
@@ -3288,7 +3288,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-changelog"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "convert_case",
  "fmtools",
@@ -3328,7 +3328,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-ffmpeg"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "arc-swap",
  "bon",
@@ -3455,7 +3455,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-metrics"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "document-features",
  "insta",
@@ -3474,7 +3474,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-metrics-derive"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -3506,7 +3506,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-pprof"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "document-features",
  "flate2",
@@ -4136,7 +4136,7 @@ dependencies = [
 
 [[package]]
 name = "tinc"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -4170,7 +4170,7 @@ dependencies = [
 
 [[package]]
 name = "tinc-build"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4205,7 +4205,7 @@ dependencies = [
 
 [[package]]
 name = "tinc-cel"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "bytes",
  "chrono",
@@ -4225,7 +4225,7 @@ dependencies = [
 
 [[package]]
 name = "tinc-derive"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4257,7 +4257,7 @@ dependencies = [
 
 [[package]]
 name = "tinc-pb-prost"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "document-features",
  "prost 0.13.5",

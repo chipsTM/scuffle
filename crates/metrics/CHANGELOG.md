@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0](https://github.com/ScuffleCloud/scuffle/releases/tag/scuffle-metrics-v0.4.0) - 2025-06-11
+
+[View diff on diff.rs](https://diff.rs/scuffle-metrics/0.3.2/scuffle-metrics/0.4.0/Cargo.toml)
+
+### ⚠️ Breaking changes
+
+- chore: bump opentelemetry sdk to `0.30` ([#491](https://github.com/scufflecloud/scuffle/pull/491)) (@troykomodo)
+
 ## [0.3.2](https://github.com/ScuffleCloud/scuffle/releases/tag/scuffle-metrics-v0.3.2) - 2025-05-30
 
 [View diff on diff.rs](https://diff.rs/scuffle-metrics/0.3.1/scuffle-metrics/0.3.2/Cargo.toml)

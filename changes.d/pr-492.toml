@@ -1,9 +1,0 @@
-[[scuffle-changelog]]
-category = "chore"
-description = "fix new lint `mismatched-lifetime-syntaxes`"
-authors = ["@lennartkloock"]
-
-[[scuffle-ffmpeg]]
-category = "chore"
-description = "fix new lint `mismatched-lifetime-syntaxes`"
-authors = ["@lennartkloock"]
