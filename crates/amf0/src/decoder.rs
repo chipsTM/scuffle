@@ -21,8 +21,12 @@ pub struct Amf0Decoder<R> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ObjectHeader<'a> {
     Object,
-    TypedObject { name: StringCow<'a> },
-    EcmaArray { size: u32 },
+    TypedObject {
+        name: StringCow<'a>,
+    },
+    EcmaArray {
+        size: u32,
+    },
 }
 
 impl<B> Amf0Decoder<scuffle_bytes_util::zero_copy::BytesBuf<B>>

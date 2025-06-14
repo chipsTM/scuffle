@@ -41,7 +41,10 @@ struct GitReleaseMeta {
 #[derive(serde_derive::Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case", tag = "kind")]
 pub enum GitReleaseArtifact {
-    File { path: String, name: Option<String> },
+    File {
+        path: String,
+        name: Option<String>,
+    },
 }
 
 #[derive(serde_derive::Deserialize, Default, Debug, Clone)]
