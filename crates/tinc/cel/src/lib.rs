@@ -38,11 +38,19 @@ pub enum CelError<'a> {
         op: &'static str,
     },
     #[error("bad unary operation: {op}{value}")]
-    BadUnaryOperation { op: &'static str, value: CelValue<'a> },
+    BadUnaryOperation {
+        op: &'static str,
+        value: CelValue<'a>,
+    },
     #[error("number out of range when performing {op}")]
-    NumberOutOfRange { op: &'static str },
+    NumberOutOfRange {
+        op: &'static str,
+    },
     #[error("bad access when trying to member {member} on {container}")]
-    BadAccess { member: CelValue<'a>, container: CelValue<'a> },
+    BadAccess {
+        member: CelValue<'a>,
+        container: CelValue<'a>,
+    },
 }
 
 #[derive(Clone, Debug)]

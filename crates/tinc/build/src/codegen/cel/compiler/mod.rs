@@ -306,11 +306,20 @@ pub(crate) enum CompileError {
     #[error("not implemented")]
     NotImplemented,
     #[error("invalid syntax: {message} - {syntax}")]
-    InvalidSyntax { message: String, syntax: &'static str },
+    InvalidSyntax {
+        message: String,
+        syntax: &'static str,
+    },
     #[error("type conversion error on type {ty:?}: {message}")]
-    TypeConversion { ty: Box<CelType>, message: String },
+    TypeConversion {
+        ty: Box<CelType>,
+        message: String,
+    },
     #[error("member access error on type {ty:?}: {message}")]
-    MemberAccess { ty: Box<CelType>, message: String },
+    MemberAccess {
+        ty: Box<CelType>,
+        message: String,
+    },
     #[error("variable not found: {0}")]
     VariableNotFound(String),
     #[error("function not found: {0}")]
