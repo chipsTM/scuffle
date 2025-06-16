@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5](https://github.com/ScuffleCloud/scuffle/releases/tag/scuffle-mp4-v0.1.5) - 2025-06-16
+
+[View diff on diff.rs](https://diff.rs/scuffle-mp4/0.1.4/scuffle-mp4/0.1.5/Cargo.toml)
+
+### 🛠️ Non-breaking changes
+
+- chore: update fmt style ([#496](https://github.com/scufflecloud/scuffle/pull/496)) (@troykomodo)
+
 ## [0.1.4](https://github.com/ScuffleCloud/scuffle/releases/tag/scuffle-mp4-v0.1.4) - 2025-05-17
 
 [View diff on diff.rs](https://diff.rs/scuffle-mp4/0.1.3/scuffle-mp4/0.1.4/Cargo.toml)

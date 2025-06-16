@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6](https://github.com/ScuffleCloud/scuffle/releases/tag/tinc-v0.1.6) - 2025-06-16
+
+[View diff on diff.rs](https://diff.rs/tinc/0.1.5/tinc/0.1.6/Cargo.toml)
+
+### 🛠️ Non-breaking changes
+
+- chore: update fmt style ([#496](https://github.com/scufflecloud/scuffle/pull/496)) (@troykomodo)
+
 ## [0.1.5](https://github.com/ScuffleCloud/scuffle/releases/tag/tinc-v0.1.5) - 2025-06-11
 
 [View diff on diff.rs](https://diff.rs/tinc/0.1.4/tinc/0.1.5/Cargo.toml)
