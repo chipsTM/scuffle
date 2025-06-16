@@ -3159,7 +3159,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-amf0"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "byteorder",
  "bytes",
@@ -3482,7 +3482,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-mp4"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "byteorder",
  "bytes",
@@ -4131,7 +4131,7 @@ dependencies = [
 
 [[package]]
 name = "tinc"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -4165,7 +4165,7 @@ dependencies = [
 
 [[package]]
 name = "tinc-build"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4200,7 +4200,7 @@ dependencies = [
 
 [[package]]
 name = "tinc-cel"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "bytes",
  "chrono",
@@ -4220,7 +4220,7 @@ dependencies = [
 
 [[package]]
 name = "tinc-derive"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4252,7 +4252,7 @@ dependencies = [
 
 [[package]]
 name = "tinc-pb-prost"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "document-features",
  "prost 0.13.5",
