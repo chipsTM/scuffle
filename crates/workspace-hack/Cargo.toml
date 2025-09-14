@@ -50,6 +50,7 @@ libc = { version = "0.2" }
 log = { version = "0.4", default-features = false, features = ["std"] }
 memchr = { version = "2" }
 num-traits = { version = "0.2" }
+once_cell = { version = "1" }
 opentelemetry = { version = "0.30", features = ["spec_unstable_logs_enabled"] }
 opentelemetry_sdk = { version = "0.30", features = ["experimental_metrics_custom_reader", "spec_unstable_logs_enabled"] }
 percent-encoding = { version = "2" }
@@ -60,12 +61,13 @@ prost-types = { version = "0.13" }
 quote = { version = "1" }
 rand = { version = "0.9" }
 regex = { version = "1" }
-regex-automata = { version = "0.4", default-features = false, features = ["dfa-onepass", "hybrid", "meta", "nfa-backtrack", "perf", "unicode"] }
+regex-automata = { version = "0.4", default-features = false, features = ["dfa-build", "dfa-onepass", "hybrid", "meta", "nfa-backtrack", "perf", "std", "unicode"] }
 regex-syntax = { version = "0.8" }
 reqwest = { version = "0.12", default-features = false, features = ["http2", "http3", "rustls-tls"] }
 rusty_ffmpeg = { version = "0.16", default-features = false, features = ["link_system_ffmpeg", "link_vcpkg_ffmpeg"] }
 semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["alloc", "derive"] }
+serde_core = { version = "1", default-features = false, features = ["alloc", "result", "std"] }
 serde_json = { version = "1", features = ["raw_value", "unbounded_depth"] }
 smallvec = { version = "1", default-features = false, features = ["const_new"] }
 syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
@@ -74,8 +76,6 @@ thiserror = { version = "2" }
 tokio = { version = "1", features = ["full", "test-util"] }
 tokio-stream = { version = "0.1", features = ["net"] }
 tokio-util = { version = "0.7", features = ["codec", "io"] }
-toml = { version = "0.8", features = ["preserve_order"] }
-toml_edit = { version = "0.22", default-features = false, features = ["display", "parse", "serde"] }
 tower = { version = "0.5", default-features = false, features = ["balance", "buffer", "limit", "log"] }
 tracing = { version = "0.1", features = ["log"] }
 tracing-core = { version = "0.1" }
@@ -118,6 +118,7 @@ libc = { version = "0.2" }
 log = { version = "0.4", default-features = false, features = ["std"] }
 memchr = { version = "2" }
 num-traits = { version = "0.2" }
+once_cell = { version = "1" }
 opentelemetry = { version = "0.30", features = ["spec_unstable_logs_enabled"] }
 opentelemetry_sdk = { version = "0.30", features = ["experimental_metrics_custom_reader", "spec_unstable_logs_enabled"] }
 percent-encoding = { version = "2" }
@@ -128,12 +129,13 @@ prost-types = { version = "0.13" }
 quote = { version = "1" }
 rand = { version = "0.9" }
 regex = { version = "1" }
-regex-automata = { version = "0.4", default-features = false, features = ["dfa-onepass", "hybrid", "meta", "nfa-backtrack", "perf", "unicode"] }
+regex-automata = { version = "0.4", default-features = false, features = ["dfa-build", "dfa-onepass", "hybrid", "meta", "nfa-backtrack", "perf", "std", "unicode"] }
 regex-syntax = { version = "0.8" }
 reqwest = { version = "0.12", default-features = false, features = ["http2", "http3", "rustls-tls"] }
 rusty_ffmpeg = { version = "0.16", default-features = false, features = ["link_system_ffmpeg", "link_vcpkg_ffmpeg"] }
 semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["alloc", "derive"] }
+serde_core = { version = "1", default-features = false, features = ["alloc", "result", "std"] }
 serde_json = { version = "1", features = ["raw_value", "unbounded_depth"] }
 smallvec = { version = "1", default-features = false, features = ["const_new"] }
 syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
@@ -142,8 +144,6 @@ thiserror = { version = "2" }
 tokio = { version = "1", features = ["full", "test-util"] }
 tokio-stream = { version = "0.1", features = ["net"] }
 tokio-util = { version = "0.7", features = ["codec", "io"] }
-toml = { version = "0.8", features = ["preserve_order"] }
-toml_edit = { version = "0.22", default-features = false, features = ["display", "parse", "serde"] }
 tower = { version = "0.5", default-features = false, features = ["balance", "buffer", "limit", "log"] }
 tracing = { version = "0.1", features = ["log"] }
 tracing-core = { version = "0.1" }
@@ -165,7 +165,7 @@ rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", 
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
 stable_deref_trait = { version = "1" }
 tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "ring", "tls12"] }
-tower = { version = "0.5", default-features = false, features = ["timeout"] }
+tower = { version = "0.5", default-features = false, features = ["retry", "timeout"] }
 
 [target.x86_64-unknown-linux-gnu.build-dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
@@ -182,7 +182,7 @@ rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", 
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
 stable_deref_trait = { version = "1" }
 tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "ring", "tls12"] }
-tower = { version = "0.5", default-features = false, features = ["timeout"] }
+tower = { version = "0.5", default-features = false, features = ["retry", "timeout"] }
 
 [target.aarch64-unknown-linux-gnu.dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
@@ -198,7 +198,7 @@ rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", 
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
 stable_deref_trait = { version = "1" }
 tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "ring", "tls12"] }
-tower = { version = "0.5", default-features = false, features = ["timeout"] }
+tower = { version = "0.5", default-features = false, features = ["retry", "timeout"] }
 
 [target.aarch64-unknown-linux-gnu.build-dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
@@ -215,7 +215,7 @@ rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", 
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
 stable_deref_trait = { version = "1" }
 tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "ring", "tls12"] }
-tower = { version = "0.5", default-features = false, features = ["timeout"] }
+tower = { version = "0.5", default-features = false, features = ["retry", "timeout"] }
 
 [target.x86_64-apple-darwin.dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
@@ -231,7 +231,7 @@ rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", 
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
 stable_deref_trait = { version = "1" }
 tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "ring", "tls12"] }
-tower = { version = "0.5", default-features = false, features = ["timeout"] }
+tower = { version = "0.5", default-features = false, features = ["retry", "timeout"] }
 
 [target.x86_64-apple-darwin.build-dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
@@ -248,7 +248,7 @@ rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", 
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
 stable_deref_trait = { version = "1" }
 tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "ring", "tls12"] }
-tower = { version = "0.5", default-features = false, features = ["timeout"] }
+tower = { version = "0.5", default-features = false, features = ["retry", "timeout"] }
 
 [target.aarch64-apple-darwin.dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
@@ -264,7 +264,7 @@ rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", 
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
 stable_deref_trait = { version = "1" }
 tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "ring", "tls12"] }
-tower = { version = "0.5", default-features = false, features = ["timeout"] }
+tower = { version = "0.5", default-features = false, features = ["retry", "timeout"] }
 
 [target.aarch64-apple-darwin.build-dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
@@ -281,7 +281,7 @@ rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", 
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
 stable_deref_trait = { version = "1" }
 tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "ring", "tls12"] }
-tower = { version = "0.5", default-features = false, features = ["timeout"] }
+tower = { version = "0.5", default-features = false, features = ["retry", "timeout"] }
 
 [target.x86_64-pc-windows-msvc.dependencies]
 getrandom = { version = "0.3", default-features = false, features = ["std"] }
@@ -295,9 +295,11 @@ rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", 
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "ring", "tls12"] }
 tokio-stream = { version = "0.1", default-features = false, features = ["sync"] }
-tower = { version = "0.5", default-features = false, features = ["timeout"] }
-windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Networking_WinSock", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
-windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
+tower = { version = "0.5", default-features = false, features = ["retry", "timeout"] }
+windows-sys-4db8c43aad08e7ae = { package = "windows-sys", version = "0.60", features = ["Win32_Networking_WinSock", "Win32_System_Console", "Win32_System_IO"] }
+windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Networking_WinSock", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse"] }
+windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
+windows-sys-d4189bed749088b6 = { package = "windows-sys", version = "0.61", features = ["Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_SystemInformation"] }
 
 [target.x86_64-pc-windows-msvc.build-dependencies]
 cc = { version = "1", default-features = false, features = ["parallel"] }
@@ -312,9 +314,11 @@ rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", 
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "ring", "tls12"] }
 tokio-stream = { version = "0.1", default-features = false, features = ["sync"] }
-tower = { version = "0.5", default-features = false, features = ["timeout"] }
-windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Networking_WinSock", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
-windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
+tower = { version = "0.5", default-features = false, features = ["retry", "timeout"] }
+windows-sys-4db8c43aad08e7ae = { package = "windows-sys", version = "0.60", features = ["Win32_Networking_WinSock", "Win32_System_Console", "Win32_System_IO"] }
+windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Networking_WinSock", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse"] }
+windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
+windows-sys-d4189bed749088b6 = { package = "windows-sys", version = "0.61", features = ["Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_SystemInformation"] }
 
 [target.x86_64-pc-windows-gnu.dependencies]
 getrandom = { version = "0.3", default-features = false, features = ["std"] }
@@ -328,9 +332,11 @@ rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", 
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "ring", "tls12"] }
 tokio-stream = { version = "0.1", default-features = false, features = ["sync"] }
-tower = { version = "0.5", default-features = false, features = ["timeout"] }
-windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Networking_WinSock", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
-windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
+tower = { version = "0.5", default-features = false, features = ["retry", "timeout"] }
+windows-sys-4db8c43aad08e7ae = { package = "windows-sys", version = "0.60", features = ["Win32_Networking_WinSock", "Win32_System_Console", "Win32_System_IO"] }
+windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Networking_WinSock", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse"] }
+windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
+windows-sys-d4189bed749088b6 = { package = "windows-sys", version = "0.61", features = ["Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_SystemInformation"] }
 
 [target.x86_64-pc-windows-gnu.build-dependencies]
 cc = { version = "1", default-features = false, features = ["parallel"] }
@@ -345,8 +351,10 @@ rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", 
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "ring", "tls12"] }
 tokio-stream = { version = "0.1", default-features = false, features = ["sync"] }
-tower = { version = "0.5", default-features = false, features = ["timeout"] }
-windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Networking_WinSock", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
-windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
+tower = { version = "0.5", default-features = false, features = ["retry", "timeout"] }
+windows-sys-4db8c43aad08e7ae = { package = "windows-sys", version = "0.60", features = ["Win32_Networking_WinSock", "Win32_System_Console", "Win32_System_IO"] }
+windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Networking_WinSock", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse"] }
+windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
+windows-sys-d4189bed749088b6 = { package = "windows-sys", version = "0.61", features = ["Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_SystemInformation"] }
 
 ### END HAKARI SECTION
